@@ -151,14 +151,21 @@ export async function callCozeChat(
           console.log(`[COZE API] 消息${idx}: role=${msg.role}, type=${msg.type}, content=${msg.content?.substring(0, 150)}...`);
         });
         
-        // 优先查找 type='answer' 的消息（这是 COZE Agent 的最终回复）
+        // 优先查找 type='tool_response' 的消息（包含完整的结构化数据）
+        const toolResponseMsg = messages.find((m: any) => m.type === 'tool_response');
+        if (toolResponseMsg) {
+          console.log('[COZE API] 找到工具响应消息:', toolResponseMsg.content?.substring(0, 200));
+          return toolResponseMsg.content || '';
+        }
+        
+        // 其次查找 type='answer' 的消息（这是 COZE Agent 的最终回复）
         const answerMsg = messages.find((m: any) => m.type === 'answer' || m.type === 'final');
         if (answerMsg) {
           console.log('[COZE API] 找到最终回复消息:', answerMsg.content?.substring(0, 200));
           return answerMsg.content || '';
         }
         
-        // 其次查找 role='assistant' 的消息
+        // 最后查找 role='assistant' 的消息
         const assistantMsg = messages.find((m: any) => m.role === 'assistant');
         if (assistantMsg) {
           console.log('[COZE API] 找到助手消息:', assistantMsg.content?.substring(0, 200));

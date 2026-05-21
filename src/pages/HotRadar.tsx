@@ -99,6 +99,16 @@ export function HotRadar() {
           url: item.url || undefined,
         }));
       }
+      
+      if (parsed.items && Array.isArray(parsed.items)) {
+        return parsed.items.map((item: any, index: number) => ({
+          rank: item.rank || index + 1,
+          title: item.title || '',
+          platform: selectedPlatform === 'all' ? '综合' : selectedPlatform,
+          heatScore: parseInt(item.hot_value || item.heatScore || item.heat || '0'),
+          url: item.url || undefined,
+        }));
+      }
     } catch {
       // 不是 JSON，尝试解析文本格式
     }

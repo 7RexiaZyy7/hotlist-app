@@ -29,7 +29,7 @@ export interface CozeChatResponse {
   }>;
 }
 
-const API_BASE = '/api';
+const API_BASE = 'https://api.coze.cn';
 
 export async function callCozeChat(
   config: CozeConfig,

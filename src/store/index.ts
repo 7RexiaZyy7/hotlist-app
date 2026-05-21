@@ -63,9 +63,15 @@ interface AppState {
   setActivePage: (page: string) => void;
 }
 
+const DEFAULT_CONFIG: CozeConfig = {
+  botId: '7639197902187020297',
+  token: 'pat_v9jyB55cV1xXHfIkouplLSqWFjh8bhmupHDtx5o7cg8oct2Fpyp7jwS2lBHOZU3h',
+  baseUrl: '/api',
+};
+
 export const useAppStore = create<AppState>()((set) => ({
-  cozeConfig: null,
-  isConnected: false,
+  cozeConfig: DEFAULT_CONFIG,
+  isConnected: true,
   setCozeConfig: (config) => set({ cozeConfig: config }),
   setConnected: (connected) => set({ isConnected: connected }),
 

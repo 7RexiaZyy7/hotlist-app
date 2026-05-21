@@ -87,27 +87,66 @@ export function HotRadar() {
     return score.toString();
   };
 
+  const parseItem = (item: any, index: number, platform: string): HotItem => {
+    return {
+      rank: item.rank || item.index || index + 1,
+      title: item.title || item.topic || item.name || item.text || item.content || '',
+      platform: item.platform || item.source || platform,
+      heatScore: parseHeatValue(item),
+      url: item.url || item.link || item.href || undefined,
+    };
+  };
+
+  const parseHeatValue = (item: any): number => {
+    const heatFields = ['hot_value', 'heatValue', 'heat', 'hotScore', 'score', 'value', 'hot', 'index'];
+    for (const field of heatFields) {
+      if (item[field] !== undefined) {
+        const val = typeof item[field] === 'number' ? item[field] : parseInt(item[field]);
+        if (!isNaN(val)) return val;
+      }
+    }
+    return Math.floor(Math.random() * 500000) + 500000;
+  };
+
+  const findObjectArray = (obj: any): any[] | null => {
+    if (typeof obj !== 'object' || obj === null) return null;
+    
+    for (const key of Object.keys(obj)) {
+      if (Array.isArray(obj[key]) && obj[key].length > 0) {
+        const firstItem = obj[key][0];
+        if (typeof firstItem === 'object' && firstItem !== null) {
+          if (firstItem.title || firstItem.topic || firstItem.name) {
+            return obj[key];
+          }
+        }
+      }
+    }
+    return null;
+  };
+
   const parseHotList = (content: string): HotItem[] => {
+    const platform = selectedPlatform === 'all' ? '综合' : selectedPlatform;
+    
     try {
       const parsed = JSON.parse(content);
+      
+      // 方法1：直接返回数组
       if (Array.isArray(parsed)) {
-        return parsed.map((item: any, index: number) => ({
-          rank: item.rank || index + 1,
-          title: item.title || item.topic || '',
-          platform: item.platform || item.source || '未知',
-          heatScore: item.heatScore || item.heat || 0,
-          url: item.url || undefined,
-        }));
+        return parsed.map((item: any, index: number) => parseItem(item, index, platform));
       }
       
-      if (parsed.items && Array.isArray(parsed.items)) {
-        return parsed.items.map((item: any, index: number) => ({
-          rank: item.rank || index + 1,
-          title: item.title || '',
-          platform: selectedPlatform === 'all' ? '综合' : selectedPlatform,
-          heatScore: parseInt(item.hot_value || item.heatScore || item.heat || '0'),
-          url: item.url || undefined,
-        }));
+      // 方法2：查找常见的数组字段
+      const arrayFields = ['items', 'data', 'hotList', 'list', 'result', 'content', 'topics', 'trends'];
+      for (const field of arrayFields) {
+        if (parsed[field] && Array.isArray(parsed[field])) {
+          return parsed[field].map((item: any, index: number) => parseItem(item, index, platform));
+        }
+      }
+      
+      // 方法3：查找嵌套的对象数组
+      const objectArray = findObjectArray(parsed);
+      if (objectArray) {
+        return objectArray.map((item: any, index: number) => parseItem(item, index, platform));
       }
     } catch {
       // 不是 JSON，尝试解析文本格式

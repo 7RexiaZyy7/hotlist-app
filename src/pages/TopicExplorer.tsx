@@ -29,8 +29,7 @@ export function TopicExplorer() {
     setIsSearching(true);
     try {
       const searchQuery = buildTopicSearchQuery(query);
-      const response = await callCozeChat(cozeConfig, searchQuery);
-      const content = extractAssistantContent(response);
+      const content = await callCozeChat(cozeConfig, searchQuery);
       
       setResults([
         { platform: '微博', matched: true, topics: ['AI 应用落地', '大模型评测'] },

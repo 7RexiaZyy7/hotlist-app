@@ -43,8 +43,7 @@ export function HitAnalyzer() {
     setIsAnalyzing(true);
     try {
       const query = buildAnalysisQuery(inputCopy);
-      const response = await callCozeChat(cozeConfig, query);
-      const content = extractAssistantContent(response);
+      const content = await callCozeChat(cozeConfig, query);
       
       setAnalysis({
         hook: '开头用强烈反差吸引注意力："你绝对想不到..."',
@@ -69,8 +68,7 @@ export function HitAnalyzer() {
     setIsRewriting(true);
     try {
       const query = buildRewriteQuery(inputCopy, rewriteStyle);
-      const response = await callCozeChat(cozeConfig, query);
-      const content = extractAssistantContent(response);
+      const content = await callCozeChat(cozeConfig, query);
       
       setRewriteResult('【洗稿结果】\n\n这是根据原文重新生成的内容...\n\n（实际内容来自 COZE Bot）');
     } catch (error) {

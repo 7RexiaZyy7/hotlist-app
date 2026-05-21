@@ -64,8 +64,7 @@ export function ContentForge() {
     setGenerating(true);
     try {
       const query = buildCopyGenerateQuery(selectedTopic, selectedAngles, userProfile);
-      const response = await callCozeChat(cozeConfig, query);
-      const content = extractAssistantContent(response);
+      const content = await callCozeChat(cozeConfig, query);
       
       const mockCopies = selectedAngles.map((angle) => ({
         angle,

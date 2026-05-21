@@ -64,6 +64,7 @@ export function HotRadar() {
   } = useAppStore();
 
   const [displayCount, setDisplayCount] = useState(15);
+  const [pulseRefresh, setPulseRefresh] = useState(false);
 
   useEffect(() => {
     if (hotList.length === 0) {
@@ -249,6 +250,14 @@ export function HotRadar() {
     setActivePage('forge');
   };
 
+  const handlePlatformClick = (platformId: string) => {
+    setSelectedPlatform(platformId);
+    if (platformId !== 'all') {
+      setPulseRefresh(true);
+      setTimeout(() => setPulseRefresh(false), 4000);
+    }
+  };
+
   const handleViewMore = () => {
     setDisplayCount(prev => Math.min(prev + 15, hotList.length));
   };
@@ -301,7 +310,7 @@ export function HotRadar() {
         {platforms.map((platform) => (
           <button
             key={platform.id}
-            onClick={() => setSelectedPlatform(platform.id)}
+            onClick={() => handlePlatformClick(platform.id)}
             className={`px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-all ${
               selectedPlatform === platform.id
                 ? `bg-gradient-to-r ${platform.color} text-white shadow-lg`
@@ -314,10 +323,12 @@ export function HotRadar() {
         <button
           onClick={handleFetchHotList}
           disabled={isLoadingHotList}
-          className="ml-auto flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-accent to-orange-500 rounded-full text-sm font-medium hover:opacity-90 transition-opacity disabled:opacity-50"
+          className={`ml-auto flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-accent to-orange-500 rounded-full text-sm font-medium transition-all disabled:opacity-50 ${
+            pulseRefresh ? 'animate-pulse shadow-lg shadow-accent/50 scale-105' : 'hover:opacity-90'
+          }`}
         >
           <RefreshCw className={`w-4 h-4 ${isLoadingHotList ? 'animate-spin' : ''}`} />
-          刷新热榜
+          {selectedPlatform === 'all' ? '刷新热榜' : `获取${platforms.find(p => p.id === selectedPlatform)?.label || ''}热榜`}
         </button>
       </div>
 

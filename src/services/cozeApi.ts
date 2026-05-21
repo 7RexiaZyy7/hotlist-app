@@ -105,9 +105,21 @@ export async function callCozeChat(
     
     const retrieveResult = await retrieveResponse.json();
     const retrieveData = retrieveResult.data || retrieveResult;
-    console.log(`[COZE API] 轮询第${i+1}次`, { status: retrieveData.status });
     
-    if (retrieveData.status === 'completed') {
+    if (typeof retrieveData !== 'object' || retrieveData === null) {
+      console.log(`[COZE API] 轮询第${i+1}次 - 响应格式异常`, retrieveResult);
+      continue;
+    }
+    
+    const status = retrieveData.status;
+    console.log(`[COZE API] 轮询第${i+1}次`, { status });
+    
+    if (!status) {
+      console.log(`[COZE API] 轮询第${i+1}次 - 缺少status字段`, retrieveData);
+      continue;
+    }
+    
+    if (status === 'completed') {
       console.log('[COZE API] 对话已完成，开始获取消息列表');
       
       const messagesResponse = await fetch(
@@ -162,7 +174,7 @@ export async function callCozeChat(
       
       console.log('[COZE API] 未找到任何消息');
       return '';
-    } else if (retrieveData.status === 'failed') {
+    } else if (status === 'failed') {
       console.error('[COZE API] Bot 执行失败', retrieveData);
       throw new Error('Bot 执行失败');
     }

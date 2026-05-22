@@ -1,11 +1,8 @@
 const COZE_TOKEN = process.env.COZE_PAT_TOKEN;
 const API_BASE = 'https://api.coze.cn';
 
-export default async function handler(
-  req: { query: Record<string, string | string[]>; method?: string; body: any },
-  res: { status: (code: number) => { json: (data: any) => void } }
-) {
-  const action = req.query.action as string;
+export default async function handler(req, res) {
+  const action = req.query.action;
 
   if (!COZE_TOKEN) {
     return res.status(500).json({ error: 'COZE_PAT_TOKEN not configured' });
@@ -51,7 +48,7 @@ export default async function handler(
     if (action === 'variables' && req.method === 'POST') {
       const { bot_id, user_id, variables } = req.body;
 
-      const body: Record<string, any> = {
+      const body = {
         bot_id,
         user_id,
         stream: false,
@@ -78,7 +75,7 @@ export default async function handler(
     }
 
     return res.status(404).json({ error: `Unknown action: ${action}` });
-  } catch (err: any) {
+  } catch (err) {
     return res.status(500).json({ error: err.message });
   }
 }

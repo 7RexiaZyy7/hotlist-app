@@ -100,18 +100,26 @@ export async function callCozeChat(
     throw new Error(`API Error: ${chatResponse.status} - ${errorText}`);
   }
 
-  const chatResult = await chatResponse.json();
-  const data = chatResult.data || chatResult;
-  console.log('Chat API 响应:', JSON.stringify(data).slice(0, 500));
+  const result = await chatResponse.json();
 
-  if (!data.id || !data.conversation_id) {
-    console.error('Chat API 响应格式异常:', JSON.stringify(chatResult).slice(0, 500));
-    throw new Error('API 响应格式错误');
+  if (result.content !== undefined) {
+    return result.content;
   }
 
-  const { id: chat_id, conversation_id } = data;
+  if (result.timeout && result.chat_id) {
+    return pollForResult(result.chat_id, result.conversation_id, headers);
+  }
 
-  const maxRetries = 120;
+  console.error('Chat API 响应格式异常:', JSON.stringify(result).slice(0, 500));
+  throw new Error('API 响应格式错误');
+}
+
+async function pollForResult(
+  chat_id: string,
+  conversation_id: string,
+  headers: Record<string, string>
+): Promise<string> {
+  const maxRetries = 60;
   const retryInterval = 2000;
 
   for (let i = 0; i < maxRetries; i++) {
@@ -122,53 +130,49 @@ export async function callCozeChat(
         getUrl('retrieve', { chat_id, conversation_id }),
         { headers }
       );
-
       if (!retrieveResponse.ok) continue;
 
       const retrieveResult = await retrieveResponse.json();
       const retrieveData = retrieveResult.data || retrieveResult;
+      if (!retrieveData?.status) continue;
 
-      if (!retrieveData || typeof retrieveData !== 'object') continue;
+      if (i % 10 === 0) console.log(`轮询第${i}次, status: ${retrieveData.status}`);
 
-      const status = retrieveData.status;
-      if (!status) continue;
-
-      if (i % 10 === 0) {
-        console.log(`轮询第${i}次, status: ${status}`);
-      }
-
-      if (status === 'completed') {
-        const messagesResponse = await fetch(
-          getUrl('messages', { chat_id, conversation_id }),
-          { headers }
-        );
-
-        if (messagesResponse.ok) {
-          const messagesResult = await messagesResponse.json();
-          let messages: any[] = [];
-
-          if (messagesResult.data) messages = messagesResult.data;
-          else if (Array.isArray(messagesResult)) messages = messagesResult;
-
-          const answerMsg = messages.find((m: any) => m.type === 'answer' || m.type === 'final');
-          if (answerMsg) return answerMsg.content || '';
-
-          const msg = messages.find((m: any) => m.role === 'assistant');
-          if (msg) return msg.content || '';
-
-          if (messages.length > 0) return messages[0].content || '';
-        }
-
+      if (retrieveData.status === 'completed') {
+        const content = await fetchMessages(chat_id, conversation_id, headers);
+        if (content !== null) return content;
         return '';
-      } else if (status === 'failed') {
+      } else if (retrieveData.status === 'failed') {
         throw new Error('Bot 执行失败');
       }
     } catch (e) {
       continue;
     }
   }
-
   throw new Error('获取响应超时');
+}
+
+async function fetchMessages(
+  chat_id: string,
+  conversation_id: string,
+  headers: Record<string, string>
+): Promise<string | null> {
+  const r = await fetch(
+    getUrl('messages', { chat_id, conversation_id }),
+    { headers }
+  );
+  if (!r.ok) return null;
+  const result = await r.json();
+  const messages = result.data || result;
+  if (!Array.isArray(messages)) return null;
+
+  const answer = messages.find((m: any) => m.type === 'answer' || m.type === 'final');
+  if (answer?.content) return answer.content;
+
+  const assistant = messages.find((m: any) => m.role === 'assistant');
+  if (assistant?.content) return assistant.content;
+
+  return messages[0]?.content || null;
 }
 
 export async function syncUserVariables(): Promise<boolean> {

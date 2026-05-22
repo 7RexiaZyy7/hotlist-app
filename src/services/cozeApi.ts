@@ -111,8 +111,8 @@ export async function callCozeChat(
 
   const { id: chat_id, conversation_id } = data;
 
-  const maxRetries = 60;
-  const retryInterval = 1500;
+  const maxRetries = 120;
+  const retryInterval = 2000;
 
   for (let i = 0; i < maxRetries; i++) {
     await new Promise(resolve => setTimeout(resolve, retryInterval));
@@ -132,6 +132,10 @@ export async function callCozeChat(
 
       const status = retrieveData.status;
       if (!status) continue;
+
+      if (i % 10 === 0) {
+        console.log(`轮询第${i}次, status: ${status}`);
+      }
 
       if (status === 'completed') {
         const messagesResponse = await fetch(

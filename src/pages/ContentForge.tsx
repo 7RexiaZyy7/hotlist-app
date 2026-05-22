@@ -105,17 +105,27 @@ export function ContentForge() {
       const query = buildCopyGenerateQuery(selectedTopic, selectedAngles, userProfile);
       const content = await callCozeChat(query);
 
-      const parsed = splitByAngles(content || '', selectedAngles);
-      if (parsed.length > 0) {
-        setGeneratedCopies(parsed);
+      const askingInfo = content && /赛道|受众|告诉我|先告诉我/.test(content) && content.length < 300;
+      if (askingInfo) {
+        setGeneratedCopies([{
+          angle: '提示',
+          content: 'Bot 需要你的创作档案信息才能生成精准文案。请先去"创作档案"页面填写赛道和受众信息，然后重新生成。',
+        }]);
+        incrementCopies();
+        showToast('请先填写创作档案再生成文案', 'info');
       } else {
-        setGeneratedCopies(selectedAngles.map(angle => ({
-          angle,
-          content: content || '',
-        })));
+        const parsed = splitByAngles(content || '', selectedAngles);
+        if (parsed.length > 0) {
+          setGeneratedCopies(parsed);
+        } else {
+          setGeneratedCopies(selectedAngles.map(angle => ({
+            angle,
+            content: content || '',
+          })));
+        }
+        incrementCopies();
+        showToast(`已生成 ${selectedAngles.length} 种角度的文案`);
       }
-      incrementCopies();
-      showToast(`已生成 ${selectedAngles.length} 种角度的文案`);
     } catch (error) {
       showToast('生成文案失败，请稍后重试', 'error');
     } finally {

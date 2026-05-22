@@ -195,10 +195,11 @@ export function buildCopyGenerateQuery(
   angles: string[],
   userProfile: any
 ): string {
-  let query = `基于话题：${topic}\n`;
-  query += `请用以下角度生成文案：${angles.join('、')}\n`;
+  let query = `直接为话题"${topic}"生成文案，严格按以下每个角度写一段完整文案，每段用【角度名】开头：\n\n`;
+  query += `角度：${angles.join('、')}\n\n`;
+  query += `要求：直接输出文案，不要提问，不要询问任何信息。\n`;
 
-  if (userProfile.niche) query += `赛道：${userProfile.niche}\n`;
+  if (userProfile.niche) query += `账号赛道：${userProfile.niche}\n`;
   if (userProfile.audience) query += `目标受众：${userProfile.audience}\n`;
   if (userProfile.style) query += `文风偏好：${userProfile.style}\n`;
 

@@ -114,46 +114,50 @@ export async function callCozeChat(
   for (let i = 0; i < maxRetries; i++) {
     await new Promise(resolve => setTimeout(resolve, retryInterval));
 
-    const retrieveResponse = await fetch(
-      getUrl('retrieve', { chat_id, conversation_id }),
-      { headers }
-    );
-
-    if (!retrieveResponse.ok) continue;
-
-    const retrieveResult = await retrieveResponse.json();
-    const retrieveData = retrieveResult.data || retrieveResult;
-
-    if (!retrieveData || typeof retrieveData !== 'object') continue;
-
-    const status = retrieveData.status;
-    if (!status) continue;
-
-    if (status === 'completed') {
-      const messagesResponse = await fetch(
-        getUrl('messages', { chat_id, conversation_id }),
+    try {
+      const retrieveResponse = await fetch(
+        getUrl('retrieve', { chat_id, conversation_id }),
         { headers }
       );
 
-      if (messagesResponse.ok) {
-        const messagesResult = await messagesResponse.json();
-        let messages: any[] = [];
+      if (!retrieveResponse.ok) continue;
 
-        if (messagesResult.data) messages = messagesResult.data;
-        else if (Array.isArray(messagesResult)) messages = messagesResult;
+      const retrieveResult = await retrieveResponse.json();
+      const retrieveData = retrieveResult.data || retrieveResult;
 
-        const answerMsg = messages.find((m: any) => m.type === 'answer' || m.type === 'final');
-        if (answerMsg) return answerMsg.content || '';
+      if (!retrieveData || typeof retrieveData !== 'object') continue;
 
-        const msg = messages.find((m: any) => m.role === 'assistant');
-        if (msg) return msg.content || '';
+      const status = retrieveData.status;
+      if (!status) continue;
 
-        if (messages.length > 0) return messages[0].content || '';
+      if (status === 'completed') {
+        const messagesResponse = await fetch(
+          getUrl('messages', { chat_id, conversation_id }),
+          { headers }
+        );
+
+        if (messagesResponse.ok) {
+          const messagesResult = await messagesResponse.json();
+          let messages: any[] = [];
+
+          if (messagesResult.data) messages = messagesResult.data;
+          else if (Array.isArray(messagesResult)) messages = messagesResult;
+
+          const answerMsg = messages.find((m: any) => m.type === 'answer' || m.type === 'final');
+          if (answerMsg) return answerMsg.content || '';
+
+          const msg = messages.find((m: any) => m.role === 'assistant');
+          if (msg) return msg.content || '';
+
+          if (messages.length > 0) return messages[0].content || '';
+        }
+
+        return '';
+      } else if (status === 'failed') {
+        throw new Error('Bot 执行失败');
       }
-
-      return '';
-    } else if (status === 'failed') {
-      throw new Error('Bot 执行失败');
+    } catch (e) {
+      continue;
     }
   }
 

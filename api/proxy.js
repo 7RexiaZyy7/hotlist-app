@@ -59,6 +59,11 @@ export default async function handler(req, res) {
   }
 
   try {
+    const headers = {
+      'Authorization': `Bearer ${COZE_TOKEN}`,
+      'Content-Type': 'application/json',
+    };
+
     if (action(req, 'chat') && req.method === 'POST') {
       const chatRes = await fetch(`${API_BASE}/v3/chat`, {
         method: 'POST',

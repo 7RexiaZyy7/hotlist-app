@@ -39,6 +39,29 @@ export default async function handler(req, res) {
       return res.json({ chat_id: chatInfo.id, conversation_id: chatInfo.conversation_id, timeout: true });
     }
 
+    if (action(req, 'debug') && req.method === 'GET') {
+      const start = Date.now();
+      const testRes = await fetch(`${API_BASE}/v3/chat`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({
+          bot_id: '7639197902187020297',
+          user_id: 'debug_test',
+          stream: false,
+          auto_save_history: true,
+          additional_messages: [{ role: 'user', content: 'ping', content_type: 'text' }],
+        }),
+      });
+      const testData = await testRes.json();
+      const chatInfo = testData.data || testData;
+      return res.json({
+        ok: true,
+        chat_created_ms: Date.now() - start,
+        chat_id: chatInfo.id,
+        status: chatInfo.status,
+      });
+    }
+
     if (action(req, 'retrieve') && req.method === 'GET') {
       const { chat_id, conversation_id } = req.query;
       const r = await fetch(

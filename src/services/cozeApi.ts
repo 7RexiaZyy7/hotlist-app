@@ -1,213 +1,193 @@
-export interface CozeConfig {
-  botId: string;
-  token: string;
-  baseUrl?: string;
+const API_BASE = import.meta.env.PROD ? '/api/proxy' : 'https://api.coze.cn';
+
+const cozeToken = import.meta.env.VITE_COZE_TOKEN || '';
+
+function prodHeaders() {
+  return {};
 }
 
-export interface ChatMessage {
-  role: 'user' | 'assistant';
-  content: string;
-  content_type: 'text';
+function devHeaders() {
+  return {
+    'Authorization': `Bearer ${cozeToken}`,
+    'Content-Type': 'application/json',
+  };
 }
 
-export interface CozeChatRequest {
-  bot_id: string;
-  user_id: string;
-  stream: boolean;
-  auto_save_history: boolean;
-  additional_messages: ChatMessage[];
+function getUrl(action: string, params?: Record<string, string>): string {
+  if (import.meta.env.PROD) {
+    const q = new URLSearchParams({ action, ...params }).toString();
+    return `${API_BASE}?${q}`;
+  }
+  switch (action) {
+    case 'chat': return `${API_BASE}/v3/chat`;
+    case 'retrieve': return `${API_BASE}/v3/chat/retrieve?${new URLSearchParams(params)}`;
+    case 'messages': return `${API_BASE}/v3/chat/message/list?${new URLSearchParams(params)}`;
+    default: return API_BASE;
+  }
 }
 
-export interface CozeChatResponse {
-  id: string;
-  conversation_id: string;
-  status: string;
-  messages?: Array<{
-    role: string;
-    content: string;
-    content_type: string;
-  }>;
+function getHeaders(): Record<string, string> {
+  return import.meta.env.PROD ? prodHeaders() : devHeaders();
 }
 
-const API_BASE = 'https://api.coze.cn';
-
-export async function callCozeChat(
-  config: CozeConfig,
-  query: string
-): Promise<string> {
+function getUserId(): string {
   let userId = localStorage.getItem('coze_user_id');
   if (!userId) {
     userId = 'user_' + Math.random().toString(36).substr(2, 9);
     localStorage.setItem('coze_user_id', userId);
   }
-  
-  console.log('[COZE API] 开始调用', { botId: config.botId, userId, query });
-  
-  const chatResponse = await fetch(`${API_BASE}/v3/chat`, {
+  return userId;
+}
+
+function getUserVariables(): Record<string, string> | undefined {
+  try {
+    const raw = localStorage.getItem('creator_profile');
+    if (!raw) return undefined;
+    const profile = JSON.parse(raw);
+    const parts: string[] = [];
+    if (profile.niche || profile.audience) {
+      const core = [profile.niche && `赛道：${profile.niche}`, profile.audience && `受众：${profile.audience}`]
+        .filter(Boolean).join(' | ');
+      if (core) parts.push(core);
+    }
+    if (profile.nickname || profile.style || profile.contentFormat) {
+      const ext = [profile.nickname && `昵称：${profile.nickname}`, profile.style && `文风：${profile.style}`, profile.contentFormat && `形式：${profile.contentFormat}`]
+        .filter(Boolean).join(' | ');
+      if (ext) parts.push(ext);
+    }
+    if (parts.length === 0) return undefined;
+    return {
+      user_profile_core: parts[0] || '',
+      user_profile_ext: parts.length > 1 ? parts[1] : '',
+    };
+  } catch {
+    return undefined;
+  }
+}
+
+export async function callCozeChat(
+  query: string
+): Promise<string> {
+  const botId = import.meta.env.VITE_COZE_BOT_ID || '7639197902187020297';
+  const userId = getUserId();
+  const userVariables = getUserVariables();
+
+  const headers = getHeaders();
+
+  const body: Record<string, any> = {
+    bot_id: botId,
+    user_id: userId,
+    stream: false,
+    auto_save_history: true,
+    additional_messages: [
+      { role: 'user', content: query, content_type: 'text' },
+    ],
+  };
+
+  if (userVariables && import.meta.env.PROD) {
+    body.custom_variables = userVariables;
+  }
+
+  const chatResponse = await fetch(getUrl('chat'), {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${config.token}`,
-    },
-    body: JSON.stringify({
-      bot_id: config.botId,
-      user_id: userId,
-      stream: false,
-      auto_save_history: true,
-      additional_messages: [
-        {
-          role: 'user',
-          content: query,
-          content_type: 'text',
-        },
-      ],
-    }),
+    headers,
+    body: JSON.stringify(body),
   });
 
   if (!chatResponse.ok) {
     const errorText = await chatResponse.text();
-    console.error('[COZE API] 创建对话失败', { status: chatResponse.status, errorText });
     throw new Error(`API Error: ${chatResponse.status} - ${errorText}`);
   }
 
   const chatResult = await chatResponse.json();
-  console.log('[COZE API] 创建对话响应', chatResult);
-  
   const data = chatResult.data || chatResult;
-  
+
   if (!data.id || !data.conversation_id) {
-    console.error('[COZE API] 响应缺少必要字段', chatResult);
     throw new Error('API 响应格式错误');
   }
-  
+
   const { id: chat_id, conversation_id } = data;
-  
-  // 轮询获取结果（热榜插件可能需要较长时间）
+
   const maxRetries = 60;
   const retryInterval = 1500;
-  
+
   for (let i = 0; i < maxRetries; i++) {
     await new Promise(resolve => setTimeout(resolve, retryInterval));
-    
+
     const retrieveResponse = await fetch(
-      `${API_BASE}/v3/chat/retrieve?chat_id=${chat_id}&conversation_id=${conversation_id}`,
-      {
-        headers: {
-          'Authorization': `Bearer ${config.token}`,
-        },
-      }
+      getUrl('retrieve', { chat_id, conversation_id }),
+      { headers }
     );
-    
-    if (!retrieveResponse.ok) {
-      console.log(`[COZE API] 轮询第${i+1}次 - HTTP错误: ${retrieveResponse.status}`);
-      continue;
-    }
-    
+
+    if (!retrieveResponse.ok) continue;
+
     const retrieveResult = await retrieveResponse.json();
     const retrieveData = retrieveResult.data || retrieveResult;
-    
-    if (typeof retrieveData !== 'object' || retrieveData === null) {
-      console.log(`[COZE API] 轮询第${i+1}次 - 响应格式异常`, retrieveResult);
-      continue;
-    }
-    
+
+    if (!retrieveData || typeof retrieveData !== 'object') continue;
+
     const status = retrieveData.status;
-    console.log(`[COZE API] 轮询第${i+1}次`, { status });
-    
-    if (!status) {
-      console.log(`[COZE API] 轮询第${i+1}次 - 缺少status字段`, retrieveData);
-      continue;
-    }
-    
+    if (!status) continue;
+
     if (status === 'completed') {
-      console.log('[COZE API] 对话已完成，开始获取消息列表');
-      
       const messagesResponse = await fetch(
-        `${API_BASE}/v3/chat/message/list?chat_id=${chat_id}&conversation_id=${conversation_id}`,
-        {
-          headers: {
-            'Authorization': `Bearer ${config.token}`,
-          },
-        }
+        getUrl('messages', { chat_id, conversation_id }),
+        { headers }
       );
-      
+
       if (messagesResponse.ok) {
         const messagesResult = await messagesResponse.json();
-        console.log('[COZE API] 获取消息响应:', JSON.stringify(messagesResult, null, 2));
-        
-        // 尝试多种方式获取消息
-        let messages = [];
-        
-        if (messagesResult.data) {
-          messages = messagesResult.data;
-        } else if (Array.isArray(messagesResult)) {
-          messages = messagesResult;
-        }
-        
-        console.log(`[COZE API] 找到 ${messages.length} 条消息`);
-        
-        // 打印所有消息的角色和类型
-        messages.forEach((msg: any, idx: number) => {
-          console.log(`[COZE API] 消息${idx}: role=${msg.role}, type=${msg.type}, content=${msg.content?.substring(0, 150)}...`);
-        });
-        
-        // 优先查找 type='tool_response' 的消息（包含完整的结构化数据）
-        const toolResponseMsg = messages.find((m: any) => m.type === 'tool_response');
-        if (toolResponseMsg) {
-          console.log('[COZE API] 找到工具响应消息:', toolResponseMsg.content?.substring(0, 200));
-          return toolResponseMsg.content || '';
-        }
-        
-        // 其次查找 type='answer' 的消息（这是 COZE Agent 的最终回复）
+        let messages: any[] = [];
+
+        if (messagesResult.data) messages = messagesResult.data;
+        else if (Array.isArray(messagesResult)) messages = messagesResult;
+
         const answerMsg = messages.find((m: any) => m.type === 'answer' || m.type === 'final');
-        if (answerMsg) {
-          console.log('[COZE API] 找到最终回复消息:', answerMsg.content?.substring(0, 200));
-          return answerMsg.content || '';
-        }
-        
-        // 最后查找 role='assistant' 的消息
-        const assistantMsg = messages.find((m: any) => m.role === 'assistant');
-        if (assistantMsg) {
-          console.log('[COZE API] 找到助手消息:', assistantMsg.content?.substring(0, 200));
-          return assistantMsg.content || '';
-        }
-        
-        // 如果都没找到，返回第一条消息
-        if (messages.length > 0) {
-          console.log('[COZE API] 返回第一条消息:', messages[0].content?.substring(0, 200));
-          return messages[0].content || '';
-        }
+        if (answerMsg) return answerMsg.content || '';
+
+        const msg = messages.find((m: any) => m.role === 'assistant');
+        if (msg) return msg.content || '';
+
+        if (messages.length > 0) return messages[0].content || '';
       }
-      
-      console.log('[COZE API] 未找到任何消息');
+
       return '';
     } else if (status === 'failed') {
-      console.error('[COZE API] Bot 执行失败', retrieveData);
       throw new Error('Bot 执行失败');
     }
   }
-  
-  console.error('[COZE API] 轮询超时');
+
   throw new Error('获取响应超时');
 }
 
-export function extractAssistantContent(response: CozeChatResponse): string {
-  if (response.messages && response.messages.length > 0) {
-    const assistantMsg = response.messages.find((m) => m.role === 'assistant');
-    return assistantMsg?.content || '';
+export async function syncUserVariables(): Promise<boolean> {
+  if (!import.meta.env.PROD) return false;
+
+  const botId = import.meta.env.VITE_COZE_BOT_ID || '7639197902187020297';
+  const userId = getUserId();
+  const userVariables = getUserVariables();
+  if (!userVariables) return false;
+
+  try {
+    const r = await fetch(`/api/proxy?action=variables`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        bot_id: botId,
+        user_id: userId,
+        variables: userVariables,
+      }),
+    });
+    const data = await r.json();
+    return data.ok === true;
+  } catch {
+    return false;
   }
-  return '';
 }
 
 export function buildHotListQuery(platform: string = 'all'): string {
-  if (platform === 'all') {
-    return '查看综合热榜 Top15';
-  }
+  if (platform === 'all') return '查看综合热榜 Top15';
   return `查看${platform}热榜`;
-}
-
-export function buildTopicSearchQuery(keyword: string): string {
-  return `搜索关键词：${keyword}`;
 }
 
 export function buildCopyGenerateQuery(
@@ -217,18 +197,16 @@ export function buildCopyGenerateQuery(
 ): string {
   let query = `基于话题：${topic}\n`;
   query += `请用以下角度生成文案：${angles.join('、')}\n`;
-  
-  if (userProfile.niche) {
-    query += `赛道：${userProfile.niche}\n`;
-  }
-  if (userProfile.audience) {
-    query += `目标受众：${userProfile.audience}\n`;
-  }
-  if (userProfile.style) {
-    query += `文风偏好：${userProfile.style}\n`;
-  }
-  
+
+  if (userProfile.niche) query += `赛道：${userProfile.niche}\n`;
+  if (userProfile.audience) query += `目标受众：${userProfile.audience}\n`;
+  if (userProfile.style) query += `文风偏好：${userProfile.style}\n`;
+
   return query;
+}
+
+export function buildTopicSearchQuery(keyword: string): string {
+  return `搜索关键词：${keyword}`;
 }
 
 export function buildAnalysisQuery(copy: string): string {

@@ -21,6 +21,7 @@ const platformColors: Record<string, string> = {
   '知乎': 'bg-blue-500',
   'B站': 'bg-pink-500',
   'V2EX': 'bg-green-500',
+  '小红书': 'bg-orange-500',
 };
 
 interface HotItem {
@@ -51,7 +52,6 @@ const mockHotList: HotItem[] = [
 
 export function HotRadar() {
   const { 
-    cozeConfig, 
     isConnected,
     hotList, 
     setHotList,
@@ -61,6 +61,7 @@ export function HotRadar() {
     setLoadingHotList,
     setSelectedTopic,
     setActivePage,
+    showToast,
   } = useAppStore();
 
   const [displayCount, setDisplayCount] = useState(15);
@@ -216,16 +217,15 @@ export function HotRadar() {
   };
 
   const handleFetchHotList = async () => {
-    if (!isConnected || !cozeConfig) {
-      alert('请先配置 COZE Bot ID 和 Token');
+    if (!isConnected) {
+      showToast('API 代理未连接', 'error');
       return;
     }
 
     setLoadingHotList(true);
     try {
       const query = buildHotListQuery(selectedPlatform);
-      const content = await callCozeChat(cozeConfig, query);
-      console.log('热榜响应:', content);
+      const content = await callCozeChat(query);
       
       const parsedList = parseHotList(content);
       
@@ -233,13 +233,12 @@ export function HotRadar() {
         setHotList(parsedList as any);
         setDisplayCount(Math.min(15, parsedList.length));
         localStorage.setItem('savedHotList', JSON.stringify(parsedList));
-        alert(`成功获取 ${parsedList.length} 条热榜数据！已保存到本地`);
+        showToast(`成功获取 ${parsedList.length} 条热榜数据`);
       } else {
-        alert('未解析到热榜数据，请检查 Agent 返回格式');
+        showToast('未解析到热榜数据，请检查 Agent 返回格式', 'info');
       }
     } catch (error: any) {
-      console.error('获取热榜失败:', error);
-      alert('获取热榜失败: ' + error.message);
+      showToast('获取热榜失败', 'error');
     } finally {
       setLoadingHotList(false);
     }
@@ -339,7 +338,7 @@ export function HotRadar() {
           
           return (
             <div
-              key={item.rank}
+              key={`${item.rank}-${item.title}`}
               className={`group flex items-center gap-4 p-4 bg-card border border-gray-800 rounded-xl cursor-pointer transition-all hover:-translate-x-1 hover:shadow-lg hover:border-gray-600 ${
                 isTop3 ? 'bg-gradient-to-r from-gray-800/50 to-transparent' : ''
               }`}

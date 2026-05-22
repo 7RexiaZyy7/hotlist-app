@@ -1,45 +1,83 @@
 import { useState } from 'react';
 import { useAppStore } from '../store';
-import { Search, ArrowRight } from 'lucide-react';
+import { Search, ArrowRight, Hash } from 'lucide-react';
 import { 
   callCozeChat, 
-  extractAssistantContent, 
   buildTopicSearchQuery 
 } from '../services/cozeApi';
 
 export function TopicExplorer() {
   const { 
-    cozeConfig,
     isConnected,
     setSelectedTopic,
     setActivePage,
+    showToast,
   } = useAppStore();
   
   const [query, setQuery] = useState('');
   const [isSearching, setIsSearching] = useState(false);
   const [results, setResults] = useState<any[]>([]);
+  const [searched, setSearched] = useState(false);
+
+  const parseResults = (content: string): any[] => {
+    const lines = content.split('\n').filter(l => l.trim());
+    const platforms: any[] = [];
+    let currentPlatform: any = null;
+
+    for (const line of lines) {
+      const platformMatch = line.match(/^(?:#+\s*)?【?(.+?)】?(?:平台|热榜|话题)?：?$/);
+      if (platformMatch) {
+        if (currentPlatform) platforms.push(currentPlatform);
+        currentPlatform = { platform: platformMatch[1].trim(), matched: false, topics: [] };
+        continue;
+      }
+
+      const topicMatch = line.match(/^[-*]\s*(.+?)(?:\s*\((\d+)\))?$/);
+      if (topicMatch && currentPlatform) {
+        currentPlatform.matched = true;
+        currentPlatform.topics.push(topicMatch[1].trim());
+      } else if (line.includes(':') || line.includes('：')) {
+        const [p, ...rest] = line.split(/[：:]/);
+        const topicList = rest.join('：').split(/[,，、]/).map(t => t.trim()).filter(Boolean);
+        if (topicList.length > 0) {
+          platforms.push({ platform: p.trim(), matched: true, topics: topicList });
+        }
+      }
+    }
+    if (currentPlatform) platforms.push(currentPlatform);
+
+    return platforms.length > 0 ? platforms : [{
+      platform: '搜索结果',
+      matched: true,
+      topics: content.split('\n').filter(l => l.trim()).slice(0, 10),
+    }];
+  };
 
   const handleSearch = async () => {
     if (!query.trim()) return;
-    if (!isConnected || !cozeConfig) {
-      alert('请先配置 COZE Bot ID 和 Token');
+    if (!isConnected) {
+      showToast('API 代理未连接', 'error');
       return;
     }
 
     setIsSearching(true);
+    setSearched(true);
+    setResults([]);
     try {
       const searchQuery = buildTopicSearchQuery(query);
-      const content = await callCozeChat(cozeConfig, searchQuery);
+      const content = await callCozeChat(searchQuery);
       
-      setResults([
-        { platform: '微博', matched: true, topics: ['AI 应用落地', '大模型评测'] },
-        { platform: '抖音', matched: true, topics: ['AI 工具分享'] },
-        { platform: '知乎', matched: true, topics: ['AI 创业', '技术趋势'] },
-        { platform: '小红书', matched: false, topics: [] },
-        { platform: 'B站', matched: true, topics: ['AI 视频制作'] },
-      ]);
+      if (!content.trim()) {
+        showToast('未搜索到相关话题', 'info');
+        setResults([]);
+        return;
+      }
+
+      const parsed = parseResults(content);
+      setResults(parsed);
+      showToast(`找到 ${parsed.length} 个平台的相关话题`);
     } catch (error) {
-      console.error('搜索失败:', error);
+      showToast('搜索失败，请稍后重试', 'error');
     } finally {
       setIsSearching(false);
     }
@@ -52,7 +90,6 @@ export function TopicExplorer() {
 
   return (
     <div className="p-6">
-      {/* 搜索框 */}
       <div className="mb-8">
         <h2 className="text-xl font-semibold mb-4">话题勘探</h2>
         <div className="flex gap-3">
@@ -69,13 +106,20 @@ export function TopicExplorer() {
             disabled={isSearching}
             className="px-6 py-3 bg-gradient-to-r from-accent to-orange-500 rounded-xl font-medium hover:opacity-90 transition-opacity disabled:opacity-50 flex items-center gap-2"
           >
-            <Search className="w-5 h-5" />
-            搜索
+            <Search className={`w-5 h-5 ${isSearching ? 'animate-spin' : ''}`} />
+            {isSearching ? '搜索中...' : '搜索'}
           </button>
         </div>
       </div>
 
-      {/* 搜索结果 */}
+      {searched && results.length === 0 && (
+        <div className="flex flex-col items-center justify-center py-16 text-gray-500">
+          <Hash className="w-12 h-12 mb-4 opacity-30" />
+          <p className="text-lg mb-1">暂无结果</p>
+          <p className="text-sm">试试换个关键词，或者检查 API 连接状态</p>
+        </div>
+      )}
+
       {results.length > 0 && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {results.map((result, index) => (
@@ -102,13 +146,21 @@ export function TopicExplorer() {
                       className="w-full text-left px-3 py-2 bg-surface rounded-lg text-sm hover:bg-gray-700 transition-colors flex items-center justify-between"
                     >
                       {topic}
-                      <ArrowRight className="w-4 h-4 text-gray-500" />
+                      <ArrowRight className="w-4 h-4 text-gray-500 shrink-0" />
                     </button>
                   ))}
                 </div>
               )}
             </div>
           ))}
+        </div>
+      )}
+
+      {!searched && (
+        <div className="flex flex-col items-center justify-center py-16 text-gray-500">
+          <Search className="w-12 h-12 mb-4 opacity-30" />
+          <p className="text-lg mb-1">搜索你感兴趣的话题</p>
+          <p className="text-sm">看看各大平台上大家都在聊什么</p>
         </div>
       )}
     </div>

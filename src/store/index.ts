@@ -1,11 +1,5 @@
 import { create } from 'zustand';
 
-interface CozeConfig {
-  botId: string;
-  token: string;
-  baseUrl: string;
-}
-
 interface UserProfile {
   niche?: string;
   audience?: string;
@@ -27,10 +21,13 @@ interface GeneratedCopy {
   content: string;
 }
 
+interface Toast {
+  message: string;
+  type: 'success' | 'error' | 'info';
+}
+
 interface AppState {
-  cozeConfig: CozeConfig | null;
   isConnected: boolean;
-  setCozeConfig: (config: CozeConfig) => void;
   setConnected: (connected: boolean) => void;
 
   hotList: HotItem[];
@@ -61,18 +58,13 @@ interface AppState {
 
   activePage: string;
   setActivePage: (page: string) => void;
+
+  toast: Toast | null;
+  showToast: (message: string, type?: Toast['type']) => void;
 }
 
-const DEFAULT_CONFIG: CozeConfig = {
-  botId: '7639197902187020297',
-  token: 'pat_v9jyB55cV1xXHfIkouplLSqWFjh8bhmupHDtx5o7cg8oct2Fpyp7jwS2lBHOZU3h',
-  baseUrl: '/api',
-};
-
 export const useAppStore = create<AppState>()((set) => ({
-  cozeConfig: DEFAULT_CONFIG,
   isConnected: true,
-  setCozeConfig: (config) => set({ cozeConfig: config }),
   setConnected: (connected) => set({ isConnected: connected }),
 
   hotList: [],
@@ -116,4 +108,10 @@ export const useAppStore = create<AppState>()((set) => ({
 
   activePage: 'radar',
   setActivePage: (page) => set({ activePage: page }),
+
+  toast: null,
+  showToast: (message, type = 'success') => {
+    set({ toast: { message, type } });
+    setTimeout(() => set({ toast: null }), 3000);
+  },
 }));

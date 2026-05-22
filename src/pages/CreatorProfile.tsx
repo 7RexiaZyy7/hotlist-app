@@ -1,13 +1,15 @@
 import { useState, useEffect } from 'react';
 import { useAppStore } from '../store';
-import { User, Target, PenTool, FileText, Save, RotateCcw, Check, Hash, MessageSquare, BookOpen, Palette } from 'lucide-react';
+import { User, Target, PenTool, FileText, Save, RotateCcw, Check, Hash, MessageSquare, BookOpen, Palette, Upload } from 'lucide-react';
+import { syncUserVariables } from '../services/cozeApi';
 
 const STORAGE_KEY = 'creator_profile';
 
 export function CreatorProfile() {
-  const { userProfile, setUserProfile } = useAppStore();
-  const [toast, setToast] = useState<string | null>(null);
+  const { userProfile, setUserProfile, isConnected, showToast } = useAppStore();
   const [saved, setSaved] = useState(false);
+  const [syncing, setSyncing] = useState(false);
+  const [syncDone, setSyncDone] = useState(false);
 
   useEffect(() => {
     const saved = localStorage.getItem(STORAGE_KEY);
@@ -18,21 +20,44 @@ export function CreatorProfile() {
     }
   }, [setUserProfile]);
 
-  useEffect(() => {
-    if (!toast) return;
-    const t = setTimeout(() => setToast(null), 2500);
-    return () => clearTimeout(t);
-  }, [toast]);
-
   const filledCount = Object.values(userProfile).filter(v => v && v.trim()).length;
   const totalFields = 5;
   const completeness = Math.round((filledCount / totalFields) * 100);
 
-  const handleSave = () => {
+  const handleSave = async () => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(userProfile));
     setSaved(true);
-    setToast('档案已保存到本地');
     setTimeout(() => setSaved(false), 2000);
+
+    if (import.meta.env.PROD && isConnected) {
+      setSyncing(true);
+      const ok = await syncUserVariables();
+      setSyncing(false);
+      if (ok) {
+        setSyncDone(true);
+        showToast('档案已保存并同步到云端');
+      } else {
+        showToast('档案已保存到本地（云端同步失败）', 'info');
+      }
+    } else {
+      showToast('档案已保存到本地');
+    }
+  };
+
+  const handleSync = async () => {
+    if (!import.meta.env.PROD) {
+      showToast('本地开发模式无需同步', 'info');
+      return;
+    }
+    setSyncing(true);
+    const ok = await syncUserVariables();
+    setSyncing(false);
+    if (ok) {
+      setSyncDone(true);
+      showToast('档案已同步到 COZE 云端');
+    } else {
+      showToast('同步失败，请稍后重试', 'info');
+    }
   };
 
   const handleReset = () => {
@@ -40,7 +65,7 @@ export function CreatorProfile() {
       const cleared = { niche: '', audience: '', nickname: '', style: '', contentFormat: '' };
       setUserProfile(cleared);
       localStorage.removeItem(STORAGE_KEY);
-      setToast('已清除所有信息');
+      showToast('已清除所有信息');
     }
   };
 
@@ -50,16 +75,6 @@ export function CreatorProfile() {
 
   return (
     <div className="p-6 h-full overflow-y-auto">
-      {/* Toast */}
-      {toast && (
-        <div className="fixed top-20 right-6 z-50 transition-all duration-300">
-          <div className="bg-surface border border-gray-700 rounded-xl px-5 py-3 shadow-2xl flex items-center gap-3">
-            <Check className="w-4 h-4 text-success" />
-            <span className="text-sm text-gray-200">{toast}</span>
-          </div>
-        </div>
-      )}
-
       <div className="max-w-3xl mx-auto space-y-6">
 
         {/* 头部 - 档案概览 */}
@@ -254,6 +269,16 @@ export function CreatorProfile() {
               <RotateCcw className="w-4 h-4" />
               清除信息
             </button>
+            {import.meta.env.PROD && (
+              <button
+                onClick={handleSync}
+                disabled={syncing}
+                className="flex items-center justify-center gap-2 px-4 py-2.5 bg-card border border-gray-700 rounded-xl text-sm hover:bg-gray-700 transition-colors cursor-pointer disabled:opacity-50"
+              >
+                <Upload className={`w-4 h-4 ${syncing ? 'animate-spin' : ''}`} />
+                {syncing ? '同步中...' : syncDone ? '已同步' : '同步到云端'}
+              </button>
+            )}
             <button
               onClick={handleSave}
               className="flex items-center justify-center gap-2 px-6 py-2.5 bg-gradient-to-r from-accent to-orange-500 rounded-xl text-sm font-medium hover:opacity-90 transition-opacity cursor-pointer ml-auto"
@@ -266,7 +291,9 @@ export function CreatorProfile() {
 
         {/* 底部说明 */}
         <p className="text-xs text-gray-600 text-center pb-4">
-          所有信息仅保存在本地浏览器，不会上传到服务器
+          {import.meta.env.PROD
+            ? '保存后点击"同步到云端"可将档案同步到 COZE，后续对话中 Agent 会自动读取'
+            : '部署到 Vercel 后，档案可同步到 COZE 云端实现长期记忆'}
         </p>
       </div>
     </div>

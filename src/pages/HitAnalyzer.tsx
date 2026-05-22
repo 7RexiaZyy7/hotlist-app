@@ -1,9 +1,8 @@
 import { useState } from 'react';
 import { useAppStore } from '../store';
-import { Scissors, Sparkles, FileText, Target, Zap, AlertTriangle } from 'lucide-react';
+import { Scissors, Sparkles, FileText, Target, Zap, AlertTriangle, Copy, Check } from 'lucide-react';
 import { 
   callCozeChat, 
-  extractAssistantContent, 
   buildAnalysisQuery,
   buildRewriteQuery 
 } from '../services/cozeApi';
@@ -16,11 +15,76 @@ const rewriteStyles = [
   '知识科普',
 ];
 
+const sectionLabels: Record<string, { icon: typeof Zap; label: string; color: string }> = {
+  hook: { icon: Zap, label: '钩子分析', color: 'text-accent' },
+  structure: { icon: Target, label: '结构拆解', color: 'text-accent-alt' },
+  keyElements: { icon: Sparkles, label: '关键元素', color: 'text-success' },
+  reusableModel: { icon: Sparkles, label: '可复用模型', color: 'text-success' },
+  warnings: { icon: AlertTriangle, label: '风险提示', color: 'text-warning' },
+};
+
+function parseAnalysis(text: string): Record<string, any> {
+  const result: Record<string, any> = {};
+  const lines = text.split('\n').filter(l => l.trim());
+
+  const sectionMap: Record<string, string> = {
+    '钩子': 'hook',
+    '钩子分析': 'hook',
+    '结构': 'structure',
+    '结构拆解': 'structure',
+    '关键元素': 'keyElements',
+    '可复用模型': 'reusableModel',
+    '风险提示': 'warnings',
+    '风险': 'warnings',
+  };
+
+  let currentKey = '';
+  const values: string[] = [];
+
+  for (const line of lines) {
+    const headerMatch = line.match(/^#+\s*(.+?)$/);
+    const colonMatch = line.match(/^(.+?)[：:]\s*(.+)$/);
+
+    if (headerMatch) {
+      if (currentKey && values.length > 0) {
+        result[currentKey] = values.length === 1 ? values[0] : [...values];
+      }
+      values.length = 0;
+      currentKey = sectionMap[headerMatch[1].trim()] || '';
+      continue;
+    }
+
+    if (colonMatch) {
+      const key = sectionMap[colonMatch[1].trim()];
+      if (key) {
+        if (currentKey && values.length > 0) {
+          result[currentKey] = values.length === 1 ? values[0] : [...values];
+        }
+        values.length = 0;
+        currentKey = key;
+        if (colonMatch[2].trim()) values.push(colonMatch[2].trim());
+        continue;
+      }
+    }
+
+    if (currentKey) {
+      const item = line.replace(/^[-*]\s*/, '').trim();
+      if (item) values.push(item);
+    }
+  }
+
+  if (currentKey && values.length > 0) {
+    result[currentKey] = values.length === 1 ? values[0] : [...values];
+  }
+
+  return result;
+}
+
 export function HitAnalyzer() {
   const { 
-    cozeConfig,
     isConnected,
     incrementAnalysis,
+    showToast,
   } = useAppStore();
   
   const [inputCopy, setInputCopy] = useState('');
@@ -29,32 +93,39 @@ export function HitAnalyzer() {
   const [rewriteStyle, setRewriteStyle] = useState('');
   const [isRewriting, setIsRewriting] = useState(false);
   const [rewriteResult, setRewriteResult] = useState('');
+  const [copied, setCopied] = useState(false);
 
   const handleAnalyze = async () => {
     if (!inputCopy.trim()) {
-      alert('请先粘贴需要拆解的文案');
+      showToast('请先粘贴需要拆解的文案', 'info');
       return;
     }
-    if (!isConnected || !cozeConfig) {
-      alert('请先配置 COZE Bot ID 和 Token');
+    if (!isConnected) {
+      showToast('API 代理未连接', 'error');
       return;
     }
 
     setIsAnalyzing(true);
+    setAnalysis(null);
     try {
       const query = buildAnalysisQuery(inputCopy);
-      const content = await callCozeChat(cozeConfig, query);
-      
-      setAnalysis({
-        hook: '开头用强烈反差吸引注意力："你绝对想不到..."',
-        structure: ['痛点切入', '案例佐证', '解决方案', '引导行动'],
-        keyElements: ['共情力强', '有具体数字', '给出明确步骤'],
-        reusableModel: '痛点-案例-方案-行动四步模型',
-        warnings: ['注意不要夸大承诺', '建议增加更多真实案例'],
-      });
+      const content = await callCozeChat(query);
+
+      if (!content.trim()) {
+        showToast('拆解失败，未获取到分析结果', 'error');
+        return;
+      }
+
+      const parsed = parseAnalysis(content);
+      if (Object.keys(parsed).length > 0) {
+        setAnalysis(parsed);
+      } else {
+        setAnalysis({ raw: content });
+      }
       incrementAnalysis();
+      showToast('拆解完成');
     } catch (error) {
-      console.error('拆解失败:', error);
+      showToast('拆解失败，请稍后重试', 'error');
     } finally {
       setIsAnalyzing(false);
     }
@@ -62,25 +133,108 @@ export function HitAnalyzer() {
 
   const handleRewrite = async () => {
     if (!rewriteStyle) {
-      alert('请先选择洗稿风格');
+      showToast('请先选择洗稿风格', 'info');
       return;
     }
     setIsRewriting(true);
     try {
       const query = buildRewriteQuery(inputCopy, rewriteStyle);
-      const content = await callCozeChat(cozeConfig, query);
-      
-      setRewriteResult('【洗稿结果】\n\n这是根据原文重新生成的内容...\n\n（实际内容来自 COZE Bot）');
+      const content = await callCozeChat(query);
+      setRewriteResult(content || '未获取到洗稿结果');
+      showToast('洗稿完成');
     } catch (error) {
-      console.error('洗稿失败:', error);
+      showToast('洗稿失败，请稍后重试', 'error');
     } finally {
       setIsRewriting(false);
     }
   };
 
+  const handleCopyResult = () => {
+    navigator.clipboard.writeText(rewriteResult);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  const renderSection = (key: string, data: any) => {
+    const config = sectionLabels[key];
+    if (!data || (Array.isArray(data) && data.length === 0)) return null;
+
+    const Icon = config?.icon || FileText;
+
+    if (key === 'structure' && Array.isArray(data)) {
+      return (
+        <div className="bg-card border border-gray-800 rounded-xl p-5" key={key}>
+          <div className="flex items-center gap-2 mb-3">
+            <Icon className={`w-4 h-4 ${config?.color}`} />
+            <span className="font-medium">{config?.label || key}</span>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {data.map((step: string, i: number) => (
+              <div key={i} className="flex items-center gap-2 bg-surface px-3 py-1.5 rounded-lg text-sm">
+                <span className="w-5 h-5 rounded-full bg-accent/20 text-accent text-xs flex items-center justify-center font-mono">{i + 1}</span>
+                {step}
+              </div>
+            ))}
+          </div>
+        </div>
+      );
+    }
+
+    if (key === 'warnings' && Array.isArray(data)) {
+      return (
+        <div className="bg-card border border-gray-800 rounded-xl p-5" key={key}>
+          <div className="flex items-center gap-2 mb-3">
+            <Icon className={`w-4 h-4 ${config?.color}`} />
+            <span className="font-medium">{config?.label || key}</span>
+          </div>
+          <div className="space-y-1.5">
+            {data.map((w: string, i: number) => (
+              <div key={i} className="flex items-center gap-2 text-sm text-gray-400">
+                <span className="w-1.5 h-1.5 rounded-full bg-warning" />
+                {w}
+              </div>
+            ))}
+          </div>
+        </div>
+      );
+    }
+
+    if (key === 'keyElements' && Array.isArray(data)) {
+      return (
+        <div className="bg-card border border-gray-800 rounded-xl p-5" key={key}>
+          <div className="flex items-center gap-2 mb-3">
+            <Icon className={`w-4 h-4 ${config?.color}`} />
+            <span className="font-medium">{config?.label || key}</span>
+          </div>
+          <div className="space-y-1.5">
+            {data.map((el: string, i: number) => (
+              <div key={i} className="flex items-center gap-2 text-sm text-gray-300">
+                <span className="w-1.5 h-1.5 rounded-full bg-success" />
+                {el}
+              </div>
+            ))}
+          </div>
+        </div>
+      );
+    }
+
+    if (typeof data === 'string') {
+      return (
+        <div className="bg-card border border-gray-800 rounded-xl p-5" key={key}>
+          <div className="flex items-center gap-2 mb-3">
+            <Icon className={`w-4 h-4 ${config?.color}`} />
+            <span className="font-medium">{config?.label || key}</span>
+          </div>
+          <p className="text-sm text-gray-300">{data}</p>
+        </div>
+      );
+    }
+
+    return null;
+  };
+
   return (
     <div className="p-6 h-full flex flex-col overflow-hidden">
-      {/* 输入区 */}
       <div className="mb-6">
         <div className="flex items-center gap-2 mb-3">
           <FileText className="w-5 h-5 text-accent" />
@@ -103,70 +257,19 @@ export function HitAnalyzer() {
         </button>
       </div>
 
-      {/* 拆解结果 */}
       {analysis && (
         <div className="flex-1 overflow-y-auto">
           <div className="grid lg:grid-cols-2 gap-6">
-            {/* 拆解报告 */}
             <div className="space-y-4">
-              <div className="bg-card border border-gray-800 rounded-xl p-5">
-                <div className="flex items-center gap-2 mb-3">
-                  <Zap className="w-4 h-4 text-accent" />
-                  <span className="font-medium">钩子分析</span>
+              {analysis.raw ? (
+                <div className="bg-card border border-gray-800 rounded-xl p-5">
+                  <pre className="whitespace-pre-wrap text-sm text-gray-300 font-sans">{analysis.raw}</pre>
                 </div>
-                <p className="text-sm text-gray-300">{analysis.hook}</p>
-              </div>
-
-              <div className="bg-card border border-gray-800 rounded-xl p-5">
-                <div className="flex items-center gap-2 mb-3">
-                  <Target className="w-4 h-4 text-accent-alt" />
-                  <span className="font-medium">结构拆解</span>
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  {analysis.structure.map((step: string, i: number) => (
-                    <div
-                      key={i}
-                      className="flex items-center gap-2 bg-surface px-3 py-1.5 rounded-lg text-sm"
-                    >
-                      <span className="w-5 h-5 rounded-full bg-accent/20 text-accent text-xs flex items-center justify-center font-mono">{i + 1}</span>
-                      {step}
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              <div className="bg-card border border-gray-800 rounded-xl p-5">
-                <div className="flex items-center gap-2 mb-3">
-                  <Sparkles className="w-4 h-4 text-success" />
-                  <span className="font-medium">关键元素</span>
-                </div>
-                <div className="space-y-1.5">
-                  {analysis.keyElements.map((el: string, i: number) => (
-                    <div key={i} className="flex items-center gap-2 text-sm text-gray-300">
-                      <span className="w-1.5 h-1.5 rounded-full bg-success" />
-                      {el}
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              <div className="bg-card border border-gray-800 rounded-xl p-5">
-                <div className="flex items-center gap-2 mb-3">
-                  <AlertTriangle className="w-4 h-4 text-warning" />
-                  <span className="font-medium">风险提示</span>
-                </div>
-                <div className="space-y-1.5">
-                  {analysis.warnings.map((w: string, i: number) => (
-                    <div key={i} className="flex items-center gap-2 text-sm text-gray-400">
-                      <span className="w-1.5 h-1.5 rounded-full bg-warning" />
-                      {w}
-                    </div>
-                  ))}
-                </div>
-              </div>
+              ) : (
+                Object.keys(analysis).map(key => renderSection(key, analysis[key]))
+              )}
             </div>
 
-            {/* 洗稿区 */}
             <div className="space-y-4">
               <div className="bg-card border border-gray-800 rounded-xl p-5">
                 <h3 className="font-medium mb-3">智能洗稿</h3>
@@ -197,14 +300,41 @@ export function HitAnalyzer() {
 
               {rewriteResult && (
                 <div className="bg-card border border-gray-800 rounded-xl p-5">
-                  <h3 className="font-medium mb-3">洗稿结果</h3>
+                  <div className="flex items-center justify-between mb-3">
+                    <h3 className="font-medium">洗稿结果</h3>
+                    <button
+                      onClick={handleCopyResult}
+                      className="p-1.5 hover:bg-surface rounded-lg transition-colors"
+                    >
+                      {copied ? (
+                        <Check className="w-4 h-4 text-success" />
+                      ) : (
+                        <Copy className="w-4 h-4 text-gray-400" />
+                      )}
+                    </button>
+                  </div>
                   <pre className="whitespace-pre-wrap text-sm text-gray-300 font-sans">
                     {rewriteResult}
                   </pre>
                 </div>
               )}
+
+              {!rewriteResult && (
+                <div className="bg-card border border-gray-800 rounded-xl p-8 text-center text-gray-500">
+                  <Sparkles className="w-8 h-8 mx-auto mb-2 opacity-30" />
+                  <p className="text-sm">选择一种风格开始洗稿</p>
+                </div>
+              )}
             </div>
           </div>
+        </div>
+      )}
+
+      {!analysis && (
+        <div className="flex-1 flex flex-col items-center justify-center text-gray-500">
+          <FileText className="w-12 h-12 mb-4 opacity-30" />
+          <p className="text-lg mb-1">粘贴爆款文案开始拆解</p>
+          <p className="text-sm">AI 会帮你分析钩子、结构和关键元素</p>
         </div>
       )}
     </div>

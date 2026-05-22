@@ -1,53 +1,16 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useAppStore } from '../store';
-import { Settings, Zap } from 'lucide-react';
+import { Settings, Zap, Scissors } from 'lucide-react';
 import { clsx } from 'clsx';
-
-const STORAGE_KEY = 'coze_config';
 
 export function TopBar() {
   const { 
     isConnected, 
-    cozeConfig, 
-    setCozeConfig, 
     setConnected,
     creationStats,
     activePage 
   } = useAppStore();
   const [showSettings, setShowSettings] = useState(false);
-  const [botId, setBotId] = useState(cozeConfig?.botId || '');
-  const [token, setToken] = useState(cozeConfig?.token || '');
-
-  useEffect(() => {
-    const saved = localStorage.getItem(STORAGE_KEY);
-    if (saved) {
-      try {
-        const config = JSON.parse(saved);
-        setCozeConfig({
-          botId: config.botId,
-          token: config.token,
-          baseUrl: config.baseUrl || 'https://api.coze.cn',
-        });
-        setConnected(true);
-        setBotId(config.botId);
-        setToken(config.token);
-      } catch (e) {
-        console.error('Failed to parse saved config:', e);
-      }
-    }
-  }, [setCozeConfig, setConnected]);
-
-  const handleSaveConfig = () => {
-    const config = {
-      botId,
-      token,
-      baseUrl: 'https://api.coze.cn',
-    };
-    setCozeConfig(config);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(config));
-    setConnected(true);
-    setShowSettings(false);
-  };
 
   const pageLabels: Record<string, string> = {
     radar: '热榜驾驶舱',
@@ -67,7 +30,6 @@ export function TopBar() {
         </div>
 
         <div className="flex items-center gap-6">
-          {/* 创作能量仪表盘 */}
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-2">
               <Zap className="w-4 h-4 text-accent" />
@@ -85,7 +47,6 @@ export function TopBar() {
             </div>
           </div>
 
-          {/* 连接状态 */}
           <div className="flex items-center gap-2">
             <div 
               className={clsx(
@@ -106,48 +67,30 @@ export function TopBar() {
         </div>
       </header>
 
-      {/* 设置弹窗 */}
       {showSettings && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
           <div className="bg-surface rounded-2xl p-6 w-96 border border-gray-800">
-            <h2 className="text-lg font-semibold mb-4">COZE 配置</h2>
-            
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm text-gray-400 mb-1">Bot ID</label>
-                <input
-                  type="text"
-                  value={botId}
-                  onChange={(e) => setBotId(e.target.value)}
-                  className="w-full bg-card border border-gray-700 rounded-lg px-4 py-2 text-sm focus:outline-none focus:border-accent"
-                  placeholder="输入你的 Bot ID"
-                />
-              </div>
-              
-              <div>
-                <label className="block text-sm text-gray-400 mb-1">Token (PAT)</label>
-                <input
-                  type="password"
-                  value={token}
-                  onChange={(e) => setToken(e.target.value)}
-                  className="w-full bg-card border border-gray-700 rounded-lg px-4 py-2 text-sm focus:outline-none focus:border-accent"
-                  placeholder="输入你的 Token"
-                />
-              </div>
-            </div>
-
+            <h2 className="text-lg font-semibold mb-2">连接状态</h2>
+            <p className="text-sm text-gray-400 mb-4">
+              {isConnected 
+                ? 'API 代理已连接，Token 由服务端管理'
+                : '请在 Vercel 环境变量中配置 COZE_PAT_TOKEN'}
+            </p>
             <div className="flex gap-3 mt-6">
               <button
-                onClick={() => setShowSettings(false)}
-                className="flex-1 px-4 py-2 bg-card border border-gray-700 rounded-lg text-sm hover:bg-gray-800 transition-colors"
+                onClick={() => {
+                  setConnected(false);
+                  setShowSettings(false);
+                }}
+                className="flex-1 px-4 py-2 bg-surface border border-gray-700 rounded-lg text-sm hover:bg-gray-800 transition-colors"
               >
-                取消
+                断开
               </button>
               <button
-                onClick={handleSaveConfig}
+                onClick={() => setShowSettings(false)}
                 className="flex-1 px-4 py-2 bg-gradient-to-r from-accent to-orange-500 rounded-lg text-sm font-medium hover:opacity-90 transition-opacity"
               >
-                保存
+                关闭
               </button>
             </div>
           </div>
@@ -156,5 +99,3 @@ export function TopBar() {
     </>
   );
 }
-
-import { Scissors } from 'lucide-react';

@@ -1,9 +1,8 @@
 import { useState } from 'react';
 import { useAppStore } from '../store';
-import { Sparkles, Copy, Check, Wand2 } from 'lucide-react';
+import { Sparkles, Copy, Check, Wand2, MessageSquare } from 'lucide-react';
 import { 
   callCozeChat, 
-  extractAssistantContent, 
   buildCopyGenerateQuery 
 } from '../services/cozeApi';
 
@@ -21,9 +20,48 @@ const copyAngles = [
   { id: '行业发心型', label: '行业发心型', desc: '传递行业使命感', color: 'from-emerald-500 to-teal-500' },
 ];
 
+function splitByAngles(content: string, angles: string[]): { angle: string; content: string }[] {
+  const results: { angle: string; content: string }[] = [];
+  let remaining = content;
+
+  for (const angle of angles) {
+    const regex = new RegExp(`(?:【${angle}】|#+\\s*${angle}|\\d+\\.\\s*${angle})`, 'i');
+    const match = remaining.match(regex);
+    if (match) {
+      const startIdx = match.index!;
+      const nextAngle = angles.find((a, i) => {
+        if (a === angle) return false;
+        const nextRegex = new RegExp(`(?:【${a}】|#+\\s*${a}|\\d+\\.\\s*${a})`, 'i');
+        const nextMatch = remaining.slice(startIdx + match[0].length).match(nextRegex);
+        return nextMatch;
+      });
+
+      let sectionEnd = remaining.length;
+      if (nextAngle) {
+        const nextRegex = new RegExp(`(?:【${nextAngle}】|#+\\s*${nextAngle}|\\d+\\.\\s*${nextAngle})`, 'i');
+        const nextMatch = remaining.slice(startIdx + match[0].length).match(nextRegex);
+        if (nextMatch) {
+          sectionEnd = startIdx + match[0].length + nextMatch.index!;
+        }
+      }
+
+      results.push({
+        angle,
+        content: remaining.slice(startIdx + match[0].length, sectionEnd).trim(),
+      });
+      remaining = remaining.slice(0, startIdx) + remaining.slice(sectionEnd);
+    }
+  }
+
+  if (results.length === 0 && content.trim()) {
+    return angles.map(angle => ({ angle, content }));
+  }
+
+  return results;
+}
+
 export function ContentForge() {
   const { 
-    cozeConfig,
     isConnected,
     selectedTopic,
     setSelectedTopic,
@@ -35,6 +73,7 @@ export function ContentForge() {
     setGenerating,
     userProfile,
     incrementCopies,
+    showToast,
   } = useAppStore();
   
   const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
@@ -49,33 +88,36 @@ export function ContentForge() {
 
   const handleGenerate = async () => {
     if (!selectedTopic.trim()) {
-      alert('请先选择或输入一个话题');
+      showToast('请先选择或输入一个话题', 'info');
       return;
     }
     if (selectedAngles.length === 0) {
-      alert('请至少选择一种文案角度');
+      showToast('请至少选择一种文案角度', 'info');
       return;
     }
-    if (!isConnected || !cozeConfig) {
-      alert('请先配置 COZE Bot ID 和 Token');
+    if (!isConnected) {
+      showToast('API 代理未连接', 'error');
       return;
     }
 
     setGenerating(true);
     try {
       const query = buildCopyGenerateQuery(selectedTopic, selectedAngles, userProfile);
-      const content = await callCozeChat(cozeConfig, query);
-      
-      const mockCopies = selectedAngles.map((angle) => ({
-        angle,
-        content: `【${angle}】\n\n这是为"${selectedTopic}"生成的${angle}文案示例...\n\n（实际内容将来自你的 COZE Bot 响应）\n\n${content.substring(0, 100)}...`,
-      }));
-      
-      setGeneratedCopies(mockCopies);
+      const content = await callCozeChat(query);
+
+      const parsed = splitByAngles(content || '', selectedAngles);
+      if (parsed.length > 0) {
+        setGeneratedCopies(parsed);
+      } else {
+        setGeneratedCopies(selectedAngles.map(angle => ({
+          angle,
+          content: content || '',
+        })));
+      }
       incrementCopies();
+      showToast(`已生成 ${selectedAngles.length} 种角度的文案`);
     } catch (error) {
-      console.error('生成文案失败:', error);
-      alert('生成文案失败，请检查配置');
+      showToast('生成文案失败，请稍后重试', 'error');
     } finally {
       setGenerating(false);
     }
@@ -89,7 +131,6 @@ export function ContentForge() {
 
   return (
     <div className="p-6 h-full flex flex-col overflow-hidden">
-      {/* 话题输入 */}
       <div className="mb-6">
         <label className="block text-sm text-gray-400 mb-2">当前话题</label>
         <input
@@ -101,7 +142,6 @@ export function ContentForge() {
         />
       </div>
 
-      {/* 文案角度选择 */}
       <div className="mb-6">
         <label className="block text-sm text-gray-400 mb-3">选择文案角度</label>
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
@@ -125,7 +165,6 @@ export function ContentForge() {
         </div>
       </div>
 
-      {/* 生成按钮 */}
       <div className="mb-6">
         <button
           onClick={handleGenerate}
@@ -146,7 +185,6 @@ export function ContentForge() {
         </button>
       </div>
 
-      {/* 生成结果 */}
       {generatedCopies.length > 0 && (
         <div className="flex-1 overflow-y-auto">
           <div className="grid gap-4">
@@ -180,6 +218,14 @@ export function ContentForge() {
               );
             })}
           </div>
+        </div>
+      )}
+
+      {!isGenerating && generatedCopies.length === 0 && (
+        <div className="flex-1 flex flex-col items-center justify-center text-gray-500">
+          <MessageSquare className="w-12 h-12 mb-4 opacity-30" />
+          <p className="text-lg mb-1">选择一个话题和角度开始创作</p>
+          <p className="text-sm">也可以去热榜选个热门话题</p>
         </div>
       )}
     </div>

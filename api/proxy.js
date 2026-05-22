@@ -41,14 +41,22 @@ function sleep(ms) {
 }
 
 export default async function handler(req, res) {
+  try {
+    if (action(req, 'hotboard') && req.method === 'GET') {
+      const { type } = req.query;
+      if (!type) return res.status(400).json({ error: 'Missing type parameter' });
+      const uapisUrl = `https://uapis.cn/api/v1/misc/hotboard?type=${encodeURIComponent(type)}`;
+      const r = await fetch(uapisUrl);
+      const data = await r.json();
+      return res.status(r.status).json(data);
+    }
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
+
   if (!COZE_TOKEN) {
     return res.status(500).json({ error: 'COZE_PAT_TOKEN not configured' });
   }
-
-  const headers = {
-    'Authorization': `Bearer ${COZE_TOKEN}`,
-    'Content-Type': 'application/json',
-  };
 
   try {
     if (action(req, 'chat') && req.method === 'POST') {

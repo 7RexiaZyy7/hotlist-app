@@ -15,6 +15,14 @@ const platforms = [
   { id: 'v2ex', label: 'V2EX', color: 'from-green-500 to-emerald-500' },
 ];
 
+const platformTypeMap: Record<string, string> = {
+  '微博': 'weibo',
+  '抖音': 'douyin',
+  '知乎': 'zhihu',
+  'B站': 'bilibili',
+  'v2ex': 'v2ex',
+};
+
 const platformColors: Record<string, string> = {
   '微博': 'bg-red-500',
   '抖音': 'bg-cyan-500',
@@ -216,6 +224,16 @@ export function HotRadar() {
     return result;
   };
 
+  const parseHeatItemValue = (val: string | number): number => {
+    if (typeof val === 'number') return val;
+    const str = String(val).trim();
+    const wanMatch = str.match(/^(\d+(?:\.\d+)?)\s*万/);
+    if (wanMatch) return parseFloat(wanMatch[1]) * 10000;
+    const numMatch = str.match(/^(\d+)/);
+    if (numMatch) return parseInt(numMatch[1], 10);
+    return 0;
+  };
+
   const handleFetchHotList = async () => {
     if (!isConnected) {
       showToast('API 代理未连接', 'error');
@@ -224,20 +242,47 @@ export function HotRadar() {
 
     setLoadingHotList(true);
     try {
-      const query = buildHotListQuery(selectedPlatform);
-      const content = await callCozeChat(query);
-      
-      const parsedList = parseHotList(content);
-      
+      let parsedList: any[];
+
+      if (selectedPlatform === 'all') {
+        const query = buildHotListQuery(selectedPlatform);
+        const content = await callCozeChat(query);
+        parsedList = parseHotList(content);
+      } else {
+        const type = platformTypeMap[selectedPlatform];
+        if (!type) {
+          showToast('不支持的平台', 'error');
+          setLoadingHotList(false);
+          return;
+        }
+
+        const url = import.meta.env.PROD
+          ? `/api/proxy?action=hotboard&type=${type}`
+          : `/hotboard?type=${type}`;
+        const res = await fetch(url);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = await res.json();
+
+        const items = data?.list || [];
+        parsedList = items.map((item: any, index: number) => ({
+          rank: index + 1,
+          title: item.title || '',
+          platform: selectedPlatform,
+          heatScore: parseHeatItemValue(item.hot_value),
+          url: item.url || '',
+        }));
+      }
+
       if (parsedList.length > 0) {
         setHotList(parsedList as any);
         setDisplayCount(Math.min(15, parsedList.length));
         localStorage.setItem('savedHotList', JSON.stringify(parsedList));
         showToast(`成功获取 ${parsedList.length} 条热榜数据`);
       } else {
-        showToast('未解析到热榜数据，请检查 Agent 返回格式', 'info');
+        showToast('未获取到热榜数据', 'info');
       }
     } catch (error: any) {
+      console.error('获取热榜失败:', error);
       showToast('获取热榜失败', 'error');
     } finally {
       setLoadingHotList(false);

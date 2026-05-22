@@ -18,24 +18,10 @@ export default async function handler(
 
   try {
     if (action === 'chat' && req.method === 'POST') {
-      const { bot_id, user_id, query, user_variables } = req.body;
-
-      const body: Record<string, any> = {
-        bot_id,
-        user_id,
-        stream: false,
-        auto_save_history: true,
-        additional_messages: [{ role: 'user', content: query, content_type: 'text' }],
-      };
-
-      if (user_variables) {
-        body.custom_variables = user_variables;
-      }
-
       const r = await fetch(`${API_BASE}/v3/chat`, {
         method: 'POST',
         headers,
-        body: JSON.stringify(body),
+        body: JSON.stringify(req.body),
       });
 
       const data = await r.json();

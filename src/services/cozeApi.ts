@@ -84,7 +84,7 @@ export async function callCozeChat(
     ],
   };
 
-  if (userVariables && import.meta.env.PROD) {
+  if (userVariables) {
     body.custom_variables = userVariables;
   }
 

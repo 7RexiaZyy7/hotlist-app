@@ -96,13 +96,16 @@ export async function callCozeChat(
 
   if (!chatResponse.ok) {
     const errorText = await chatResponse.text();
+    console.error('Chat API 请求失败:', chatResponse.status, errorText);
     throw new Error(`API Error: ${chatResponse.status} - ${errorText}`);
   }
 
   const chatResult = await chatResponse.json();
   const data = chatResult.data || chatResult;
+  console.log('Chat API 响应:', JSON.stringify(data).slice(0, 500));
 
   if (!data.id || !data.conversation_id) {
+    console.error('Chat API 响应格式异常:', JSON.stringify(chatResult).slice(0, 500));
     throw new Error('API 响应格式错误');
   }
 

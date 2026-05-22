@@ -127,7 +127,8 @@ export function ContentForge() {
         showToast(`已生成 ${selectedAngles.length} 种角度的文案`);
       }
     } catch (error) {
-      showToast('生成文案失败，请稍后重试', 'error');
+      console.error('生成失败:', error);
+      showToast(`生成失败: ${error instanceof Error ? error.message : '未知错误'}`, 'error');
     } finally {
       setGenerating(false);
     }

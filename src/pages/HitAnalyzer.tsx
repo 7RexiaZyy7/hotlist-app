@@ -41,6 +41,10 @@ function parseAnalysis(text: string): Record<string, any> {
   let currentKey = '';
   const values: string[] = [];
 
+  function normalizeHeader(raw: string): string {
+    return raw.replace(/^\d+[\.\s、]+/, '').trim();
+  }
+
   for (const line of lines) {
     const headerMatch = line.match(/^#+\s*(.+?)$/);
     const colonMatch = line.match(/^(.+?)[：:]\s*(.+)$/);
@@ -50,12 +54,12 @@ function parseAnalysis(text: string): Record<string, any> {
         result[currentKey] = values.length === 1 ? values[0] : [...values];
       }
       values.length = 0;
-      currentKey = sectionMap[headerMatch[1].trim()] || '';
+      currentKey = sectionMap[normalizeHeader(headerMatch[1])] || '';
       continue;
     }
 
     if (colonMatch) {
-      const key = sectionMap[colonMatch[1].trim()];
+      const key = sectionMap[normalizeHeader(colonMatch[1])];
       if (key) {
         if (currentKey && values.length > 0) {
           result[currentKey] = values.length === 1 ? values[0] : [...values];
@@ -116,6 +120,14 @@ export function HitAnalyzer() {
         return;
       }
 
+      const askingInfo = content.length < 300 && /请.*提供|没有.*提供|缺少|需要你|告诉我|发给我/.test(content);
+      if (askingInfo) {
+        console.log('Bot returned info request instead of analysis:', content);
+        showToast('Bot 未识别到文案内容，请确认文案已粘贴完整后重试', 'warning');
+        setAnalysis({ raw: '⚠️ Bot 未能正确识别文案内容。\n\nBot 返回内容：\n' + content.slice(0, 300) + '\n\n可能原因：粘贴的文案被 Bot 当成了指令而不是待分析内容。\n请粘贴更完整的文案后重试。' });
+        return;
+      }
+
       const parsed = parseAnalysis(content);
       if (Object.keys(parsed).length > 0) {
         setAnalysis(parsed);
@@ -140,6 +152,14 @@ export function HitAnalyzer() {
     try {
       const query = buildRewriteQuery(inputCopy, rewriteStyle);
       const content = await callCozeChat(query);
+
+      const askingInfo = content && content.length < 300 && /请.*提供|没有.*提供|缺少|需要你|告诉我|发给我/.test(content);
+      if (askingInfo) {
+        showToast('Bot 未识别到文案内容，请确认已粘贴完整', 'warning');
+        setRewriteResult('⚠️ Bot 未能正确识别文案内容，请确认文案已粘贴完整后重试。');
+        return;
+      }
+
       setRewriteResult(content || '未获取到洗稿结果');
       showToast('洗稿完成');
     } catch (error) {
@@ -161,7 +181,39 @@ export function HitAnalyzer() {
 
     const Icon = config?.icon || FileText;
 
-    if (key === 'structure' && Array.isArray(data)) {
+    if (key === 'structure') {
+      const rows = Array.isArray(data) ? data : [data];
+      const hasTable = rows.some(r => typeof r === 'string' && r.trim().startsWith('|'));
+      if (hasTable) {
+        const headers = rows[0]?.split('|').filter((c: string) => c.trim()).map((c: string) => c.trim()) || [];
+        const body = rows.slice(2).filter(r => r.includes('|') && !r.includes('---'));
+        return (
+          <div className="bg-card border border-gray-800 rounded-xl p-5 overflow-x-auto" key={key}>
+            <div className="flex items-center gap-2 mb-3">
+              <Icon className={`w-4 h-4 ${config?.color}`} />
+              <span className="font-medium">{config?.label || key}</span>
+            </div>
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-gray-700">
+                  {headers.map((h: string, i: number) => (
+                    <th key={i} className="text-left py-2 px-2 text-gray-400 font-medium">{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {body.map((row: string, i: number) => (
+                  <tr key={i} className="border-b border-gray-800 last:border-0">
+                    {row.split('|').filter((c: string) => c.trim()).map((cell: string, j: number) => (
+                      <td key={j} className="py-2 px-2 text-gray-300">{cell.trim()}</td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        );
+      }
       return (
         <div className="bg-card border border-gray-800 rounded-xl p-5" key={key}>
           <div className="flex items-center gap-2 mb-3">
@@ -169,7 +221,7 @@ export function HitAnalyzer() {
             <span className="font-medium">{config?.label || key}</span>
           </div>
           <div className="flex flex-wrap gap-2">
-            {data.map((step: string, i: number) => (
+            {rows.map((step: string, i: number) => (
               <div key={i} className="flex items-center gap-2 bg-surface px-3 py-1.5 rounded-lg text-sm">
                 <span className="w-5 h-5 rounded-full bg-accent/20 text-accent text-xs flex items-center justify-center font-mono">{i + 1}</span>
                 {step}

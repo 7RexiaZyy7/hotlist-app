@@ -1,23 +1,8 @@
-const API_BASE = import.meta.env.PROD ? '/api/proxy' : 'https://api.coze.cn';
+const API_BASE = 'https://api.coze.cn';
 
 const cozeToken = import.meta.env.VITE_COZE_TOKEN || '';
 
-function prodHeaders() {
-  return { 'Content-Type': 'application/json' };
-}
-
-function devHeaders() {
-  return {
-    'Authorization': `Bearer ${cozeToken}`,
-    'Content-Type': 'application/json',
-  };
-}
-
 function getUrl(action: string, params?: Record<string, string>): string {
-  if (import.meta.env.PROD) {
-    const q = new URLSearchParams({ action, ...params }).toString();
-    return `${API_BASE}?${q}`;
-  }
   switch (action) {
     case 'chat': return `${API_BASE}/v3/chat`;
     case 'retrieve': return `${API_BASE}/v3/chat/retrieve?${new URLSearchParams(params)}`;
@@ -27,7 +12,10 @@ function getUrl(action: string, params?: Record<string, string>): string {
 }
 
 function getHeaders(): Record<string, string> {
-  return import.meta.env.PROD ? prodHeaders() : devHeaders();
+  return {
+    'Authorization': `Bearer ${cozeToken}`,
+    'Content-Type': 'application/json',
+  };
 }
 
 function getUserId(): string {
@@ -102,12 +90,20 @@ export async function callCozeChat(
 
   const result = await chatResponse.json();
 
+  // Proxy fast path: bot completed before proxy timeout
   if (result.content !== undefined) {
     return result.content;
   }
 
+  // Proxy slow path: proxy returned chat_id for frontend polling
   if (result.timeout && result.chat_id) {
     return pollForResult(result.chat_id, result.conversation_id, headers);
+  }
+
+  // Direct Coze API response: extract chat_id and poll
+  const chatInfo = result.data || result;
+  if (chatInfo?.id && chatInfo?.conversation_id) {
+    return pollForResult(chatInfo.id, chatInfo.conversation_id, headers);
   }
 
   console.error('Chat API 响应格式异常:', JSON.stringify(result).slice(0, 500));
@@ -136,7 +132,7 @@ async function pollForResult(
       const retrieveData = retrieveResult.data || retrieveResult;
       if (!retrieveData?.status) continue;
 
-      if (i % 10 === 0) console.log(`轮询第${i}次, status: ${retrieveData.status}`);
+      if (i % 5 === 0) console.log(`轮询第${i}次, status: ${retrieveData.status}`, JSON.stringify(retrieveData).slice(0, 200));
 
       if (retrieveData.status === 'completed') {
         const content = await fetchMessages(chat_id, conversation_id, headers);
@@ -176,25 +172,27 @@ async function fetchMessages(
 }
 
 export async function syncUserVariables(): Promise<boolean> {
-  if (!import.meta.env.PROD) return false;
-
   const botId = import.meta.env.VITE_COZE_BOT_ID || '7639197902187020297';
   const userId = getUserId();
   const userVariables = getUserVariables();
   if (!userVariables) return false;
 
   try {
-    const r = await fetch(`/api/proxy?action=variables`, {
+    const body = {
+      bot_id: botId,
+      user_id: userId,
+      stream: false,
+      auto_save_history: false,
+      additional_messages: [{ role: 'user', content: '[系统] 更新用户变量', content_type: 'text' }],
+      custom_variables: userVariables,
+    };
+    const r = await fetch(getUrl('chat'), {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        bot_id: botId,
-        user_id: userId,
-        variables: userVariables,
-      }),
+      headers: getHeaders(),
+      body: JSON.stringify(body),
     });
     const data = await r.json();
-    return data.ok === true;
+    return data?.data?.id ? true : false;
   } catch {
     return false;
   }
@@ -241,9 +239,30 @@ export function buildTopicSearchQuery(keyword: string): string {
 }
 
 export function buildAnalysisQuery(copy: string): string {
-  return `拆解这篇文案：${copy}`;
+  return `请分析以下文案为什么火，按五个部分输出：
+
+1. 钩子分析 - 分析文案的钩子如何抓住注意力
+2. 结构拆解 - 按表格列出每个段落的功能定位和情绪节奏
+3. 关键元素 - 列出文案中的关键成功要素
+4. 可复用模型 - 总结可复用的写作公式
+5. 风险提示 - 指出文案中的风险和可优化点
+
+以下是需要分析的文案内容（直接分析，不要询问更多信息）：
+========================
+${copy}
+========================`;
 }
 
 export function buildRewriteQuery(copy: string, style: string): string {
-  return `基于这篇文案，用"${style}"风格洗稿：${copy}`;
+  return `请用"${style}"风格改写以下文案，保留核心信息，直接输出改写结果不要询问其他信息。
+
+原文案：
+========================
+${copy}
+========================
+
+改写要求：
+- 保持核心信息和逻辑不变
+- 换一种表达方式和措辞
+- 适配${style}风格`;
 }

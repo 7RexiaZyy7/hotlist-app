@@ -141,58 +141,48 @@ export function ContentForge() {
 
   return (
     <div className="p-6 h-full flex flex-col overflow-hidden">
-      <div className="mb-6">
-        <label className="block text-sm text-gray-400 mb-2">当前话题</label>
-        <input
-          type="text"
-          value={selectedTopic}
-          onChange={(e) => setSelectedTopic(e.target.value)}
-          className="w-full bg-card border border-gray-700 rounded-xl px-4 py-3 text-lg focus:outline-none focus:border-accent"
-          placeholder="输入或选择一个话题..."
-        />
+      <div className="mb-4 flex items-end gap-3">
+        <div className="flex-1">
+          <label className="block text-sm text-gray-400 mb-1">当前话题</label>
+          <input
+            type="text"
+            value={selectedTopic}
+            onChange={(e) => setSelectedTopic(e.target.value)}
+            className="w-full bg-card border border-gray-700 rounded-xl px-4 py-2.5 text-base focus:outline-none focus:border-accent"
+            placeholder="输入或选择一个话题..."
+          />
+        </div>
+        <button
+          onClick={handleGenerate}
+          disabled={isGenerating}
+          className="px-6 py-2.5 bg-gradient-to-r from-accent to-orange-500 rounded-xl font-semibold hover:opacity-90 transition-opacity disabled:opacity-50 flex items-center gap-2 shrink-0"
+        >
+          {isGenerating ? (
+            <Wand2 className="w-4 h-4 animate-spin" />
+          ) : (
+            <Sparkles className="w-4 h-4" />
+          )}
+          {isGenerating ? '生成中...' : `生成 (${selectedAngles.length})`}
+        </button>
       </div>
 
-      <div className="mb-6">
-        <label className="block text-sm text-gray-400 mb-3">选择文案角度</label>
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
+      <div className="mb-4">
+        <label className="block text-sm text-gray-400 mb-1">文案角度</label>
+        <div className="flex flex-wrap gap-1.5">
           {copyAngles.map((angle) => (
             <button
               key={angle.id}
               onClick={() => handleToggleAngle(angle.id)}
-              className={`relative p-4 rounded-xl border-2 transition-all text-left ${
+              className={`px-2.5 py-1 rounded-lg border text-xs transition-all ${
                 selectedAngles.includes(angle.id)
-                  ? 'border-accent bg-accent/10'
-                  : 'border-gray-700 bg-card hover:border-gray-600'
+                  ? 'border-accent bg-accent/20 text-accent'
+                  : 'border-gray-700 bg-card text-gray-400 hover:border-gray-500'
               }`}
             >
-              {selectedAngles.includes(angle.id) && (
-                <div className={`absolute top-0 left-0 w-full h-1 bg-gradient-to-r ${angle.color} rounded-t-xl`} />
-              )}
-              <span className="block font-medium text-sm mb-1">{angle.label}</span>
-              <span className="block text-xs text-gray-500">{angle.desc}</span>
+              {angle.label}
             </button>
           ))}
         </div>
-      </div>
-
-      <div className="mb-6">
-        <button
-          onClick={handleGenerate}
-          disabled={isGenerating}
-          className="w-full py-4 bg-gradient-to-r from-accent to-orange-500 rounded-xl font-semibold text-lg hover:opacity-90 transition-opacity disabled:opacity-50 flex items-center justify-center gap-2"
-        >
-          {isGenerating ? (
-            <>
-              <Wand2 className="w-5 h-5 animate-spin" />
-              生成中...
-            </>
-          ) : (
-            <>
-              <Sparkles className="w-5 h-5" />
-              生成文案 ({selectedAngles.length} 种角度)
-            </>
-          )}
-        </button>
       </div>
 
       {generatedCopies.length > 0 && (

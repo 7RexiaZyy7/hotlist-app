@@ -3,7 +3,7 @@ const API_BASE = import.meta.env.PROD ? '/api/proxy' : 'https://api.coze.cn';
 const cozeToken = import.meta.env.VITE_COZE_TOKEN || '';
 
 function prodHeaders() {
-  return {};
+  return { 'Content-Type': 'application/json' };
 }
 
 function devHeaders() {

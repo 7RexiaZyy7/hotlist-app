@@ -1,44 +1,5 @@
 const COZE_TOKEN = process.env.COZE_PAT_TOKEN;
 const API_BASE = 'https://api.coze.cn';
-const POLL_TIMEOUT_MS = 8500;
-const POLL_INTERVAL_MS = 600;
-
-async function pollUntilDone(chat_id, conversation_id, headers) {
-  const deadline = Date.now() + POLL_TIMEOUT_MS;
-  while (Date.now() < deadline) {
-    const r = await fetch(
-      `${API_BASE}/v3/chat/retrieve?chat_id=${chat_id}&conversation_id=${conversation_id}`,
-      { headers },
-    );
-    if (!r.ok) { await sleep(POLL_INTERVAL_MS); continue; }
-    const data = (await r.json()).data || (await r.json());
-    if (!data || !data.status) { await sleep(POLL_INTERVAL_MS); continue; }
-    if (data.status === 'completed') return data;
-    if (data.status === 'failed') throw new Error('Bot execution failed');
-    await sleep(POLL_INTERVAL_MS);
-  }
-  return null;
-}
-
-async function getMessages(chat_id, conversation_id, headers) {
-  const r = await fetch(
-    `${API_BASE}/v3/chat/message/list?chat_id=${chat_id}&conversation_id=${conversation_id}`,
-    { headers },
-  );
-  if (!r.ok) return null;
-  const result = await r.json();
-  const messages = result.data || result;
-  if (!Array.isArray(messages)) return null;
-  const answer = messages.find(m => m.type === 'answer' || m.type === 'final');
-  if (answer) return answer.content;
-  const assistant = messages.find(m => m.role === 'assistant');
-  if (assistant) return assistant.content;
-  return messages[0]?.content || null;
-}
-
-function sleep(ms) {
-  return new Promise(resolve => setTimeout(resolve, ms));
-}
 
 export default async function handler(req, res) {
   try {
@@ -75,17 +36,7 @@ export default async function handler(req, res) {
       if (!chatInfo.id || !chatInfo.conversation_id) {
         return res.status(chatRes.status).json(chatData);
       }
-
-      const result = await pollUntilDone(chatInfo.id, chatInfo.conversation_id, headers);
-      if (!result) {
-        return res.json({ chat_id: chatInfo.id, conversation_id: chatInfo.conversation_id, timeout: true });
-      }
-
-      const content = await getMessages(chatInfo.id, chatInfo.conversation_id, headers);
-      if (content) {
-        return res.json({ content });
-      }
-      return res.json({ content: '' });
+      return res.json({ chat_id: chatInfo.id, conversation_id: chatInfo.conversation_id, timeout: true });
     }
 
     if (action(req, 'retrieve') && req.method === 'GET') {

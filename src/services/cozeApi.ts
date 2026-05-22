@@ -206,13 +206,28 @@ export function buildCopyGenerateQuery(
   angles: string[],
   userProfile: any
 ): string {
-  let query = `直接为话题"${topic}"生成文案，严格按以下每个角度写一段完整文案，每段用【角度名】开头：\n\n`;
-  query += `角度：${angles.join('、')}\n\n`;
-  query += `要求：直接输出文案，不要提问，不要询问任何信息。\n`;
+  let query = `【任务】为话题"${topic}"生成高质量爆款文案\n\n`;
+  query += `【角度】${angles.join('、')}\n`;
+  query += `每个角度写一段完整文案，用【角度名】开头\n\n`;
 
-  if (userProfile.niche) query += `账号赛道：${userProfile.niche}\n`;
-  if (userProfile.audience) query += `目标受众：${userProfile.audience}\n`;
-  if (userProfile.style) query += `文风偏好：${userProfile.style}\n`;
+  if (userProfile.niche) query += `【赛道】${userProfile.niche}\n`;
+  if (userProfile.audience) query += `【受众】${userProfile.audience}\n`;
+  if (userProfile.style) query += `【文风】${userProfile.style}\n`;
+  if (userProfile.contentFormat) query += `【体裁】${userProfile.contentFormat}\n`;
+
+  query += `\n【质量要求】
+- 开头前3个字就要抓住注意力（反常识/扎心/悬念/对比）
+- 多用短句、口语化、节奏感
+- 自然融入 1-2 个 emoji，不堆砌
+- 核心卖点只说 1 个，打透
+- 结尾必须有互动钩子（提问/引导评论/反转）
+- 不说正确的废话，每句话都有信息量
+- 全文 80-150 字，不超 200 字
+
+【规则】
+- 直接输出文案，不提问，不询问任何信息
+- 不要写备注说明
+- 不写标题以外的格式标注`;
 
   return query;
 }

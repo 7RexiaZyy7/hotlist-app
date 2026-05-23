@@ -208,7 +208,7 @@ export default async function handler(req, res) {
 
     if (action === 'chat' && req.method === 'POST') {
       // Coze requires stream field when auto_save_history=false
-      const chatBody = { ...body, stream: body.stream ?? false };
+      const chatBody = { ...body, stream: 'false', auto_save_history: 'false' };
       const chatRes = await cozeFetch(`${API_BASE}/v3/chat`, {
         method: 'POST',
         body: JSON.stringify(chatBody),

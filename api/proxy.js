@@ -26,7 +26,7 @@ export default async function handler(req, res) {
     // ─── OAuth: 用 code 换 token ───
     if (action === 'oauth_token' && req.method === 'POST') {
       const { code, code_verifier, redirect_uri } = body;
-      if (!code) return res.status(400).json({ error: 'Missing code' });
+      if (!code) return res.json({ ok: false, error: 'Missing code', debug: 'no_code' });
 
       const tokenBody = {
         grant_type: 'authorization_code',
@@ -36,31 +36,56 @@ export default async function handler(req, res) {
       };
       if (code_verifier) tokenBody.code_verifier = code_verifier;
 
-      const tokenRes = await fetch(COZE_TOKEN_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(tokenBody),
-      });
-      const tokenData = await tokenRes.json();
+      let tokenRes, tokenData, fetchError;
+      try {
+        tokenRes = await fetch(COZE_TOKEN_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(tokenBody),
+        });
+        tokenData = await tokenRes.json();
+      } catch (e) {
+        fetchError = e.message || String(e);
+        return res.json({ ok: false, error: 'fetch_failed', debug: fetchError });
+      }
 
-      // Coze returns HTTP 200 even for errors, check response body
       if (tokenData.code || !tokenData.access_token) {
-        return res.json({ ok: false, error: tokenData.msg || 'token_exchange_failed', code: tokenData.code });
+        return res.json({
+          ok: false, error: tokenData.msg || 'token_exchange_failed',
+          debug: { code: tokenData.code, status: tokenRes?.status, msg: tokenData.msg },
+        });
       }
 
       const { access_token, refresh_token, expires_in } = tokenData;
 
       let uid = '';
+      let userInfoError;
       try {
-        const userRes = await fetch(COZE_USER_INFO_URL, {
-          headers: { 'Authorization': `Bearer ${access_token}` },
+        const userRes = await fetch('https://api.coze.cn/v1/user/info', {
+          headers: { 'Authorization': `Bearer ${access_token}`, 'Content-Type': 'application/json' },
         });
         const userData = await userRes.json();
         uid = userData?.data?.id || userData?.id || '';
-      } catch {}
+        if (!uid) userInfoError = 'empty_uid:' + JSON.stringify(userData).slice(0, 200);
+      } catch (e) {
+        userInfoError = e.message || String(e);
+      }
+
+      if (!uid && COZE_PAT_TOKEN) {
+        try {
+          const patRes = await fetch('https://api.coze.cn/v1/user/info', {
+            headers: { 'Authorization': `Bearer ${COZE_PAT_TOKEN}`, 'Content-Type': 'application/json' },
+          });
+          const patData = await patRes.json();
+          uid = patData?.data?.id || patData?.id || '';
+        } catch {}
+      }
 
       setTokenCookies(res, access_token, refresh_token, expires_in);
-      return res.json({ ok: true, access_token, uid });
+      return res.json({
+        ok: true, access_token, uid,
+        debug: userInfoError ? { userInfoError } : undefined,
+      });
     }
 
     // ─── OAuth: 刷新 token ───

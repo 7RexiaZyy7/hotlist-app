@@ -25,7 +25,7 @@ export async function getOAuthLoginUrl(): Promise<string> {
   return `${data.url}&code_challenge=${challenge}&code_challenge_method=S256&state=${Date.now()}`;
 }
 
-export async function handleOAuthCallback(code: string): Promise<{ ok: boolean; access_token?: string; uid?: string; error?: string }> {
+export async function handleOAuthCallback(code: string): Promise<any> {
   const code_verifier = sessionStorage.getItem('coze_code_verifier') || '';
   sessionStorage.removeItem('coze_code_verifier');
 

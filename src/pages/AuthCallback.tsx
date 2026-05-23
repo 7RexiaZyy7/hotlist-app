@@ -38,7 +38,8 @@ export function AuthCallback() {
           }, 1000);
         } else {
           setStatus('error');
-          setErrorMsg(result.error || '登录失败，请重试');
+          const debugInfo = result.debug ? '\n[调试] ' + JSON.stringify(result.debug) : '';
+          setErrorMsg((result.error || '登录失败，请重试') + debugInfo);
         }
       } catch (e: any) {
         setStatus('error');

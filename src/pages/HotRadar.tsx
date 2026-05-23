@@ -12,7 +12,7 @@ const platforms = [
   { id: '抖音', label: '抖音', color: 'from-cyan-500 to-blue-500' },
   { id: '知乎', label: '知乎', color: 'from-blue-500 to-indigo-500' },
   { id: 'B站', label: 'B站', color: 'from-pink-500 to-red-500' },
-  { id: 'v2ex', label: 'V2EX', color: 'from-green-500 to-emerald-500' },
+  { id: '掘金', label: '掘金', color: 'from-green-500 to-emerald-500' },
 ];
 
 const platformTypeMap: Record<string, string> = {
@@ -20,7 +20,7 @@ const platformTypeMap: Record<string, string> = {
   '抖音': 'douyin',
   '知乎': 'zhihu',
   'B站': 'bilibili',
-  'v2ex': 'v2ex',
+  '掘金': 'juejin',
 };
 
 const platformColors: Record<string, string> = {
@@ -28,7 +28,7 @@ const platformColors: Record<string, string> = {
   '抖音': 'bg-cyan-500',
   '知乎': 'bg-blue-500',
   'B站': 'bg-pink-500',
-  'V2EX': 'bg-green-500',
+  '掘金': 'bg-green-500',
   '小红书': 'bg-orange-500',
 };
 

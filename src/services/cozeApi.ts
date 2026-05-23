@@ -19,19 +19,20 @@ export async function getOAuthLoginUrl(): Promise<string> {
   const { verifier, challenge } = await generatePKCEChallenge();
   sessionStorage.setItem('coze_code_verifier', verifier);
 
-  const r = await fetch(`${PROXY_BASE}?action=oauth_authorize`, { method: 'GET' });
+  const redirectUri = window.location.origin + '/auth/callback';
+  const r = await fetch(`${PROXY_BASE}?action=oauth_authorize&redirect_uri=${encodeURIComponent(redirectUri)}`, { method: 'GET' });
   const data = await r.json();
   return `${data.url}&code_challenge=${challenge}&code_challenge_method=S256&state=${Date.now()}`;
 }
 
-export async function handleOAuthCallback(code: string): Promise<{ ok: boolean; access_token?: string; uid?: string }> {
+export async function handleOAuthCallback(code: string): Promise<{ ok: boolean; access_token?: string; uid?: string; error?: string }> {
   const code_verifier = sessionStorage.getItem('coze_code_verifier') || '';
   sessionStorage.removeItem('coze_code_verifier');
 
   const r = await fetch(`${PROXY_BASE}?action=oauth_token`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ code, code_verifier }),
+    body: JSON.stringify({ code, code_verifier, redirect_uri: window.location.origin + '/auth/callback' }),
   });
   return r.json();
 }

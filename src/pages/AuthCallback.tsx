@@ -38,7 +38,7 @@ export function AuthCallback() {
           }, 1000);
         } else {
           setStatus('error');
-          setErrorMsg('登录失败，请重试');
+          setErrorMsg(result.error || '登录失败，请重试');
         }
       } catch (e: any) {
         setStatus('error');

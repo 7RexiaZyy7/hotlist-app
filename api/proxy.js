@@ -42,7 +42,11 @@ export default async function handler(req, res) {
         body: JSON.stringify(tokenBody),
       });
       const tokenData = await tokenRes.json();
-      if (!tokenRes.ok) return res.status(tokenRes.status).json(tokenData);
+
+      // Coze returns HTTP 200 even for errors, check response body
+      if (tokenData.code || !tokenData.access_token) {
+        return res.json({ ok: false, error: tokenData.msg || 'token_exchange_failed', code: tokenData.code });
+      }
 
       const { access_token, refresh_token, expires_in } = tokenData;
 
@@ -74,9 +78,9 @@ export default async function handler(req, res) {
         }),
       });
       const tokenData = await refreshRes.json();
-      if (!refreshRes.ok) {
+      if (!refreshRes.ok || tokenData.code) {
         clearTokenCookies(res);
-        return res.status(401).json({ error: 'Refresh failed', detail: tokenData });
+        return res.status(401).json({ error: 'Refresh failed', msg: tokenData.msg, code: tokenData.code });
       }
 
       const { access_token, refresh_token: new_refresh, expires_in } = tokenData;
@@ -104,7 +108,7 @@ export default async function handler(req, res) {
           headers: { 'Authorization': `Bearer ${access_token}` },
         });
         const userData = await userRes.json();
-        if (!userRes.ok) {
+        if (!userRes.ok || userData.code) {
           // Token expired, try refresh
           const refresh_token = cookies?.coze_refresh_token;
           if (refresh_token) {

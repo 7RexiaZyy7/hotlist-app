@@ -23,12 +23,29 @@ interface GeneratedCopy {
 
 interface Toast {
   message: string;
-  type: 'success' | 'error' | 'info';
+  type: 'success' | 'error' | 'info' | 'warning';
+}
+
+interface AuthState {
+  isLoggedIn: boolean;
+  isLoadingAuth: boolean;
+  cozeUid: string;
+  accessToken: string;
 }
 
 interface AppState {
   isConnected: boolean;
   setConnected: (connected: boolean) => void;
+
+  // Auth
+  isLoggedIn: boolean;
+  isLoadingAuth: boolean;
+  cozeUid: string;
+  accessToken: string;
+  setAuth: (uid: string, token: string) => void;
+  clearAuth: () => void;
+  setLoadingAuth: (loading: boolean) => void;
+  setAccessToken: (token: string) => void;
 
   hotList: HotItem[];
   selectedPlatform: string;
@@ -66,6 +83,16 @@ interface AppState {
 export const useAppStore = create<AppState>()((set) => ({
   isConnected: true,
   setConnected: (connected) => set({ isConnected: connected }),
+
+  // Auth
+  isLoggedIn: false,
+  isLoadingAuth: true,
+  cozeUid: '',
+  accessToken: '',
+  setAuth: (uid, token) => set({ isLoggedIn: true, cozeUid: uid, accessToken: token, isLoadingAuth: false }),
+  clearAuth: () => set({ isLoggedIn: false, cozeUid: '', accessToken: '', isLoadingAuth: false }),
+  setLoadingAuth: (loading) => set({ isLoadingAuth: loading }),
+  setAccessToken: (token) => set({ accessToken: token }),
 
   hotList: [],
   selectedPlatform: 'all',

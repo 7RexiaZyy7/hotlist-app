@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { Sidebar } from './components/Sidebar';
 import { TopBar } from './components/TopBar';
 import { HotRadar } from './pages/HotRadar';
@@ -5,23 +6,27 @@ import { TopicExplorer } from './pages/TopicExplorer';
 import { ContentForge } from './pages/ContentForge';
 import { CreatorProfile } from './pages/CreatorProfile';
 import { HitAnalyzer } from './pages/HitAnalyzer';
+import { AuthCallback } from './pages/AuthCallback';
 import { useAppStore } from './store';
-import { Check, AlertCircle, Info } from 'lucide-react';
+import { getOAuthStatus, setUserId } from './services/cozeApi';
+import { Check, AlertCircle, Info, Loader2, AlertTriangle } from 'lucide-react';
 
 function Toast() {
   const { toast } = useAppStore();
   if (!toast) return null;
 
-  const iconMap = {
+  const iconMap: Record<string, JSX.Element> = {
     success: <Check className="w-4 h-4 text-success" />,
     error: <AlertCircle className="w-4 h-4 text-red-400" />,
     info: <Info className="w-4 h-4 text-accent" />,
+    warning: <AlertTriangle className="w-4 h-4 text-yellow-400" />,
   };
 
-  const borderMap = {
+  const borderMap: Record<string, string> = {
     success: 'border-success/30',
     error: 'border-red-400/30',
     info: 'border-accent/30',
+    warning: 'border-yellow-400/30',
   };
 
   return (
@@ -35,7 +40,38 @@ function Toast() {
 }
 
 function App() {
-  const { activePage } = useAppStore();
+  const { activePage, isLoggedIn, isLoadingAuth, setAuth, clearAuth, setLoadingAuth } = useAppStore();
+
+  // Check login status on mount
+  useEffect(() => {
+    (async () => {
+      try {
+        const status = await getOAuthStatus();
+        if (status.loggedIn && status.access_token && status.uid) {
+          setAuth(status.uid, status.access_token);
+          setUserId(status.uid);
+        } else {
+          clearAuth();
+        }
+      } catch {
+        clearAuth();
+      }
+    })();
+  }, [setAuth, clearAuth, setLoadingAuth]);
+
+  // Handle OAuth callback route
+  if (window.location.pathname === '/auth/callback') {
+    return <AuthCallback />;
+  }
+
+  // Loading state
+  if (isLoadingAuth) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <Loader2 className="w-8 h-8 text-accent animate-spin" />
+      </div>
+    );
+  }
 
   const renderPage = () => {
     switch (activePage) {

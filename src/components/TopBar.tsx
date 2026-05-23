@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useAppStore } from '../store';
-import { Settings, Zap, Scissors } from 'lucide-react';
+import { getOAuthLoginUrl, oauthLogout } from '../services/cozeApi';
+import { Settings, Zap, Scissors, LogIn, LogOut, User } from 'lucide-react';
 import { clsx } from 'clsx';
 
 export function TopBar() {
@@ -8,9 +9,31 @@ export function TopBar() {
     isConnected, 
     setConnected,
     creationStats,
-    activePage 
+    activePage,
+    isLoggedIn,
+    cozeUid,
+    clearAuth,
+    showToast,
   } = useAppStore();
   const [showSettings, setShowSettings] = useState(false);
+  const [loggingIn, setLoggingIn] = useState(false);
+
+  const handleLogin = async () => {
+    setLoggingIn(true);
+    try {
+      const url = await getOAuthLoginUrl();
+      window.location.href = url;
+    } catch {
+      showToast('获取登录链接失败', 'error');
+      setLoggingIn(false);
+    }
+  };
+
+  const handleLogout = async () => {
+    await oauthLogout();
+    clearAuth();
+    showToast('已退出登录');
+  };
 
   const pageLabels: Record<string, string> = {
     radar: '热榜驾驶舱',
@@ -47,7 +70,28 @@ export function TopBar() {
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
+            {isLoggedIn ? (
+              <button
+                onClick={handleLogout}
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-card border border-gray-700 rounded-lg text-xs text-gray-300 hover:bg-gray-700 transition-colors cursor-pointer"
+                title={`Coze UID: ${cozeUid}`}
+              >
+                <User className="w-3.5 h-3.5 text-accent" />
+                <span className="max-w-20 truncate">{cozeUid.slice(0, 8)}...</span>
+                <LogOut className="w-3 h-3 text-gray-500" />
+              </button>
+            ) : (
+              <button
+                onClick={handleLogin}
+                disabled={loggingIn}
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-accent to-orange-500 rounded-lg text-xs font-medium hover:opacity-90 transition-opacity cursor-pointer disabled:opacity-50"
+              >
+                <LogIn className="w-3.5 h-3.5" />
+                {loggingIn ? '跳转中...' : 'Coze 登录'}
+              </button>
+            )}
+
             <div 
               className={clsx(
                 'w-2 h-2 rounded-full animate-pulse',

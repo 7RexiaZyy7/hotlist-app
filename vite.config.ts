@@ -28,16 +28,20 @@ export default defineConfig({
   ],
   server: {
     proxy: {
-      '/hotboard': {
-        target: 'https://uapis.cn',
+      '/api/proxy': {
+        target: 'http://localhost:3001',
         changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/hotboard/, '/api/v1/misc/hotboard'),
       },
       '/api': {
         target: 'https://api.coze.cn',
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/api/, ''),
         secure: true,
+      },
+      '/hotboard': {
+        target: 'https://uapis.cn',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/hotboard/, '/api/v1/misc/hotboard'),
       },
     },
   },

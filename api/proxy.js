@@ -284,10 +284,10 @@ export default async function handler(req, res) {
       const chatInfo = testData.data || testData;
 
       // Poll retrieve until completed or 120s timeout
-      let finalRetrieve: any = null;
-      let finalMessages: any = null;
+      let finalRetrieve = null;
+      let finalMessages = null;
       const pollStart = Date.now();
-      while (Date.now() - pollStart < 120000) {
+      while (Date.now() - pollStart < 30000) {
         await new Promise(r => setTimeout(r, 5000));
         const retRes = await cozeFetch(
           `${API_BASE}/v3/chat/retrieve?chat_id=${chatInfo.id}&conversation_id=${chatInfo.conversation_id}`

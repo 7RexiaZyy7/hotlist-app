@@ -216,7 +216,7 @@ export default async function handler(req, res) {
     if (action === 'chat' && req.method === 'POST') {
       const chatRes = await cozeFetch(`${API_BASE}/v3/chat`, {
         method: 'POST',
-        body: JSON.stringify(chatBody),
+        body: JSON.stringify(body),
       });
       const chatData = await chatRes.json();
       const chatInfo = chatData.data || chatData;

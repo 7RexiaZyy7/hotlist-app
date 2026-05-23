@@ -277,6 +277,9 @@ export function HotRadar() {
         localStorage.setItem('savedHotList', JSON.stringify(parsedList));
         showToast(`成功获取 ${parsedList.length} 条热榜数据`);
       } else {
+        // Save raw content for debugging
+        localStorage.setItem('debug_raw_hotlist', content);
+        console.warn('热榜原始内容(前500字符):', content.slice(0, 500));
         showToast('未获取到热榜数据', 'info');
       }
     } catch (error: any) {

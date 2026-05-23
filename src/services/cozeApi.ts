@@ -153,13 +153,16 @@ async function fetchMessages(chat_id: string, conversation_id: string): Promise<
   const messages = result.data || result;
   if (!Array.isArray(messages)) return null;
 
-  const answer = messages.find((m: any) => m.type === 'answer' || m.type === 'final');
+  // Only return actual answer, not internal verbose/plugin_call messages
+  const answer = messages.find((m: any) => m.type === 'answer');
   if (answer?.content) return answer.content;
 
-  const assistant = messages.find((m: any) => m.role === 'assistant');
-  if (assistant?.content) return assistant.content;
+  // Check for 'final' type (older API versions)
+  const final = messages.find((m: any) => m.type === 'final');
+  if (final?.content) return final.content;
 
-  return messages[0]?.content || null;
+  // No answer yet
+  return null;
 }
 
 export async function syncUserVariables(): Promise<boolean> {

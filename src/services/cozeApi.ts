@@ -110,12 +110,17 @@ export async function callCozeChat(query: string): Promise<string> {
 
 async function pollForResult(chat_id: string, conversation_id: string): Promise<string> {
   const maxRetries = 60;
-  const retryInterval = 2000;
+  const retryInterval = 3000;
 
   for (let i = 0; i < maxRetries; i++) {
     await new Promise(resolve => setTimeout(resolve, retryInterval));
 
     try {
+      // Try messages first — if we have an answer, chat is done regardless of retrieve status
+      const content = await fetchMessages(chat_id, conversation_id);
+      if (content !== null && content.length > 0) return content;
+
+      // Also check retrieve for status
       const retrieveResponse = await fetch(
         `${PROXY_BASE}?action=retrieve&chat_id=${chat_id}&conversation_id=${conversation_id}`,
         { headers: { 'Content-Type': 'application/json' } }
@@ -126,13 +131,9 @@ async function pollForResult(chat_id: string, conversation_id: string): Promise<
       const retrieveData = retrieveResult.data || retrieveResult;
       if (!retrieveData?.status) continue;
 
-      if (i % 5 === 0) console.log(`轮询第${i}次, status: ${retrieveData.status}`);
+      if (i % 5 === 0) console.log(`轮询第${i}次, retrieve_status: ${retrieveData.status}`);
 
-      if (retrieveData.status === 'completed') {
-        const content = await fetchMessages(chat_id, conversation_id);
-        if (content !== null) return content;
-        return '';
-      } else if (retrieveData.status === 'failed') {
+      if (retrieveData.status === 'failed') {
         throw new Error('Bot 执行失败');
       }
     } catch (e) {

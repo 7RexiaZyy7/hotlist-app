@@ -284,6 +284,7 @@ export default async function handler(req, res) {
         ok: true,
         chat_created_ms: Date.now() - start,
         chat_id: chatInfo.id,
+        conversation_id: chatInfo.conversation_id,
         status: chatInfo.status,
       });
     }

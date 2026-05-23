@@ -280,12 +280,23 @@ export default async function handler(req, res) {
       });
       const testData = await testRes.json();
       const chatInfo = testData.data || testData;
+
+      // Wait 5s then try retrieve
+      await new Promise(r => setTimeout(r, 5000));
+      const retRes = await cozeFetch(
+        `${API_BASE}/v3/chat/retrieve?chat_id=${chatInfo.id}&conversation_id=${chatInfo.conversation_id}`
+      );
+      const retData = await retRes.json();
+
       return res.json({
         ok: true,
         chat_created_ms: Date.now() - start,
+        chat_raw: testData,
         chat_id: chatInfo.id,
         conversation_id: chatInfo.conversation_id,
-        status: chatInfo.status,
+        create_status: chatInfo.status,
+        retrieve_raw: retData,
+        retrieve_raw_status: retData?.data?.status || retData?.status || '(unknown)',
       });
     }
 

@@ -196,9 +196,9 @@ export default async function handler(req, res) {
     const validCookieToken = cookieToken && cookieToken !== 'undefined' && cookieToken.length > 10 ? cookieToken : '';
     const patFallbackToken = COZE_PAT_TOKEN || validCookieToken || '';
 
-    // All Coze API calls use PAT — OAuth token is only used for user identity (/v1/users/me)
+    // Logged-in users use OAuth token (full permissions); anonymous users fallback to PAT
     const cozeHeaders = {
-      'Authorization': `Bearer ${COZE_PAT_TOKEN || validCookieToken || ''}`,
+      'Authorization': `Bearer ${validCookieToken || COZE_PAT_TOKEN || ''}`,
       'Content-Type': 'application/json',
     };
 

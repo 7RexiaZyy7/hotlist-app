@@ -172,7 +172,7 @@ export async function syncUserVariables(): Promise<boolean> {
       bot_id: BOT_ID,
       user_id: userId,
       stream: false,
-      auto_save_history: false,
+    auto_save_history: true,
       additional_messages: [{ role: 'user', content: '[系统] 更新用户变量', content_type: 'text' }],
       custom_variables: userVariables,
     };

@@ -192,25 +192,28 @@ export default async function handler(req, res) {
     }
 
     // ─── 以下端点需要 token ───
-    // Coze API 调用统一用 PAT（bot 以 bot 所有者权限执行，插件才能正常跑）
-    // OAuth 的 user token 仅用于身份识别和 custom_variables 操作，不用来调 Chat API
     const cookieToken = cookies?.coze_access_token;
     const validCookieToken = cookieToken && cookieToken !== 'undefined' && cookieToken.length > 10 ? cookieToken : '';
     const patFallbackToken = COZE_PAT_TOKEN || validCookieToken || '';
-    const headers = {
-      'Authorization': `Bearer ${patFallbackToken}`,
+
+    // PAT headers — used for chat creation (bot needs plugin permissions)
+    const patHeaders = {
+      'Authorization': `Bearer ${COZE_PAT_TOKEN || validCookieToken || ''}`,
       'Content-Type': 'application/json',
     };
 
-    async function cozeFetch(url, options = {}) {
-      return fetch(url, { ...options, headers: { ...headers, ...options.headers } });
+    // User token headers — used for retrieve/messages (need user context)
+    const userHeaders = {
+      'Authorization': `Bearer ${validCookieToken || COZE_PAT_TOKEN || ''}`,
+      'Content-Type': 'application/json',
+    };
+
+    async function cozeFetch(url, options = {}, usePat = true) {
+      const hdrs = usePat ? patHeaders : userHeaders;
+      return fetch(url, { ...options, headers: { ...hdrs, ...options.headers } });
     }
 
     if (action === 'chat' && req.method === 'POST') {
-      // Don't pass auto_save_history - use Coze default (false)
-      // This prevents conversation from being locked to user, so PAT can retrieve
-      const { auto_save_history: _, ...chatBody } = body;
-      chatBody.stream = false;
       const chatRes = await cozeFetch(`${API_BASE}/v3/chat`, {
         method: 'POST',
         body: JSON.stringify(chatBody),
@@ -225,8 +228,10 @@ export default async function handler(req, res) {
 
     if (action === 'retrieve' && req.method === 'GET') {
       const { chat_id, conversation_id } = req.query;
+      // Use user token for retrieve — conversation belongs to user when auto_save_history=true
       const r = await cozeFetch(
-        `${API_BASE}/v3/chat/retrieve?chat_id=${chat_id}&conversation_id=${conversation_id}`
+        `${API_BASE}/v3/chat/retrieve?chat_id=${chat_id}&conversation_id=${conversation_id}`,
+        {}, false
       );
       const data = await r.json();
       return res.status(r.status).json(data);
@@ -235,7 +240,8 @@ export default async function handler(req, res) {
     if (action === 'messages' && req.method === 'GET') {
       const { chat_id, conversation_id } = req.query;
       const r = await cozeFetch(
-        `${API_BASE}/v3/chat/message/list?chat_id=${chat_id}&conversation_id=${conversation_id}`
+        `${API_BASE}/v3/chat/message/list?chat_id=${chat_id}&conversation_id=${conversation_id}`,
+        {}, false
       );
       const data = await r.json();
       return res.status(r.status).json(data);

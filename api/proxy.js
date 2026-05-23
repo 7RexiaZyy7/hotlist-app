@@ -65,7 +65,7 @@ export default async function handler(req, res) {
           headers: { 'Authorization': `Bearer ${access_token}`, 'Content-Type': 'application/json' },
         });
         const userData = await userRes.json();
-        uid = userData?.data?.id || userData?.id || '';
+        uid = userData?.data?.user_id || userData?.data?.id || userData?.id || '';
         if (!uid) userInfoError = 'empty_uid:' + JSON.stringify(userData).slice(0, 200);
       } catch (e) {
         userInfoError = e.message || String(e);
@@ -77,7 +77,7 @@ export default async function handler(req, res) {
             headers: { 'Authorization': `Bearer ${COZE_PAT_TOKEN}`, 'Content-Type': 'application/json' },
           });
           const patData = await patRes.json();
-          uid = patData?.data?.id || patData?.id || '';
+          uid = patData?.data?.user_id || patData?.data?.id || patData?.id || '';
         } catch {}
       }
 

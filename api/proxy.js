@@ -176,7 +176,8 @@ export default async function handler(req, res) {
 
     // ─── 获取当前认证 token（用于前端调用 Coze API）───
     if (action === 'get_token' && req.method === 'GET') {
-      const access_token = cookies?.coze_access_token || COZE_PAT_TOKEN;
+      const t = cookies?.coze_access_token;
+      const access_token = (t && t !== 'undefined' && t.length > 10) ? t : (COZE_PAT_TOKEN || '');
       if (!access_token) return res.status(401).json({ error: 'No token available' });
       return res.json({ access_token });
     }
@@ -191,7 +192,9 @@ export default async function handler(req, res) {
     }
 
     // ─── 以下端点需要 token ───
-    const userToken = cookies?.coze_access_token || COZE_PAT_TOKEN || '';
+    const cookieToken = cookies?.coze_access_token;
+    const validCookieToken = cookieToken && cookieToken !== 'undefined' && cookieToken.length > 10 ? cookieToken : '';
+    const userToken = validCookieToken || COZE_PAT_TOKEN || '';
     const headers = {
       'Authorization': `Bearer ${userToken}`,
       'Content-Type': 'application/json',

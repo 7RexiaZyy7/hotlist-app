@@ -192,36 +192,18 @@ export default async function handler(req, res) {
     }
 
     // ─── 以下端点需要 token ───
+    // Coze API 调用统一用 PAT（bot 以 bot 所有者权限执行，插件才能正常跑）
+    // OAuth 的 user token 仅用于身份识别和 custom_variables 操作，不用来调 Chat API
     const cookieToken = cookies?.coze_access_token;
     const validCookieToken = cookieToken && cookieToken !== 'undefined' && cookieToken.length > 10 ? cookieToken : '';
-    const userToken = validCookieToken || COZE_PAT_TOKEN || '';
+    const patFallbackToken = COZE_PAT_TOKEN || validCookieToken || '';
     const headers = {
-      'Authorization': `Bearer ${userToken}`,
+      'Authorization': `Bearer ${patFallbackToken}`,
       'Content-Type': 'application/json',
     };
 
     async function cozeFetch(url, options = {}) {
-      let r = await fetch(url, { ...options, headers: { ...headers, ...options.headers } });
-      if (r.status === 401 && cookies?.coze_refresh_token) {
-        const refreshRes = await fetch(COZE_TOKEN_URL, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            grant_type: 'refresh_token',
-            refresh_token: cookies.coze_refresh_token,
-            client_id: COZE_CLIENT_ID,
-          }),
-        });
-        const tokenData = await refreshRes.json();
-        if (refreshRes.ok && tokenData.access_token) {
-          setTokenCookies(res, tokenData.access_token, tokenData.refresh_token || cookies.coze_refresh_token, tokenData.expires_in);
-          headers['Authorization'] = `Bearer ${tokenData.access_token}`;
-          r = await fetch(url, { ...options, headers: { ...headers, ...options.headers } });
-        } else {
-          clearTokenCookies(res);
-        }
-      }
-      return r;
+      return fetch(url, { ...options, headers: { ...headers, ...options.headers } });
     }
 
     if (action === 'chat' && req.method === 'POST') {
@@ -279,8 +261,8 @@ export default async function handler(req, res) {
         patPreview,
         cookieToken: cookieVal,
         validCookieToken,
-        userTokenPreview: userToken.slice(0, 15) + '...',
-        tokenSource: validCookieToken ? 'cookie' : (COZE_PAT_TOKEN ? 'pat' : 'none'),
+        tokenPreview: patFallbackToken.slice(0, 15) + '...',
+        tokenSource: COZE_PAT_TOKEN ? 'pat' : (validCookieToken ? 'cookie' : 'none'),
       });
     }
 

@@ -256,9 +256,7 @@ export function HotRadar() {
           return;
         }
 
-        const url = import.meta.env.PROD
-          ? `/api/proxy?action=hotboard&type=${type}`
-          : `/hotboard?type=${type}`;
+        const url = `https://uapis.cn/api/v1/misc/hotboard?type=${type}`;
         const res = await fetch(url);
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const data = await res.json();

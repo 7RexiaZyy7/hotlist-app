@@ -240,7 +240,7 @@ export default async function handler(req, res) {
     if (action === 'variables' && req.method === 'POST') {
       const { bot_id, user_id, variables } = body;
       const payload = {
-        bot_id, user_id, stream: false, auto_save_history: false,
+        bot_id, user_id, stream: "false", auto_save_history: "false",
         additional_messages: [{ role: 'user', content: '[系统] 更新用户变量', content_type: 'text' }],
       };
       if (variables) payload.custom_variables = variables;

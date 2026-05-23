@@ -66,8 +66,8 @@ export async function callCozeChat(query: string): Promise<string> {
   const body: Record<string, any> = {
     bot_id: BOT_ID,
     user_id: userId,
-    stream: false,
-    auto_save_history: false,
+    stream: "false",
+    auto_save_history: "false",
     additional_messages: [
       { role: 'user', content: query, content_type: 'text' },
     ],

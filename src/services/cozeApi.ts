@@ -67,7 +67,7 @@ export async function callCozeChat(query: string): Promise<string> {
     bot_id: BOT_ID,
     user_id: userId,
     stream: false,
-    auto_save_history: false,
+    auto_save_history: true,
     additional_messages: [
       { role: 'user', content: query, content_type: 'text' },
     ],

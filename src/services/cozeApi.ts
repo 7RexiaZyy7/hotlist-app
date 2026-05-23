@@ -237,29 +237,59 @@ export function buildHotListQuery(platform: string = 'all'): string {
 export function buildCopyGenerateQuery(topic: string, angles: string[], userProfile: any): string {
   let query = `【任务】为话题"${topic}"生成高质量爆款文案\n\n`;
   query += `【角度】${angles.join('、')}\n`;
-  query += `每个角度写一段完整文案，用【角度名】开头\n\n`;
+  query += `每个角度输出一条完整文案，严格按下面的【输出格式】\n\n`;
 
   if (userProfile.niche) query += `【赛道】${userProfile.niche}\n`;
   if (userProfile.audience) query += `【受众】${userProfile.audience}\n`;
   if (userProfile.style) query += `【文风】${userProfile.style}\n`;
   if (userProfile.contentFormat) query += `【体裁】${userProfile.contentFormat}\n`;
 
-  query += `\n【质量要求】
-- 开头前3个字就要抓住注意力（反常识/扎心/悬念/对比）
-- 多用短句、口语化、节奏感
-- 自然融入 1-2 个 emoji，不堆砌
-- 核心卖点只说 1 个，打透
-- 结尾必须有互动钩子（提问/引导评论/反转）
-- 不说正确的废话，每句话都有信息量
-- 全文 80-150 字，不超 200 字
+  query += `\n【知识库引用】必须从知识库中调用爆款文案框架来生成：
+角度→框架映射：
+- 共鸣型 → PAS（问题-放大-解决）或 场景代入
+- 知识型 → AIDA（注意-兴趣-欲望-行动）
+- 观点型 → BAB（Before-After-Bridge）
+- 趣味型 → 悬念开头 + PPP（Promise-Picture-Punch）
+- 实用型 → FAB（特征-优势-利益）
+- 关联型 → PASTOR（问题-放大-故事-方案）
+- 决策纠结型 → 对比框架（Before vs After）
+- 问题原因型 → 问题-原因-方案
+- 填补盲区型 → 反常识 + 数据支撑
+- 替用户说话 → 场景代入 + 情绪共鸣
+- 行业发心型 → 故事开头 + 价值升华
 
-【知识库参考】请调用知识库中的爆款文案框架（如AIDA/PAS/FAB/4P/BAB等）和平台模板来生成
+同时参考知识库中的平台模板调整语气和段落结构。
+
+【输出格式】
+每个角度按以下结构输出：
+
+🎯 【第X种角度：角度名】
+**选用框架：**[使用的框架名称]
+**切入逻辑：**一句话说明为什么用这个角度
+
+▎开头
+[前3-5字钩子+完整开头段落，1-2句抓住注意力]
+
+▎正文
+[分段正文，每段2-3句话，空行分隔；使用框架结构展开]
+
+▎结尾
+[金句收尾 / 互动引导 / 反转收尾]
+
+【质量要求】
+- 开头前3个字必须抓住注意力（反常识/扎心提问/惊人数据/悬念缺口/强烈对比）
+- 禁止平淡开头："最近""今天""我觉得""很多人"
+- 只说1个核心观点，打透
+- 多用短句、口语化、有节奏感
+- 自然融入 1-2 个 emoji，不堆砌
+- 每句话都有信息量，不凑字数
+- 结尾必须有互动钩子（提问引导评论/反转收尾/悬念引导点击/共鸣金句）
+- 全文 150-300 字，不超过 350 字
 
 【规则】
 - 直接输出文案，不要问任何问题，不要询问赛道/受众/文风等信息
 - 没有赛道和受众信息就直接写通用文案
-- 不要写备注说明
-- 不写标题以外的格式标注`;
+- 不要写备注说明`;
 
   return query;
 }

@@ -116,7 +116,7 @@ export default async function handler(req, res) {
           headers: { 'Authorization': `Bearer ${access_token}` },
         });
         const userData = await userRes.json();
-        uid = userData?.data?.id || userData?.id || '';
+        uid = userData?.data?.user_id || userData?.data?.id || userData?.id || '';
       } catch {}
 
       setTokenCookies(res, access_token, new_refresh || refresh_token, expires_in);
@@ -154,14 +154,14 @@ export default async function handler(req, res) {
                 headers: { 'Authorization': `Bearer ${new_token}` },
               });
               const userData2 = await userRes2.json();
-              const uid = userData2?.data?.id || userData2?.id || '';
+              const uid = userData2?.data?.user_id || userData2?.data?.id || userData2?.id || '';
               return res.json({ loggedIn: true, access_token: new_token, uid });
             }
           }
           clearTokenCookies(res);
           return res.json({ loggedIn: false });
         }
-        const uid = userData?.data?.id || userData?.id || '';
+        const uid = userData?.data?.user_id || userData?.data?.id || userData?.id || '';
         return res.json({ loggedIn: true, access_token, uid });
       } catch {
         return res.json({ loggedIn: false });
@@ -270,6 +270,20 @@ export default async function handler(req, res) {
       return res.status(r.status).json({ ok: r.ok, chat_id: data?.data?.id });
     }
 
+    if (action === 'diag' && req.method === 'GET') {
+      const hasPat = !!COZE_PAT_TOKEN;
+      const patPreview = COZE_PAT_TOKEN ? COZE_PAT_TOKEN.slice(0, 8) + '...' + COZE_PAT_TOKEN.slice(-4) : '';
+      const cookieVal = cookies?.coze_access_token?.slice(0, 15) || '(none)';
+      return res.json({
+        hasPat,
+        patPreview,
+        cookieToken: cookieVal,
+        validCookieToken,
+        userTokenPreview: userToken.slice(0, 15) + '...',
+        tokenSource: validCookieToken ? 'cookie' : (COZE_PAT_TOKEN ? 'pat' : 'none'),
+      });
+    }
+
     if (action === 'debug' && req.method === 'GET') {
       const start = Date.now();
       const testRes = await cozeFetch(`${API_BASE}/v3/chat`, {
@@ -322,17 +336,19 @@ async function parseBody(req) {
 function setTokenCookies(res, access_token, refresh_token, expires_in) {
   const age = expires_in || 86400;
   const refreshAge = 30 * 86400;
+  const secure = res.req?.headers?.['x-forwarded-proto'] === 'https' ? '; Secure' : '';
   const cookies = [
-    `coze_access_token=${access_token}; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=${age}`,
-    `coze_refresh_token=${refresh_token}; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=${refreshAge}`,
+    `coze_access_token=${access_token}; HttpOnly${secure}; SameSite=Lax; Path=/; Max-Age=${age}`,
+    `coze_refresh_token=${refresh_token}; HttpOnly${secure}; SameSite=Lax; Path=/; Max-Age=${refreshAge}`,
   ];
   res.setHeader('Set-Cookie', cookies);
 }
 
 function clearTokenCookies(res) {
+  const secure = res.req?.headers?.['x-forwarded-proto'] === 'https' ? '; Secure' : '';
   const cookies = [
-    'coze_access_token=; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=0',
-    'coze_refresh_token=; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=0',
+    `coze_access_token=; HttpOnly${secure}; SameSite=Lax; Path=/; Max-Age=0`,
+    `coze_refresh_token=; HttpOnly${secure}; SameSite=Lax; Path=/; Max-Age=0`,
   ];
   res.setHeader('Set-Cookie', cookies);
 }

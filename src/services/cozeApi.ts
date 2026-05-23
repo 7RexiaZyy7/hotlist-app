@@ -66,6 +66,8 @@ export async function callCozeChat(query: string): Promise<string> {
   const body: Record<string, any> = {
     bot_id: BOT_ID,
     user_id: userId,
+    stream: false,
+    auto_save_history: true,
     additional_messages: [
       { role: 'user', content: query, content_type: 'text' },
     ],
@@ -114,11 +116,7 @@ async function pollForResult(chat_id: string, conversation_id: string): Promise<
     await new Promise(resolve => setTimeout(resolve, retryInterval));
 
     try {
-      // Try messages first — if we have an answer, chat is done regardless of retrieve status
-      const content = await fetchMessages(chat_id, conversation_id);
-      if (content !== null && content.length > 0) return content;
-
-      // Also check retrieve for status
+      // Check retrieve status first — wait for completed before fetching messages
       const retrieveResponse = await fetch(
         `${PROXY_BASE}?action=retrieve&chat_id=${chat_id}&conversation_id=${conversation_id}`,
         { headers: { 'Content-Type': 'application/json' } }
@@ -134,33 +132,35 @@ async function pollForResult(chat_id: string, conversation_id: string): Promise<
       if (retrieveData.status === 'failed') {
         throw new Error('Bot 执行失败');
       }
+
+      if (retrieveData.status !== 'completed') continue;
+
+      // Bot completed, now fetch messages
+      const messagesResponse = await fetch(
+        `${PROXY_BASE}?action=messages&chat_id=${chat_id}&conversation_id=${conversation_id}`,
+        { headers: { 'Content-Type': 'application/json' } }
+      );
+      if (!messagesResponse.ok) continue;
+
+      const messagesResult = await messagesResponse.json();
+      let messages: any[] = messagesResult.data || messagesResult;
+      if (!Array.isArray(messages)) continue;
+
+      // Look for answer with fallbacks (matching working version behavior)
+      const answerMsg = messages.find((m: any) => m.type === 'answer' || m.type === 'final');
+      if (answerMsg?.content) return answerMsg.content;
+
+      const assistantMsg = messages.find((m: any) => m.role === 'assistant');
+      if (assistantMsg?.content) return assistantMsg.content;
+
+      if (messages.length > 0 && messages[0].content) return messages[0].content;
+
+      return '';
     } catch (e) {
       continue;
     }
   }
   throw new Error('获取响应超时');
-}
-
-async function fetchMessages(chat_id: string, conversation_id: string): Promise<string | null> {
-  const r = await fetch(
-    `${PROXY_BASE}?action=messages&chat_id=${chat_id}&conversation_id=${conversation_id}`,
-    { headers: { 'Content-Type': 'application/json' } }
-  );
-  if (!r.ok) return null;
-  const result = await r.json();
-  const messages = result.data || result;
-  if (!Array.isArray(messages)) return null;
-
-  // Only return actual answer, not internal verbose/plugin_call messages
-  const answer = messages.find((m: any) => m.type === 'answer');
-  if (answer?.content) return answer.content;
-
-  // Check for 'final' type (older API versions)
-  const final = messages.find((m: any) => m.type === 'final');
-  if (final?.content) return final.content;
-
-  // No answer yet
-  return null;
 }
 
 export async function syncUserVariables(): Promise<boolean> {

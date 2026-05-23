@@ -207,8 +207,10 @@ export default async function handler(req, res) {
     }
 
     if (action === 'chat' && req.method === 'POST') {
-      // Coze requires stream field when auto_save_history=false
-      const chatBody = { ...body, stream: 'false', auto_save_history: 'false' };
+      // Don't pass auto_save_history - use Coze default (false)
+      // This prevents conversation from being locked to user, so PAT can retrieve
+      const { auto_save_history: _, ...chatBody } = body;
+      chatBody.stream = false;
       const chatRes = await cozeFetch(`${API_BASE}/v3/chat`, {
         method: 'POST',
         body: JSON.stringify(chatBody),

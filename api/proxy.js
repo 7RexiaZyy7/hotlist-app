@@ -207,9 +207,11 @@ export default async function handler(req, res) {
     }
 
     if (action === 'chat' && req.method === 'POST') {
+      // Coze requires stream field when auto_save_history=false
+      const chatBody = { ...body, stream: body.stream ?? false };
       const chatRes = await cozeFetch(`${API_BASE}/v3/chat`, {
         method: 'POST',
-        body: JSON.stringify(body),
+        body: JSON.stringify(chatBody),
       });
       const chatData = await chatRes.json();
       const chatInfo = chatData.data || chatData;
@@ -281,22 +283,35 @@ export default async function handler(req, res) {
       const testData = await testRes.json();
       const chatInfo = testData.data || testData;
 
-      // Wait 5s then try retrieve
-      await new Promise(r => setTimeout(r, 5000));
-      const retRes = await cozeFetch(
-        `${API_BASE}/v3/chat/retrieve?chat_id=${chatInfo.id}&conversation_id=${chatInfo.conversation_id}`
-      );
-      const retData = await retRes.json();
+      // Poll retrieve until completed or 120s timeout
+      let finalRetrieve: any = null;
+      let finalMessages: any = null;
+      const pollStart = Date.now();
+      while (Date.now() - pollStart < 120000) {
+        await new Promise(r => setTimeout(r, 5000));
+        const retRes = await cozeFetch(
+          `${API_BASE}/v3/chat/retrieve?chat_id=${chatInfo.id}&conversation_id=${chatInfo.conversation_id}`
+        );
+        finalRetrieve = await retRes.json();
+        const status = finalRetrieve?.data?.status || finalRetrieve?.status || '';
+        if (status === 'completed' || status === 'failed') {
+          // Also fetch messages
+          const msgRes = await cozeFetch(
+            `${API_BASE}/v3/chat/message/list?chat_id=${chatInfo.id}&conversation_id=${chatInfo.conversation_id}`
+          );
+          finalMessages = await msgRes.json();
+          break;
+        }
+      }
 
       return res.json({
         ok: true,
-        chat_created_ms: Date.now() - start,
         chat_raw: testData,
         chat_id: chatInfo.id,
         conversation_id: chatInfo.conversation_id,
-        create_status: chatInfo.status,
-        retrieve_raw: retData,
-        retrieve_raw_status: retData?.data?.status || retData?.status || '(unknown)',
+        poll_ms: Date.now() - pollStart,
+        final_retrieve: finalRetrieve,
+        final_messages: finalMessages,
       });
     }
 

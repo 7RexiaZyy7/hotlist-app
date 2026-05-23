@@ -196,21 +196,14 @@ export default async function handler(req, res) {
     const validCookieToken = cookieToken && cookieToken !== 'undefined' && cookieToken.length > 10 ? cookieToken : '';
     const patFallbackToken = COZE_PAT_TOKEN || validCookieToken || '';
 
-    // PAT headers — used for chat creation (bot needs plugin permissions)
-    const patHeaders = {
+    // All Coze API calls use PAT — OAuth token is only used for user identity (/v1/users/me)
+    const cozeHeaders = {
       'Authorization': `Bearer ${COZE_PAT_TOKEN || validCookieToken || ''}`,
       'Content-Type': 'application/json',
     };
 
-    // User token headers — used for retrieve/messages (need user context)
-    const userHeaders = {
-      'Authorization': `Bearer ${validCookieToken || COZE_PAT_TOKEN || ''}`,
-      'Content-Type': 'application/json',
-    };
-
-    async function cozeFetch(url, options = {}, usePat = true) {
-      const hdrs = usePat ? patHeaders : userHeaders;
-      return fetch(url, { ...options, headers: { ...hdrs, ...options.headers } });
+    async function cozeFetch(url, options = {}) {
+      return fetch(url, { ...options, headers: { ...cozeHeaders, ...options.headers } });
     }
 
     if (action === 'chat' && req.method === 'POST') {
@@ -228,10 +221,8 @@ export default async function handler(req, res) {
 
     if (action === 'retrieve' && req.method === 'GET') {
       const { chat_id, conversation_id } = req.query;
-      // Use user token for retrieve — conversation belongs to user when auto_save_history=true
       const r = await cozeFetch(
-        `${API_BASE}/v3/chat/retrieve?chat_id=${chat_id}&conversation_id=${conversation_id}`,
-        {}, false
+        `${API_BASE}/v3/chat/retrieve?chat_id=${chat_id}&conversation_id=${conversation_id}`
       );
       const data = await r.json();
       return res.status(r.status).json(data);
@@ -240,8 +231,7 @@ export default async function handler(req, res) {
     if (action === 'messages' && req.method === 'GET') {
       const { chat_id, conversation_id } = req.query;
       const r = await cozeFetch(
-        `${API_BASE}/v3/chat/message/list?chat_id=${chat_id}&conversation_id=${conversation_id}`,
-        {}, false
+        `${API_BASE}/v3/chat/message/list?chat_id=${chat_id}&conversation_id=${conversation_id}`
       );
       const data = await r.json();
       return res.status(r.status).json(data);
@@ -265,15 +255,7 @@ export default async function handler(req, res) {
     if (action === 'diag' && req.method === 'GET') {
       const hasPat = !!COZE_PAT_TOKEN;
       const patPreview = COZE_PAT_TOKEN ? COZE_PAT_TOKEN.slice(0, 8) + '...' + COZE_PAT_TOKEN.slice(-4) : '';
-      const cookieVal = cookies?.coze_access_token?.slice(0, 15) || '(none)';
-      return res.json({
-        hasPat,
-        patPreview,
-        cookieToken: cookieVal,
-        validCookieToken,
-        tokenPreview: patFallbackToken.slice(0, 15) + '...',
-        tokenSource: COZE_PAT_TOKEN ? 'pat' : (validCookieToken ? 'cookie' : 'none'),
-      });
+      return res.json({ hasPat, patPreview });
     }
 
     if (action === 'debug' && req.method === 'GET') {

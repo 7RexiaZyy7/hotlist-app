@@ -1,6 +1,10 @@
 import { useEffect, useState } from 'react';
 import { useAppStore } from '../store';
 import { RefreshCw, ExternalLink, TrendingUp, Sparkles } from 'lucide-react';
+import { 
+  callCozeChat, 
+  buildHotListQuery 
+} from '../services/cozeApi';
 
 const platforms = [
   { id: 'all', label: '综合热榜', color: 'from-purple-500 to-pink-500' },
@@ -241,31 +245,9 @@ export function HotRadar() {
       let parsedList: any[];
 
       if (selectedPlatform === 'all') {
-        const platformTypes = Object.entries(platformTypeMap);
-        const results = await Promise.allSettled(
-          platformTypes.map(async ([label, type]) => {
-            const url = `https://uapis.cn/api/v1/misc/hotboard?type=${type}`;
-            const res = await fetch(url);
-            if (!res.ok) throw new Error(`HTTP ${res.status} for ${label}`);
-            const data = await res.json();
-            const items = data?.list || [];
-            return items.map((item: any, index: number) => ({
-              rank: index + 1,
-              title: item.title || '',
-              platform: label,
-              heatScore: parseHeatItemValue(item.hot_value),
-              url: item.url || '',
-            }));
-          })
-        );
-        parsedList = [];
-        for (const result of results) {
-          if (result.status === 'fulfilled') {
-            parsedList.push(...result.value);
-          }
-        }
-        parsedList.sort((a: any, b: any) => b.heatScore - a.heatScore);
-        parsedList = parsedList.slice(0, 15);
+        const query = buildHotListQuery(selectedPlatform);
+        const content = await callCozeChat(query);
+        parsedList = parseHotList(content);
       } else {
         const type = platformTypeMap[selectedPlatform];
         if (!type) {

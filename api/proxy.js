@@ -40,7 +40,7 @@ export default async function handler(req, res) {
       try {
         tokenRes = await fetch(COZE_TOKEN_URL, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' },
           body: JSON.stringify(tokenBody),
         });
         tokenData = await tokenRes.json();

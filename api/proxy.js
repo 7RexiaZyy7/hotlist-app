@@ -2,7 +2,7 @@ const COZE_PAT_TOKEN = process.env.COZE_PAT_TOKEN;
 const COZE_CLIENT_ID = process.env.COZE_CLIENT_ID || '13649532017216334435107873770562.app.coze';
 const COZE_AUTHORIZE_URL = 'https://www.coze.cn/api/permission/oauth2/authorize';
 const COZE_TOKEN_URL = 'https://api.coze.cn/api/permission/oauth2/token';
-const COZE_USER_INFO_URL = 'https://api.coze.cn/v1/user/info';
+const COZE_USER_INFO_URL = 'https://api.coze.cn/v1/users/me';
 const API_BASE = 'https://api.coze.cn';
 
 export default async function handler(req, res) {
@@ -61,7 +61,7 @@ export default async function handler(req, res) {
       let uid = '';
       let userInfoError;
       try {
-        const userRes = await fetch('https://api.coze.cn/v1/user/info', {
+        const userRes = await fetch(COZE_USER_INFO_URL, {
           headers: { 'Authorization': `Bearer ${access_token}`, 'Content-Type': 'application/json' },
         });
         const userData = await userRes.json();
@@ -73,7 +73,7 @@ export default async function handler(req, res) {
 
       if (!uid && COZE_PAT_TOKEN) {
         try {
-          const patRes = await fetch('https://api.coze.cn/v1/user/info', {
+          const patRes = await fetch(COZE_USER_INFO_URL, {
             headers: { 'Authorization': `Bearer ${COZE_PAT_TOKEN}`, 'Content-Type': 'application/json' },
           });
           const patData = await patRes.json();

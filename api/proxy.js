@@ -7,8 +7,13 @@ const API_BASE = 'https://api.coze.cn';
 
 let kv = null;
 try {
-  const { kv: vercelKv } = await import('@vercel/kv');
-  kv = vercelKv;
+  const { Redis } = await import('@upstash/redis');
+  if (process.env.KV_REST_API_URL && process.env.KV_REST_API_TOKEN) {
+    kv = new Redis({
+      url: process.env.KV_REST_API_URL,
+      token: process.env.KV_REST_API_TOKEN,
+    });
+  }
 } catch {}
 
 const QUOTA_ANON = 3;
@@ -56,7 +61,9 @@ async function incrementQuota(userId) {
     if (used === 1) {
       await kv.expire(key, 86400 * 2);
     }
-  } catch {}
+  } catch (e) {
+    console.error('incrementQuota error:', e.message);
+  }
 }
 
 export default async function handler(req, res) {

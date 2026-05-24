@@ -83,48 +83,7 @@ export async function callCozeChat(query: string, oauthUid?: string): Promise<st
     body.custom_variables = userVariables;
   }
 
-  try {
-    return await callViaProxy(body);
-  } catch (proxyError) {
-    console.warn('callCozeChat: proxy failed, falling back to direct API', proxyError);
-    return await callDirect(body);
-  }
-}
-
-async function callViaProxy(body: Record<string, any>): Promise<string> {
-  const abortController = new AbortController();
-  const timeoutId = setTimeout(() => abortController.abort(), 55000);
-
-  const chatResponse = await fetch(`${PROXY_BASE}?action=chat`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    credentials: 'include',
-    signal: abortController.signal,
-    body: JSON.stringify(body),
-  });
-  clearTimeout(timeoutId);
-
-  if (!chatResponse.ok) {
-    throw new Error(`Proxy HTTP ${chatResponse.status}`);
-  }
-
-  const result = await chatResponse.json();
-  console.log('callViaProxy: response', JSON.stringify(result).slice(0, 200));
-
-  if (result.content !== undefined) {
-    return result.content;
-  }
-
-  if (result.timeout && result.chat_id) {
-    return pollForResult(result.chat_id, result.conversation_id, true);
-  }
-
-  const chatInfo = result.data || result;
-  if (chatInfo?.id && chatInfo?.conversation_id) {
-    return pollForResult(chatInfo.id, chatInfo.conversation_id, true);
-  }
-
-  throw new Error('Proxy 响应格式错误');
+  return await callDirect(body);
 }
 
 async function callDirect(body: Record<string, any>): Promise<string> {
@@ -153,73 +112,47 @@ async function callDirect(body: Record<string, any>): Promise<string> {
     throw new Error('Direct API 响应格式错误');
   }
 
-  return pollForResult(data.id, data.conversation_id, false);
+  return pollForResult(data.id, data.conversation_id);
 }
 
-async function pollForResult(chat_id: string, conversation_id: string, useProxy: boolean): Promise<string> {
-  console.log('pollForResult: start chat_id=%s useProxy=%s', chat_id, useProxy);
+async function pollForResult(chat_id: string, conversation_id: string): Promise<string> {
+  console.log('pollForResult: start chat_id=%s', chat_id);
   const maxRetries = 40;
   const retryInterval = 3000;
-
-  const getToken = async (): Promise<string> => {
-    if (!useProxy) return await getCozeToken();
-    return '';
-  };
 
   for (let i = 0; i < maxRetries; i++) {
     await new Promise(resolve => setTimeout(resolve, retryInterval));
     if (i % 5 === 0) console.log('pollForResult: iteration %d/%d', i + 1, maxRetries);
 
     try {
-      let retrieveData: any;
-      if (useProxy) {
-        const retrieveResponse = await fetch(
-          `${PROXY_BASE}?action=retrieve&chat_id=${chat_id}&conversation_id=${conversation_id}`,
-          { headers: { 'Content-Type': 'application/json' }, credentials: 'include' }
-        );
-        if (!retrieveResponse.ok) continue;
-        const retrieveResult = await retrieveResponse.json();
-        retrieveData = retrieveResult.data || retrieveResult;
-      } else {
-        const token = await getToken();
-        const retrieveResponse = await fetch(
-          `${COZE_API_BASE}/v3/chat/retrieve?chat_id=${chat_id}&conversation_id=${conversation_id}`,
-          { headers: { 'Authorization': `Bearer ${token}` } }
-        );
-        if (!retrieveResponse.ok) continue;
-        const retrieveResult = await retrieveResponse.json();
-        retrieveData = retrieveResult.data || retrieveResult;
-      }
+      const token = await getCozeToken();
+      const headers = { 'Authorization': `Bearer ${token}` };
 
+      const retrieveResponse = await fetch(
+        `${COZE_API_BASE}/v3/chat/retrieve?chat_id=${chat_id}&conversation_id=${conversation_id}`,
+        { headers }
+      );
+      if (!retrieveResponse.ok) continue;
+
+      const retrieveResult = await retrieveResponse.json();
+      const retrieveData = retrieveResult.data || retrieveResult;
       const status = retrieveData?.status;
-      if (i % 3 === 0) console.log('pollForResult: iter %d, status=%s', i + 1, status || 'unknown');
 
+      if (i % 3 === 0) console.log('pollForResult: iter %d, status=%s', i + 1, status || 'unknown');
       if (!status) continue;
       if (status === 'failed') throw new Error('Bot 执行失败');
       if (status !== 'completed') continue;
 
       console.log('pollForResult: completed, fetching messages');
-      let messages: any[];
 
-      if (useProxy) {
-        const messagesResponse = await fetch(
-          `${PROXY_BASE}?action=messages&chat_id=${chat_id}&conversation_id=${conversation_id}`,
-          { headers: { 'Content-Type': 'application/json' }, credentials: 'include' }
-        );
-        if (!messagesResponse.ok) continue;
-        const messagesResult = await messagesResponse.json();
-        messages = messagesResult.data || messagesResult;
-      } else {
-        const token = await getToken();
-        const messagesResponse = await fetch(
-          `${COZE_API_BASE}/v3/chat/message/list?chat_id=${chat_id}&conversation_id=${conversation_id}`,
-          { headers: { 'Authorization': `Bearer ${token}` } }
-        );
-        if (!messagesResponse.ok) continue;
-        const messagesResult = await messagesResponse.json();
-        messages = messagesResult.data || messagesResult;
-      }
+      const messagesResponse = await fetch(
+        `${COZE_API_BASE}/v3/chat/message/list?chat_id=${chat_id}&conversation_id=${conversation_id}`,
+        { headers }
+      );
+      if (!messagesResponse.ok) continue;
 
+      const messagesResult = await messagesResponse.json();
+      const messages = messagesResult.data || messagesResult;
       if (!Array.isArray(messages)) continue;
 
       console.log('pollForResult: %d messages, types: %s', messages.length, [...new Set(messages.map((m: any) => m.type || m.role))].join(','));

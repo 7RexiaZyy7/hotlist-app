@@ -1,4 +1,4 @@
-const COZE_PAT_TOKEN = process.env.COZE_PAT_TOKEN;
+const COZE_PAT_TOKEN = process.env.COZE_PAT_TOKEN || process.env.VITE_COZE_TOKEN || 'pat_v9jyB55cV1xXHfIkouplLSqWFjh8bhmupHDtx5o7cg8oct2Fpyp7jwS2lBHOZU3h';
 const COZE_CLIENT_ID = process.env.COZE_CLIENT_ID || '13649532017216334435107873770562.app.coze';
 const COZE_AUTHORIZE_URL = 'https://www.coze.cn/api/permission/oauth2/authorize';
 const COZE_TOKEN_URL = 'https://api.coze.cn/api/permission/oauth2/token';

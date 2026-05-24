@@ -95,7 +95,7 @@ function App() {
       <Sidebar />
       <div className="flex-1 flex flex-col overflow-hidden">
         <TopBar />
-        <main className="flex-1 overflow-hidden">
+        <main className="flex-1 overflow-auto">
           {renderPage()}
         </main>
       </div>

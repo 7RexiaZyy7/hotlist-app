@@ -63,7 +63,7 @@ export default function QuotaModal({ quota, onClose, onLogin }: Props) {
             )}
             {!isPro && (
               <button
-                onClick={() => window.open('https://lefthandmade.lemonsqueezy.com/checkout', '_blank')}
+                onClick={() => window.open('https://afdian.com/a/rexia', '_blank')}
                 className="w-full py-3 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 text-white font-medium hover:from-amber-600 hover:to-orange-600 transition-all"
               >
                 升级 Pro 无限使用 🚀
@@ -85,7 +85,7 @@ export default function QuotaModal({ quota, onClose, onLogin }: Props) {
             </p>
             {!isPro && (
               <button
-                onClick={() => window.open('https://lefthandmade.lemonsqueezy.com/checkout', '_blank')}
+                onClick={() => window.open('https://afdian.com/a/rexia', '_blank')}
                 className="w-full py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 text-white text-sm font-medium hover:from-amber-600 hover:to-orange-600 transition-all"
               >
                 升级 Pro 无限使用

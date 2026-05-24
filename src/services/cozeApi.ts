@@ -64,8 +64,8 @@ export async function getCozeToken(): Promise<string> {
 
 // ─── API 调用 ───
 
-export async function callCozeChat(query: string, oauthUid?: string): Promise<string> {
-  const userId = oauthUid || getUserId();
+export async function callCozeChat(query: string): Promise<string> {
+  const userId = getUserId();
   const userVariables = getUserVariables();
   console.log('callCozeChat: userId=%s, query=%s', userId, query.slice(0, 50));
 
@@ -183,12 +183,13 @@ async function pollForResult(chat_id: string, conversation_id: string): Promise<
   throw new Error('获取响应超时');
 }
 
-export async function syncUserVariables(oauthUid?: string): Promise<boolean> {
-  const userId = oauthUid || getUserId();
+export async function syncUserVariables(): Promise<boolean> {
+  const userId = getUserId();
   const userVariables = getUserVariables();
   if (!userVariables) return false;
 
   try {
+    const token = await getCozeToken();
     const body = {
       bot_id: BOT_ID,
       user_id: userId,
@@ -196,13 +197,17 @@ export async function syncUserVariables(oauthUid?: string): Promise<boolean> {
       additional_messages: [{ role: 'user', content: '[系统] 更新用户变量', content_type: 'text' }],
       custom_variables: userVariables,
     };
-    const r = await fetch(`${PROXY_BASE}?action=variables`, {
+    const r = await fetch(`${COZE_API_BASE}/v3/chat`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
       body: JSON.stringify(body),
     });
     const data = await r.json();
-    return data?.ok === true;
+    const chatInfo = data.data || data;
+    return !!(chatInfo?.id);
   } catch {
     return false;
   }
@@ -211,6 +216,8 @@ export async function syncUserVariables(oauthUid?: string): Promise<boolean> {
 // ─── 用户 ID / 变量 ───
 
 export function getUserId(): string {
+  const oauthUid = localStorage.getItem('coze_oauth_uid');
+  if (oauthUid) return oauthUid;
   let userId = localStorage.getItem('coze_api_user_id');
   if (!userId) {
     userId = 'user_' + Math.random().toString(36).substr(2, 9);
@@ -220,7 +227,6 @@ export function getUserId(): string {
 }
 
 export function setUserId(uid: string): void {
-  // OAuth uid is stored separately; API calls always use coze_api_user_id (random local ID)
   localStorage.setItem('coze_oauth_uid', uid);
 }
 

@@ -114,7 +114,7 @@ export function HitAnalyzer() {
     setAnalysis(null);
     try {
       const query = buildAnalysisQuery(inputCopy);
-      const content = await callCozeChat(query, cozeUid || undefined);
+      const content = await callCozeChat(query);
 
       if (!content.trim()) {
         showToast('拆解失败，未获取到分析结果', 'error');
@@ -152,7 +152,7 @@ export function HitAnalyzer() {
     setIsRewriting(true);
     try {
       const query = buildRewriteQuery(inputCopy, rewriteStyle);
-      const content = await callCozeChat(query, cozeUid || undefined);
+      const content = await callCozeChat(query);
 
       const askingInfo = content && content.length < 300 && /请.*提供|没有.*提供|缺少|需要你|告诉我|发给我/.test(content);
       if (askingInfo) {

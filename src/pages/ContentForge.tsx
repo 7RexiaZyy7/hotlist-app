@@ -104,7 +104,7 @@ export function ContentForge() {
     setGenerating(true);
     try {
       const query = buildCopyGenerateQuery(selectedTopic, selectedAngles, userProfile);
-      const content = await callCozeChat(query, cozeUid || undefined);
+      const content = await callCozeChat(query);
 
       const askingInfo = content && /赛道|受众|告诉我|先告诉我/.test(content) && content.length < 300;
       if (askingInfo) {

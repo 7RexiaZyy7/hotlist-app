@@ -261,7 +261,7 @@ export function HotRadar() {
 
       if (selectedPlatform === 'all') {
         const query = buildHotListQuery(selectedPlatform);
-        const content = await callCozeChat(query, cozeUid || undefined);
+        const content = await callCozeChat(query);
         parsedList = parseHotList(content);
       } else {
         const type = platformTypeMap[selectedPlatform];

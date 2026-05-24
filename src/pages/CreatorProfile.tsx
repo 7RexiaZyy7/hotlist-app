@@ -31,7 +31,7 @@ export function CreatorProfile() {
 
     if (import.meta.env.PROD && isConnected) {
       setSyncing(true);
-      const ok = await syncUserVariables(cozeUid || undefined);
+      const ok = await syncUserVariables();
       setSyncing(false);
       if (ok) {
         setSyncDone(true);
@@ -50,7 +50,7 @@ export function CreatorProfile() {
       return;
     }
     setSyncing(true);
-    const ok = await syncUserVariables(cozeUid || undefined);
+    const ok = await syncUserVariables();
     setSyncing(false);
     if (ok) {
       setSyncDone(true);

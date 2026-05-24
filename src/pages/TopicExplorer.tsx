@@ -66,7 +66,7 @@ export function TopicExplorer() {
     setResults([]);
     try {
       const searchQuery = buildTopicSearchQuery(query);
-      const content = await callCozeChat(searchQuery, cozeUid || undefined);
+      const content = await callCozeChat(searchQuery);
       
       if (!content.trim()) {
         showToast('未搜索到相关话题', 'info');

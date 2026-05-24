@@ -143,7 +143,7 @@ async function pollForResult(chat_id: string, conversation_id: string): Promise<
             console.log('pollForResult: first msg sample:', JSON.stringify(messages[0]).slice(0, 300));
           }
           for (const m of messages) {
-            if (m.content && (m.type === 'answer' || m.type === 'final' || m.role === 'assistant')) {
+            if (m.type === 'answer' && m.content) {
               console.log('pollForResult: found answer at iteration %d', i + 1);
               return m.content;
             }

@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAppStore } from '../store';
-import { getOAuthLoginUrl, oauthLogout } from '../services/cozeApi';
+import { getOAuthLoginUrl, oauthLogout, checkUserQuota, QuotaInfo } from '../services/cozeApi';
 import { Settings, Zap, Scissors, LogIn, LogOut, User } from 'lucide-react';
 import { clsx } from 'clsx';
 
@@ -17,6 +17,13 @@ export function TopBar() {
   } = useAppStore();
   const [showSettings, setShowSettings] = useState(false);
   const [loggingIn, setLoggingIn] = useState(false);
+  const [quota, setQuota] = useState<QuotaInfo | null>(null);
+
+  useEffect(() => {
+    checkUserQuota().then(setQuota);
+    const interval = setInterval(() => checkUserQuota().then(setQuota), 60000);
+    return () => clearInterval(interval);
+  }, [isLoggedIn]);
 
   const handleLogin = async () => {
     setLoggingIn(true);
@@ -54,20 +61,18 @@ export function TopBar() {
 
         <div className="flex items-center gap-6">
           <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2">
-              <Zap className="w-4 h-4 text-accent" />
-              <span className="text-sm text-gray-400">今日文案</span>
-              <span className="font-mono text-lg font-semibold text-accent">
-                {creationStats.todayCopies}
-              </span>
-            </div>
-            <div className="flex items-center gap-2">
-              <Scissors className="w-4 h-4 text-accent-alt" />
-              <span className="text-sm text-gray-400">拆解数</span>
-              <span className="font-mono text-lg font-semibold text-accent-alt">
-                {creationStats.todayAnalysis}
-              </span>
-            </div>
+            {quota && (
+              <div className="flex items-center gap-2">
+                <Zap className="w-4 h-4 text-accent" />
+                <span className="text-sm text-gray-400">今日额度</span>
+                <span className={clsx(
+                  'font-mono text-lg font-semibold',
+                  quota.remaining <= 2 ? 'text-red-400' : quota.remaining <= 5 ? 'text-amber-400' : 'text-accent'
+                )}>
+                  {quota.remaining}/{quota.limit === 9999 ? '∞' : quota.limit}
+                </span>
+              </div>
+            )}
           </div>
 
           <div className="flex items-center gap-3">

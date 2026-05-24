@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Sidebar } from './components/Sidebar';
 import { TopBar } from './components/TopBar';
 import { HotRadar } from './pages/HotRadar';
@@ -8,8 +8,9 @@ import { CreatorProfile } from './pages/CreatorProfile';
 import { HitAnalyzer } from './pages/HitAnalyzer';
 import { AuthCallback } from './pages/AuthCallback';
 import { useAppStore } from './store';
-import { getOAuthStatus, setUserId } from './services/cozeApi';
+import { getOAuthStatus, setUserId, checkUserQuota, incrementUserQuota, QuotaInfo } from './services/cozeApi';
 import { Check, AlertCircle, Info, Loader2, AlertTriangle } from 'lucide-react';
+import QuotaModal from './components/QuotaModal';
 
 function Toast() {
   const { toast } = useAppStore();
@@ -41,6 +42,22 @@ function Toast() {
 
 function App() {
   const { activePage, isLoggedIn, isLoadingAuth, setAuth, clearAuth, setLoadingAuth } = useAppStore();
+  const [quotaModal, setQuotaModal] = useState<{ show: boolean; quota: QuotaInfo | null }>({ show: false, quota: null });
+
+  useEffect(() => {
+    (window as any).__checkQuota = async (): Promise<boolean> => {
+      const quota = await incrementUserQuota();
+      if (!quota.allowed) {
+        setQuotaModal({ show: true, quota });
+        return false;
+      }
+      if (quota.remaining <= 3 && quota.remaining > 0) {
+        setQuotaModal({ show: true, quota });
+      }
+      return true;
+    };
+    return () => { delete (window as any).__checkQuota; };
+  }, []);
 
   // Check login status on mount
   useEffect(() => {
@@ -100,6 +117,16 @@ function App() {
         </main>
       </div>
       <Toast />
+      {quotaModal.show && quotaModal.quota && (
+        <QuotaModal
+          quota={quotaModal.quota}
+          onClose={() => setQuotaModal({ show: false, quota: null })}
+          onLogin={() => {
+            setQuotaModal({ show: false, quota: null });
+            window.location.href = '/api/proxy?action=oauth_authorize';
+          }}
+        />
+      )}
     </div>
   );
 }

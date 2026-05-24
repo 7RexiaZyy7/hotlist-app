@@ -113,6 +113,12 @@ export function HitAnalyzer() {
     setIsAnalyzing(true);
     setAnalysis(null);
     try {
+      const checkQuota = (window as any).__checkQuota;
+      if (checkQuota) {
+        const allowed = await checkQuota();
+        if (!allowed) { setIsAnalyzing(false); return; }
+      }
+
       const query = buildAnalysisQuery(inputCopy);
       const content = await callCozeChat(query);
 
@@ -151,6 +157,12 @@ export function HitAnalyzer() {
     }
     setIsRewriting(true);
     try {
+      const checkQuota = (window as any).__checkQuota;
+      if (checkQuota) {
+        const allowed = await checkQuota();
+        if (!allowed) { setIsRewriting(false); return; }
+      }
+
       const query = buildRewriteQuery(inputCopy, rewriteStyle);
       const content = await callCozeChat(query);
 

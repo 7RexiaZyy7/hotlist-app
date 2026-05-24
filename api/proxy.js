@@ -5,6 +5,60 @@ const COZE_TOKEN_URL = 'https://api.coze.cn/api/permission/oauth2/token';
 const COZE_USER_INFO_URL = 'https://api.coze.cn/v1/users/me';
 const API_BASE = 'https://api.coze.cn';
 
+let kv = null;
+try {
+  const { kv: vercelKv } = await import('@vercel/kv');
+  kv = vercelKv;
+} catch {}
+
+const QUOTA_ANON = 3;
+const QUOTA_FREE = 15;
+const QUOTA_PRO = 9999;
+
+function getTodayKey() {
+  const d = new Date();
+  return `quota:${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+
+async function getUserTier(userId) {
+  if (!kv) return 'free';
+  try {
+    const tier = await kv.get(`tier:${userId}`);
+    return tier || 'free';
+  } catch {
+    return 'free';
+  }
+}
+
+async function checkQuota(userId, isLoggedIn) {
+  const tier = isLoggedIn ? await getUserTier(userId) : 'anon';
+  const limit = tier === 'pro' ? QUOTA_PRO : tier === 'free' ? QUOTA_FREE : QUOTA_ANON;
+
+  if (!kv) {
+    return { allowed: true, used: 0, limit, tier, remaining: limit };
+  }
+
+  const key = `${getTodayKey()}:${userId}`;
+  try {
+    const used = await kv.get(key) || 0;
+    const remaining = Math.max(0, limit - used);
+    return { allowed: used < limit, used, limit, tier, remaining };
+  } catch {
+    return { allowed: true, used: 0, limit, tier, remaining: limit };
+  }
+}
+
+async function incrementQuota(userId) {
+  if (!kv) return;
+  const key = `${getTodayKey()}:${userId}`;
+  try {
+    const used = await kv.incr(key);
+    if (used === 1) {
+      await kv.expire(key, 86400 * 2);
+    }
+  } catch {}
+}
+
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
@@ -305,10 +359,35 @@ export default async function handler(req, res) {
       });
     }
 
+    if (action === 'quota' && req.method === 'GET') {
+      const userId = req.headers['x-user-id'] || 'anonymous';
+      const isLoggedIn = req.headers['x-logged-in'] === 'true';
+      const quota = await checkQuota(userId, isLoggedIn);
+      return res.status(200).json(quota);
+    }
+
+    if (action === 'increment' && req.method === 'POST') {
+      const userId = req.headers['x-user-id'] || 'anonymous';
+      const isLoggedIn = req.headers['x-logged-in'] === 'true';
+      const quota = await checkQuota(userId, isLoggedIn);
+      if (!quota.allowed) {
+        return res.status(429).json({ error: '配额已用完', ...quota });
+      }
+      await incrementQuota(userId);
+      quota.used += 1;
+      quota.remaining = Math.max(0, quota.remaining - 1);
+      return res.status(200).json(quota);
+    }
+
     return res.status(404).json({ error: `Unknown action: ${action}` });
   } catch (err) {
     return res.status(500).json({ error: err.message });
   }
+}
+
+// quota endpoint - separate handler for clarity
+export async function quotaHandler(userId, isLoggedIn) {
+  return await checkQuota(userId, isLoggedIn);
 }
 
 function parseCookies(cookieHeader) {

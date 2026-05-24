@@ -103,6 +103,12 @@ export function ContentForge() {
 
     setGenerating(true);
     try {
+      const checkQuota = (window as any).__checkQuota;
+      if (checkQuota) {
+        const allowed = await checkQuota();
+        if (!allowed) { setGenerating(false); return; }
+      }
+
       const query = buildCopyGenerateQuery(selectedTopic, selectedAngles, userProfile);
       const content = await callCozeChat(query);
 

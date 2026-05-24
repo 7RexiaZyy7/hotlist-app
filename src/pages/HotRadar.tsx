@@ -257,6 +257,15 @@ export function HotRadar() {
 
     setLoadingHotList(true);
     try {
+      const checkQuota = (window as any).__checkQuota;
+      if (checkQuota) {
+        const allowed = await checkQuota();
+        if (!allowed) {
+          setLoadingHotList(false);
+          return;
+        }
+      }
+
       let parsedList: any[];
 
       if (selectedPlatform === 'all') {

@@ -355,3 +355,46 @@ ${copy}
 - 换一种表达方式和措辞
 - 适配${style}风格`;
 }
+
+export interface QuotaInfo {
+  allowed: boolean;
+  used: number;
+  limit: number;
+  tier: string;
+  remaining: number;
+}
+
+export async function checkUserQuota(): Promise<QuotaInfo> {
+  const userId = getUserId();
+  const isLoggedIn = !!localStorage.getItem('coze_oauth_uid');
+  try {
+    const r = await fetch(`${PROXY_BASE}?action=quota`, {
+      headers: {
+        'x-user-id': userId,
+        'x-logged-in': isLoggedIn ? 'true' : 'false',
+      },
+    });
+    if (r.ok) return await r.json();
+  } catch {}
+  return { allowed: true, used: 0, limit: isLoggedIn ? 15 : 3, tier: isLoggedIn ? 'free' : 'anon', remaining: isLoggedIn ? 15 : 3 };
+}
+
+export async function incrementUserQuota(): Promise<QuotaInfo> {
+  const userId = getUserId();
+  const isLoggedIn = !!localStorage.getItem('coze_oauth_uid');
+  try {
+    const r = await fetch(`${PROXY_BASE}?action=increment`, {
+      method: 'POST',
+      headers: {
+        'x-user-id': userId,
+        'x-logged-in': isLoggedIn ? 'true' : 'false',
+      },
+    });
+    if (r.ok) return await r.json();
+    if (r.status === 429) {
+      const data = await r.json();
+      return { ...data, allowed: false };
+    }
+  } catch {}
+  return { allowed: true, used: 0, limit: isLoggedIn ? 15 : 3, tier: isLoggedIn ? 'free' : 'anon', remaining: isLoggedIn ? 15 : 3 };
+}

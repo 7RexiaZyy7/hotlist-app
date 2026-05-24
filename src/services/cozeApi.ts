@@ -127,52 +127,60 @@ async function pollForResult(chat_id: string, conversation_id: string): Promise<
     console.log('pollForResult: iteration %d/%d', i + 1, maxRetries);
 
     try {
-      // ─── Fetch messages first ───
-      const messagesResponse = await fetch(
-        `${PROXY_BASE}?action=messages&chat_id=${chat_id}&conversation_id=${conversation_id}`,
-        fetchOpts
-      );
-
-      if (messagesResponse.ok) {
-        const messagesResult = await messagesResponse.json();
-        if (i === 0) console.log('pollForResult: raw messages response keys:', Object.keys(messagesResult));
-
-        let messages: any[] = messagesResult.data || messagesResult;
-        if (Array.isArray(messages)) {
-          if (i === 0 && messages.length > 0) {
-            console.log('pollForResult: first msg sample:', JSON.stringify(messages[0]).slice(0, 300));
-          }
-          for (const m of messages) {
-            if (m.type === 'answer' && m.content) {
-              console.log('pollForResult: found answer at iteration %d', i + 1);
-              return m.content;
-            }
-          }
-          if (messages.length > 0 && i % 3 === 0) {
-            console.log('pollForResult: iter %d, msg count=%d, types=%s',
-              i + 1, messages.length, [...new Set(messages.map((m: any) => m.type || m.role))].join(','));
-          }
-        } else {
-          if (i === 0) console.log('pollForResult: messages is NOT array, type=', typeof messages, JSON.stringify(messagesResult).slice(0, 200));
-        }
-      } else {
-        console.log('pollForResult: messages HTTP %d', messagesResponse.status);
-      }
-
-      // ─── Check retrieve for failure / completion ───
+      // ─── Wait for retrieve completed first ───
       const retrieveResponse = await fetch(
         `${PROXY_BASE}?action=retrieve&chat_id=${chat_id}&conversation_id=${conversation_id}`,
         fetchOpts
       );
-      if (retrieveResponse.ok) {
-        const retrieveResult = await retrieveResponse.json();
-        const retrieveData = retrieveResult.data || retrieveResult;
-        const status = retrieveData?.status;
-        if (status === 'failed') throw new Error('Bot 执行失败');
-        if (i % 3 === 0) console.log('pollForResult: iter %d, retrieve_status=%s', i + 1, status || 'unknown');
-      } else {
+      if (!retrieveResponse.ok) {
         console.log('pollForResult: retrieve HTTP %d', retrieveResponse.status);
+        continue;
       }
+
+      const retrieveResult = await retrieveResponse.json();
+      const retrieveData = retrieveResult.data || retrieveResult;
+      const status = retrieveData?.status;
+      if (i % 3 === 0) console.log('pollForResult: iter %d, retrieve_status=%s', i + 1, status || 'unknown');
+
+      if (status === 'failed') throw new Error('Bot 执行失败');
+      if (status !== 'completed') continue;
+
+      // ─── Bot completed, fetch messages once ───
+      console.log('pollForResult: retrieve completed, fetching messages');
+      const messagesResponse = await fetch(
+        `${PROXY_BASE}?action=messages&chat_id=${chat_id}&conversation_id=${conversation_id}`,
+        fetchOpts
+      );
+      if (!messagesResponse.ok) {
+        console.log('pollForResult: messages HTTP %d after completed', messagesResponse.status);
+        continue;
+      }
+
+      const messagesResult = await messagesResponse.json();
+      console.log('pollForResult: messages response keys:', Object.keys(messagesResult));
+
+      let messages: any[] = messagesResult.data || messagesResult;
+      if (!Array.isArray(messages)) {
+        console.log('pollForResult: messages is NOT array after completed, type=', typeof messages);
+        continue;
+      }
+
+      console.log('pollForResult: messages count=%d after completed', messages.length);
+      if (messages.length > 0) {
+        console.log('pollForResult: first msg sample:', JSON.stringify(messages[0]).slice(0, 300));
+        console.log('pollForResult: msg types:', [...new Set(messages.map((m: any) => m.type || m.role))].join(','));
+      }
+
+      // Try answer/final first, then assistant, then first message
+      const answerMsg = messages.find((m: any) => m.type === 'answer' || m.type === 'final');
+      if (answerMsg?.content) return answerMsg.content;
+
+      const assistantMsg = messages.find((m: any) => m.role === 'assistant');
+      if (assistantMsg?.content) return assistantMsg.content;
+
+      if (messages.length > 0 && messages[0].content) return messages[0].content;
+
+      return '';
     } catch (e) {
       console.error('pollForResult: iteration %d error:', i + 1, e);
       continue;

@@ -62,6 +62,7 @@ export async function getCozeToken(): Promise<string> {
 export async function callCozeChat(query: string, oauthUid?: string): Promise<string> {
   const userId = oauthUid || getUserId();
   const userVariables = getUserVariables();
+  console.log('callCozeChat: userId=%s, oauthUid=%s, query=%s', userId, oauthUid || '(none)', query.slice(0, 50));
 
   const body: Record<string, any> = {
     bot_id: BOT_ID,
@@ -90,6 +91,7 @@ export async function callCozeChat(query: string, oauthUid?: string): Promise<st
   }
 
   const result = await chatResponse.json();
+  console.log('callCozeChat: proxy response', JSON.stringify(result).slice(0, 200));
 
   if (result.content !== undefined) {
     return result.content;
@@ -116,7 +118,6 @@ async function pollForResult(chat_id: string, conversation_id: string): Promise<
     await new Promise(resolve => setTimeout(resolve, retryInterval));
 
     try {
-      // Try messages on every poll — retrieve never returns 'completed' with auto_save_history=true
       const messagesResponse = await fetch(
         `${PROXY_BASE}?action=messages&chat_id=${chat_id}&conversation_id=${conversation_id}`,
         { headers: { 'Content-Type': 'application/json' } }
@@ -149,6 +150,7 @@ async function pollForResult(chat_id: string, conversation_id: string): Promise<
         if (i % 5 === 0 && retrieveData?.status) console.log(`轮询第${i}次, retrieve_status: ${retrieveData.status}`);
       }
     } catch (e) {
+      console.error('pollForResult: iteration %d error:', i, e);
       continue;
     }
   }

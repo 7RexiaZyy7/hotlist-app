@@ -59,8 +59,8 @@ export async function getCozeToken(): Promise<string> {
 
 // ─── API 调用 ───
 
-export async function callCozeChat(query: string): Promise<string> {
-  const userId = getUserId();
+export async function callCozeChat(query: string, oauthUid?: string): Promise<string> {
+  const userId = oauthUid || getUserId();
   const userVariables = getUserVariables();
 
   const body: Record<string, any> = {
@@ -155,8 +155,8 @@ async function pollForResult(chat_id: string, conversation_id: string): Promise<
   throw new Error('获取响应超时');
 }
 
-export async function syncUserVariables(): Promise<boolean> {
-  const userId = getUserId();
+export async function syncUserVariables(oauthUid?: string): Promise<boolean> {
+  const userId = oauthUid || getUserId();
   const userVariables = getUserVariables();
   if (!userVariables) return false;
 
@@ -183,16 +183,17 @@ export async function syncUserVariables(): Promise<boolean> {
 // ─── 用户 ID / 变量 ───
 
 export function getUserId(): string {
-  let userId = localStorage.getItem('coze_user_id');
+  let userId = localStorage.getItem('coze_api_user_id');
   if (!userId) {
     userId = 'user_' + Math.random().toString(36).substr(2, 9);
-    localStorage.setItem('coze_user_id', userId);
+    localStorage.setItem('coze_api_user_id', userId);
   }
   return userId;
 }
 
 export function setUserId(uid: string): void {
-  localStorage.setItem('coze_user_id', uid);
+  // OAuth uid is stored separately; API calls always use coze_api_user_id (random local ID)
+  localStorage.setItem('coze_oauth_uid', uid);
 }
 
 export function getUserVariables(): Record<string, string> | undefined {

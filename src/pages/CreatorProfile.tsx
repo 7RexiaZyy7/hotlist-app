@@ -6,7 +6,7 @@ import { syncUserVariables } from '../services/cozeApi';
 const STORAGE_KEY = 'creator_profile';
 
 export function CreatorProfile() {
-  const { userProfile, setUserProfile, isConnected, showToast } = useAppStore();
+  const { userProfile, setUserProfile, isConnected, showToast, cozeUid } = useAppStore();
   const [saved, setSaved] = useState(false);
   const [syncing, setSyncing] = useState(false);
   const [syncDone, setSyncDone] = useState(false);
@@ -31,7 +31,7 @@ export function CreatorProfile() {
 
     if (import.meta.env.PROD && isConnected) {
       setSyncing(true);
-      const ok = await syncUserVariables();
+      const ok = await syncUserVariables(cozeUid || undefined);
       setSyncing(false);
       if (ok) {
         setSyncDone(true);
@@ -50,7 +50,7 @@ export function CreatorProfile() {
       return;
     }
     setSyncing(true);
-    const ok = await syncUserVariables();
+    const ok = await syncUserVariables(cozeUid || undefined);
     setSyncing(false);
     if (ok) {
       setSyncDone(true);

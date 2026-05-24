@@ -74,6 +74,7 @@ export function ContentForge() {
     userProfile,
     incrementCopies,
     showToast,
+    cozeUid,
   } = useAppStore();
   
   const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
@@ -103,7 +104,7 @@ export function ContentForge() {
     setGenerating(true);
     try {
       const query = buildCopyGenerateQuery(selectedTopic, selectedAngles, userProfile);
-      const content = await callCozeChat(query);
+      const content = await callCozeChat(query, cozeUid || undefined);
 
       const askingInfo = content && /赛道|受众|告诉我|先告诉我/.test(content) && content.length < 300;
       if (askingInfo) {

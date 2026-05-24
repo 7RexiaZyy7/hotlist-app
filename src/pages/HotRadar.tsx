@@ -70,6 +70,7 @@ export function HotRadar() {
     setSelectedTopic,
     setActivePage,
     showToast,
+    cozeUid,
   } = useAppStore();
 
   const [displayCount, setDisplayCount] = useState(15);
@@ -246,7 +247,7 @@ export function HotRadar() {
 
       if (selectedPlatform === 'all') {
         const query = buildHotListQuery(selectedPlatform);
-        const content = await callCozeChat(query);
+        const content = await callCozeChat(query, cozeUid || undefined);
         parsedList = parseHotList(content);
       } else {
         const type = platformTypeMap[selectedPlatform];

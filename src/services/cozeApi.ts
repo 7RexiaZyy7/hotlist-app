@@ -78,11 +78,17 @@ export async function callCozeChat(query: string, oauthUid?: string): Promise<st
     body.custom_variables = userVariables;
   }
 
+  const abortController = new AbortController();
+  const timeoutId = setTimeout(() => abortController.abort(), 55000);
+
   const chatResponse = await fetch(`${PROXY_BASE}?action=chat`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
+    signal: abortController.signal,
     body: JSON.stringify(body),
   });
+  clearTimeout(timeoutId);
 
   if (!chatResponse.ok) {
     const errorText = await chatResponse.text();
@@ -111,49 +117,68 @@ export async function callCozeChat(query: string, oauthUid?: string): Promise<st
 }
 
 async function pollForResult(chat_id: string, conversation_id: string): Promise<string> {
-  const maxRetries = 60;
+  console.log('pollForResult: start chat_id=%s conv_id=%s', chat_id, conversation_id);
+  const maxRetries = 40;
   const retryInterval = 3000;
+  const fetchOpts = { headers: { 'Content-Type': 'application/json' }, credentials: 'include' as RequestCredentials };
 
   for (let i = 0; i < maxRetries; i++) {
     await new Promise(resolve => setTimeout(resolve, retryInterval));
+    console.log('pollForResult: iteration %d/%d', i + 1, maxRetries);
 
     try {
+      // ─── Fetch messages first ───
       const messagesResponse = await fetch(
         `${PROXY_BASE}?action=messages&chat_id=${chat_id}&conversation_id=${conversation_id}`,
-        { headers: { 'Content-Type': 'application/json' } }
+        fetchOpts
       );
 
       if (messagesResponse.ok) {
         const messagesResult = await messagesResponse.json();
+        if (i === 0) console.log('pollForResult: raw messages response keys:', Object.keys(messagesResult));
+
         let messages: any[] = messagesResult.data || messagesResult;
         if (Array.isArray(messages)) {
-          const answerMsg = messages.find((m: any) => m.type === 'answer' || m.type === 'final');
-          if (answerMsg?.content) return answerMsg.content;
-
-          const assistantMsg = messages.find((m: any) => m.role === 'assistant');
-          if (assistantMsg?.content) return assistantMsg.content;
-
-          const realMsgs = messages.filter((m: any) => m.type === 'answer' || m.role === 'assistant' || m.type === 'final');
-          if (realMsgs.length > 0 && realMsgs[0].content) return realMsgs[0].content;
+          if (i === 0 && messages.length > 0) {
+            console.log('pollForResult: first msg sample:', JSON.stringify(messages[0]).slice(0, 300));
+          }
+          for (const m of messages) {
+            if (m.content && (m.type === 'answer' || m.type === 'final' || m.role === 'assistant')) {
+              console.log('pollForResult: found answer at iteration %d', i + 1);
+              return m.content;
+            }
+          }
+          if (messages.length > 0 && i % 3 === 0) {
+            console.log('pollForResult: iter %d, msg count=%d, types=%s',
+              i + 1, messages.length, [...new Set(messages.map((m: any) => m.type || m.role))].join(','));
+          }
+        } else {
+          if (i === 0) console.log('pollForResult: messages is NOT array, type=', typeof messages, JSON.stringify(messagesResult).slice(0, 200));
         }
+      } else {
+        console.log('pollForResult: messages HTTP %d', messagesResponse.status);
       }
 
-      // Check retrieve for failure detection only
+      // ─── Check retrieve for failure / completion ───
       const retrieveResponse = await fetch(
         `${PROXY_BASE}?action=retrieve&chat_id=${chat_id}&conversation_id=${conversation_id}`,
-        { headers: { 'Content-Type': 'application/json' } }
+        fetchOpts
       );
       if (retrieveResponse.ok) {
         const retrieveResult = await retrieveResponse.json();
         const retrieveData = retrieveResult.data || retrieveResult;
-        if (retrieveData?.status === 'failed') throw new Error('Bot 执行失败');
-        if (i % 5 === 0 && retrieveData?.status) console.log(`轮询第${i}次, retrieve_status: ${retrieveData.status}`);
+        const status = retrieveData?.status;
+        if (status === 'failed') throw new Error('Bot 执行失败');
+        if (i % 3 === 0) console.log('pollForResult: iter %d, retrieve_status=%s', i + 1, status || 'unknown');
+      } else {
+        console.log('pollForResult: retrieve HTTP %d', retrieveResponse.status);
       }
     } catch (e) {
-      console.error('pollForResult: iteration %d error:', i, e);
+      console.error('pollForResult: iteration %d error:', i + 1, e);
       continue;
     }
   }
+  console.error('pollForResult: exhausted after %d iterations', maxRetries);
   throw new Error('获取响应超时');
 }
 

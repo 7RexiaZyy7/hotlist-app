@@ -157,11 +157,17 @@ async function pollForResult(chat_id: string, conversation_id: string): Promise<
 
       console.log('pollForResult: %d messages, types: %s', messages.length, [...new Set(messages.map((m: any) => m.type || m.role))].join(','));
 
-      const answerMsg = messages.find((m: any) => m.type === 'answer' || m.type === 'final');
-      if (answerMsg?.content) return answerMsg.content;
-
       const toolResponseMsg = messages.find((m: any) => m.type === 'tool_response');
-      if (toolResponseMsg?.content) return toolResponseMsg.content;
+      if (toolResponseMsg?.content) {
+        console.log('pollForResult: returning tool_response content');
+        return toolResponseMsg.content;
+      }
+
+      const answerMsg = messages.find((m: any) => m.type === 'answer' || m.type === 'final');
+      if (answerMsg?.content) {
+        console.log('pollForResult: returning answer content');
+        return answerMsg.content;
+      }
 
       const assistantMsg = messages.find((m: any) => m.role === 'assistant' && m.type !== 'function_call' && m.type !== 'verbose');
       if (assistantMsg?.content) return assistantMsg.content;

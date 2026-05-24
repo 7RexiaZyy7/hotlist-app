@@ -219,6 +219,20 @@ export function HotRadar() {
           platform: matchNoNum[2],
           heatScore: Math.floor(Math.random() * 500000) + 500000,
         });
+        continue;
+      }
+
+      const matchPlainNum = line.match(/^(\d+)\.\s*(.+)$/);
+      if (matchPlainNum && !line.includes('🔍') && !line.includes('🔥') && !line.includes('📌') && !line.includes('可选角度') && !line.includes('选用框架') && !line.includes('切入逻辑') && !line.includes('▎') && !line.includes('**')) {
+        const title = matchPlainNum[2].trim();
+        if (title.length > 2 && title.length < 100) {
+          result.push({
+            rank: parseInt(matchPlainNum[1]),
+            title,
+            platform,
+            heatScore: Math.floor(Math.random() * 500000) + 500000,
+          });
+        }
       }
     }
     

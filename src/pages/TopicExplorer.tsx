@@ -65,11 +65,9 @@ export function TopicExplorer() {
     setSearched(true);
     setResults([]);
     try {
-      const checkQuota = (window as any).__checkQuota;
-      if (checkQuota) {
-        const allowed = await checkQuota();
-        if (!allowed) { setIsSearching(false); return; }
-      }
+      const { checkAndIncrementQuota } = useAppStore.getState();
+      const allowed = await checkAndIncrementQuota();
+      if (!allowed) { setIsSearching(false); return; }
 
       const searchQuery = buildTopicSearchQuery(query);
       const content = await callCozeChat(searchQuery);

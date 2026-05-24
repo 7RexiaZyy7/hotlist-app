@@ -47,6 +47,13 @@ interface AppState {
   setLoadingAuth: (loading: boolean) => void;
   setAccessToken: (token: string) => void;
 
+  // Quota
+  quota: { allowed: boolean; used: number; limit: number; tier: string; remaining: number } | null;
+  showQuotaModal: boolean;
+  setQuota: (quota: AppState['quota']) => void;
+  setShowQuotaModal: (show: boolean) => void;
+  checkAndIncrementQuota: () => Promise<boolean>;
+
   hotList: HotItem[];
   selectedPlatform: string;
   isLoadingHotList: boolean;
@@ -93,6 +100,29 @@ export const useAppStore = create<AppState>()((set) => ({
   clearAuth: () => set({ isLoggedIn: false, cozeUid: '', accessToken: '', isLoadingAuth: false }),
   setLoadingAuth: (loading) => set({ isLoadingAuth: loading }),
   setAccessToken: (token) => set({ accessToken: token }),
+
+  // Quota
+  quota: null,
+  showQuotaModal: false,
+  setQuota: (quota) => set({ quota }),
+  setShowQuotaModal: (show) => set({ showQuotaModal: show }),
+  checkAndIncrementQuota: async () => {
+    try {
+      const { incrementUserQuota } = await import('../services/cozeApi');
+      const q = await incrementUserQuota();
+      set({ quota: q });
+      if (!q.allowed) {
+        set({ showQuotaModal: true });
+        return false;
+      }
+      if (q.remaining <= 3 && q.remaining > 0) {
+        set({ showQuotaModal: true });
+      }
+      return true;
+    } catch {
+      return true;
+    }
+  },
 
   hotList: [],
   selectedPlatform: 'all',

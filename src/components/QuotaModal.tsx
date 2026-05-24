@@ -54,27 +54,45 @@ export default function QuotaModal({ quota, onClose, onLogin }: Props) {
         {!quota.allowed && (
           <div className="space-y-3">
             {isAnon && (
+              <>
+                <button
+                  onClick={onLogin}
+                  className="w-full py-3 rounded-xl bg-gradient-to-r from-indigo-500 to-purple-500 text-white font-medium hover:from-indigo-600 hover:to-purple-600 transition-all"
+                >
+                  登录获取更多额度 (15次/天)
+                </button>
+                <button
+                  onClick={onClose}
+                  className="w-full py-2 rounded-xl text-white/50 hover:text-white/80 text-sm transition-colors"
+                >
+                  继续体验
+                </button>
+              </>
+            )}
+            {!isAnon && !isPro && (
+              <>
+                <button
+                  onClick={() => window.open('https://afdian.com/a/rexia', '_blank')}
+                  className="w-full py-3 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 text-white font-medium hover:from-amber-600 hover:to-orange-600 transition-all"
+                >
+                  升级 Pro 无限使用 🚀
+                </button>
+                <button
+                  onClick={onClose}
+                  className="w-full py-2 rounded-xl text-white/50 hover:text-white/80 text-sm transition-colors"
+                >
+                  明天再来
+                </button>
+              </>
+            )}
+            {isPro && (
               <button
-                onClick={onLogin}
-                className="w-full py-3 rounded-xl bg-gradient-to-r from-indigo-500 to-purple-500 text-white font-medium hover:from-indigo-600 hover:to-purple-600 transition-all"
+                onClick={onClose}
+                className="w-full py-2.5 rounded-xl bg-indigo-500/20 text-indigo-300 hover:bg-indigo-500/30 text-sm transition-colors"
               >
-                登录获取更多额度 (15次/天)
+                关闭
               </button>
             )}
-            {!isPro && (
-              <button
-                onClick={() => window.open('https://afdian.com/a/rexia', '_blank')}
-                className="w-full py-3 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 text-white font-medium hover:from-amber-600 hover:to-orange-600 transition-all"
-              >
-                升级 Pro 无限使用 🚀
-              </button>
-            )}
-            <button
-              onClick={onClose}
-              className="w-full py-2 rounded-xl text-white/50 hover:text-white/80 text-sm transition-colors"
-            >
-              {isAnon ? '继续体验' : '明天再来'}
-            </button>
           </div>
         )}
 
@@ -83,12 +101,20 @@ export default function QuotaModal({ quota, onClose, onLogin }: Props) {
             <p className="text-center text-sm text-amber-400">
               ⚠️ 今日仅剩 {quota.remaining} 次使用机会
             </p>
-            {!isPro && (
+            {!isAnon && (
               <button
                 onClick={() => window.open('https://afdian.com/a/rexia', '_blank')}
                 className="w-full py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 text-white text-sm font-medium hover:from-amber-600 hover:to-orange-600 transition-all"
               >
                 升级 Pro 无限使用
+              </button>
+            )}
+            {isAnon && (
+              <button
+                onClick={onLogin}
+                className="w-full py-2.5 rounded-xl bg-gradient-to-r from-indigo-500 to-purple-500 text-white text-sm font-medium hover:from-indigo-600 hover:to-purple-600 transition-all"
+              >
+                登录获取更多额度
               </button>
             )}
             <button

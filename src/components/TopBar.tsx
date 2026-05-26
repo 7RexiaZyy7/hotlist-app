@@ -14,16 +14,19 @@ export function TopBar() {
     cozeUid,
     clearAuth,
     showToast,
+    quota: storeQuota,
+    setQuota,
   } = useAppStore();
   const [showSettings, setShowSettings] = useState(false);
   const [loggingIn, setLoggingIn] = useState(false);
-  const [quota, setQuota] = useState<QuotaInfo | null>(null);
 
   useEffect(() => {
     checkUserQuota().then(setQuota);
     const interval = setInterval(() => checkUserQuota().then(setQuota), 60000);
     return () => clearInterval(interval);
   }, [isLoggedIn]);
+
+  const quota = storeQuota;
 
   const handleLogin = async () => {
     setLoggingIn(true);

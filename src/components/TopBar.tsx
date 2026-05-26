@@ -5,18 +5,15 @@ import { Settings, Zap, Scissors, LogIn, LogOut, User } from 'lucide-react';
 import { clsx } from 'clsx';
 
 export function TopBar() {
-  const { 
-    isConnected, 
-    setConnected,
-    creationStats,
-    activePage,
-    isLoggedIn,
-    cozeUid,
-    clearAuth,
-    showToast,
-    quota: storeQuota,
-    setQuota,
-  } = useAppStore();
+  const isConnected = useAppStore((s) => s.isConnected);
+  const setConnected = useAppStore((s) => s.setConnected);
+  const activePage = useAppStore((s) => s.activePage);
+  const isLoggedIn = useAppStore((s) => s.isLoggedIn);
+  const cozeUid = useAppStore((s) => s.cozeUid);
+  const clearAuth = useAppStore((s) => s.clearAuth);
+  const showToast = useAppStore((s) => s.showToast);
+  const quota = useAppStore((s) => s.quota);
+  const setQuota = useAppStore((s) => s.setQuota);
   const [showSettings, setShowSettings] = useState(false);
   const [loggingIn, setLoggingIn] = useState(false);
 
@@ -25,8 +22,6 @@ export function TopBar() {
     const interval = setInterval(() => checkUserQuota().then(setQuota), 60000);
     return () => clearInterval(interval);
   }, [isLoggedIn]);
-
-  const quota = storeQuota;
 
   const handleLogin = async () => {
     setLoggingIn(true);

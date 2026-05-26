@@ -8,7 +8,7 @@ import { CreatorProfile } from './pages/CreatorProfile';
 import { HitAnalyzer } from './pages/HitAnalyzer';
 import { AuthCallback } from './pages/AuthCallback';
 import { useAppStore } from './store';
-import { getOAuthStatus, setUserId } from './services/cozeApi';
+import { getOAuthStatus, setUserId, getOAuthLoginUrl } from './services/cozeApi';
 import { Check, AlertCircle, Info, Loader2, AlertTriangle, Flame, Search, Sparkles, User, Scissors } from 'lucide-react';
 import QuotaModal from './components/QuotaModal';
 import { clsx } from 'clsx';
@@ -151,9 +151,14 @@ function App() {
         <QuotaModal
           quota={quota}
           onClose={() => setShowQuotaModal(false)}
-          onLogin={() => {
+          onLogin={async () => {
             setShowQuotaModal(false);
-            window.location.href = '/api/proxy?action=oauth_authorize';
+            try {
+              const url = await getOAuthLoginUrl();
+              window.location.href = url;
+            } catch {
+              useAppStore.getState().showToast('获取登录链接失败', 'error');
+            }
           }}
         />
       )}

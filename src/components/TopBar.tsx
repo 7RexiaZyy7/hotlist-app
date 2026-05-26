@@ -14,6 +14,7 @@ export function TopBar() {
   const showToast = useAppStore((s) => s.showToast);
   const quota = useAppStore((s) => s.quota);
   const setQuota = useAppStore((s) => s.setQuota);
+  const setShowQuotaModal = useAppStore((s) => s.setShowQuotaModal);
   const [showSettings, setShowSettings] = useState(false);
   const [loggingIn, setLoggingIn] = useState(false);
 
@@ -36,8 +37,11 @@ export function TopBar() {
 
   const handleLogout = async () => {
     await oauthLogout();
+    localStorage.removeItem('coze_oauth_uid');
     clearAuth();
+    setQuota(null);
     showToast('已退出登录');
+    checkUserQuota().then(setQuota);
   };
 
   const pageLabels: Record<string, string> = {
@@ -60,7 +64,10 @@ export function TopBar() {
         <div className="flex items-center gap-6">
           <div className="flex items-center gap-4">
             {quota && (
-              <div className="flex items-center gap-2">
+              <div
+                className="flex items-center gap-2 cursor-pointer hover:bg-white/5 px-2 py-1 rounded-lg transition-colors"
+                onClick={() => setShowQuotaModal(true)}
+              >
                 <Zap className="w-4 h-4 text-accent" />
                 <span className="text-sm text-gray-400">今日额度</span>
                 <span className={clsx(

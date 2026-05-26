@@ -97,7 +97,7 @@ export const useAppStore = create<AppState>()((set) => ({
   cozeUid: '',
   accessToken: '',
   setAuth: (uid, token) => set({ isLoggedIn: true, cozeUid: uid, accessToken: token, isLoadingAuth: false }),
-  clearAuth: () => set({ isLoggedIn: false, cozeUid: '', accessToken: '', isLoadingAuth: false }),
+  clearAuth: () => set({ isLoggedIn: false, cozeUid: '', accessToken: '', isLoadingAuth: false, quota: null }),
   setLoadingAuth: (loading) => set({ isLoadingAuth: loading }),
   setAccessToken: (token) => set({ accessToken: token }),
 

@@ -47,15 +47,21 @@ function App() {
   useEffect(() => {
     (async () => {
       try {
+        const savedUid = localStorage.getItem('coze_oauth_uid');
+        if (savedUid) {
+          setAuth(savedUid, '');
+        }
         const status = await getOAuthStatus();
         if (status.loggedIn && status.access_token && status.uid) {
           setAuth(status.uid, status.access_token);
           setUserId(status.uid);
-        } else {
+        } else if (!savedUid) {
           clearAuth();
         }
       } catch {
-        clearAuth();
+        const savedUid = localStorage.getItem('coze_oauth_uid');
+        if (!savedUid) clearAuth();
+        else setAuth(savedUid, '');
       }
     })();
   }, [setAuth, clearAuth, setLoadingAuth]);

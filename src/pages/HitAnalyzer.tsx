@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useAppStore } from '../store';
 import { Scissors, Sparkles, FileText, Target, Zap, AlertTriangle, Copy, Check } from 'lucide-react';
+import { LoadingState, EmptyState } from '../components/LoadingState';
 import { 
   callCozeChat, 
   buildAnalysisQuery,
@@ -99,6 +100,7 @@ export function HitAnalyzer() {
   const [isRewriting, setIsRewriting] = useState(false);
   const [rewriteResult, setRewriteResult] = useState('');
   const [copied, setCopied] = useState(false);
+  const [loadingStep, setLoadingStep] = useState(0);
 
   const handleAnalyze = async () => {
     if (!inputCopy.trim()) {
@@ -112,10 +114,12 @@ export function HitAnalyzer() {
 
     setIsAnalyzing(true);
     setAnalysis(null);
+    setLoadingStep(0);
+    const stepTimer = setInterval(() => setLoadingStep(s => Math.min(s + 1, 2)), 8000);
     try {
       const { checkAndIncrementQuota } = useAppStore.getState();
       const allowed = await checkAndIncrementQuota();
-      if (!allowed) { setIsAnalyzing(false); return; }
+      if (!allowed) { setIsAnalyzing(false); clearInterval(stepTimer); return; }
 
       const query = buildAnalysisQuery(inputCopy);
       const content = await callCozeChat(query);
@@ -145,6 +149,7 @@ export function HitAnalyzer() {
       showToast('拆解失败，请稍后重试', 'error');
     } finally {
       setIsAnalyzing(false);
+      clearInterval(stepTimer);
     }
   };
 
@@ -391,12 +396,12 @@ export function HitAnalyzer() {
         </div>
       )}
 
-      {!analysis && (
-        <div className="flex-1 flex flex-col items-center justify-center text-gray-500">
-          <FileText className="w-12 h-12 mb-4 opacity-30" />
-          <p className="text-lg mb-1">粘贴爆款文案开始拆解</p>
-          <p className="text-sm">AI 会帮你分析钩子、结构和关键元素</p>
-        </div>
+      {isAnalyzing && !analysis && (
+        <LoadingState steps={['正在分析文案结构', '正在拆解关键元素', '正在生成报告']} currentStep={loadingStep} />
+      )}
+
+      {!isAnalyzing && !analysis && (
+        <EmptyState icon={<Scissors className="w-10 h-10 text-gray-500 opacity-40" />} title="粘贴爆款文案开始拆解" description="AI 会帮你分析钩子、结构和关键元素" />
       )}
     </div>
   );

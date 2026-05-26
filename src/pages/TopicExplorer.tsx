@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useAppStore } from '../store';
 import { Search, ArrowRight, Hash } from 'lucide-react';
+import { LoadingState, EmptyState } from '../components/LoadingState';
 import { 
   callCozeChat, 
   buildTopicSearchQuery 
@@ -19,6 +20,7 @@ export function TopicExplorer() {
   const [isSearching, setIsSearching] = useState(false);
   const [results, setResults] = useState<any[]>([]);
   const [searched, setSearched] = useState(false);
+  const [loadingStep, setLoadingStep] = useState(0);
 
   const parseResults = (content: string): any[] => {
     const lines = content.split('\n').filter(l => l.trim());
@@ -64,10 +66,12 @@ export function TopicExplorer() {
     setIsSearching(true);
     setSearched(true);
     setResults([]);
+    setLoadingStep(0);
+    const stepTimer = setInterval(() => setLoadingStep(s => Math.min(s + 1, 2)), 8000);
     try {
       const { checkAndIncrementQuota } = useAppStore.getState();
       const allowed = await checkAndIncrementQuota();
-      if (!allowed) { setIsSearching(false); return; }
+      if (!allowed) { setIsSearching(false); clearInterval(stepTimer); return; }
 
       const searchQuery = buildTopicSearchQuery(query);
       const content = await callCozeChat(searchQuery);
@@ -85,6 +89,7 @@ export function TopicExplorer() {
       showToast('搜索失败，请稍后重试', 'error');
     } finally {
       setIsSearching(false);
+      clearInterval(stepTimer);
     }
   };
 
@@ -117,12 +122,12 @@ export function TopicExplorer() {
         </div>
       </div>
 
-      {searched && results.length === 0 && (
-        <div className="flex flex-col items-center justify-center py-16 text-gray-500">
-          <Hash className="w-12 h-12 mb-4 opacity-30" />
-          <p className="text-lg mb-1">暂无结果</p>
-          <p className="text-sm">试试换个关键词，或者检查 API 连接状态</p>
-        </div>
+      {isSearching && (
+        <LoadingState steps={['正在搜索相关话题', '正在分析平台数据', '正在整理结果']} currentStep={loadingStep} />
+      )}
+
+      {!isSearching && searched && results.length === 0 && (
+        <EmptyState icon={<Hash className="w-10 h-10 text-gray-500 opacity-40" />} title="暂无结果" description="试试换个关键词，或者检查 API 连接状态" />
       )}
 
       {results.length > 0 && (
@@ -161,12 +166,8 @@ export function TopicExplorer() {
         </div>
       )}
 
-      {!searched && (
-        <div className="flex flex-col items-center justify-center py-16 text-gray-500">
-          <Search className="w-12 h-12 mb-4 opacity-30" />
-          <p className="text-lg mb-1">搜索你感兴趣的话题</p>
-          <p className="text-sm">看看各大平台上大家都在聊什么</p>
-        </div>
+      {!isSearching && !searched && (
+        <EmptyState icon={<Search className="w-10 h-10 text-gray-500 opacity-40" />} title="搜索你感兴趣的话题" description="看看各大平台上大家都在聊什么" />
       )}
     </div>
   );

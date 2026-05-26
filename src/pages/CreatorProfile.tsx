@@ -245,17 +245,42 @@ export function CreatorProfile() {
                   <span className="w-1.5 h-1.5 rounded-full bg-accent-alt" />
                   内容形式
                 </label>
-                <div className="relative">
-                  <FileText className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-1">
+                  {[
+                    { id: '小红书笔记', icon: '📕', desc: 'emoji+分段+标签' },
+                    { id: '抖音短视频', icon: '🎬', desc: '画面+口播+BGM' },
+                    { id: '公众号文章', icon: '📰', desc: '深度长文' },
+                    { id: '微博文案', icon: '💬', desc: '短平快+话题' },
+                    { id: 'B站视频', icon: '📺', desc: '脚本+分镜' },
+                    { id: '知乎回答', icon: '💡', desc: '专业深度' },
+                    { id: '视频号', icon: '🎥', desc: '口播+字幕' },
+                    { id: '其他', icon: '✏️', desc: '自定义格式' },
+                  ].map((pf) => (
+                    <button
+                      key={pf.id}
+                      onClick={() => setUserProfile({ ...userProfile, contentFormat: pf.id === '其他' ? (userProfile.contentFormat || '') : pf.id })}
+                      className={`p-3 rounded-xl border text-left transition-all ${
+                        userProfile.contentFormat === pf.id
+                          ? 'border-accent bg-accent/10 ring-1 ring-accent/30'
+                          : 'border-gray-700 bg-surface hover:border-gray-500'
+                      }`}
+                    >
+                      <span className="text-lg">{pf.icon}</span>
+                      <p className={`text-xs font-medium mt-1 ${userProfile.contentFormat === pf.id ? 'text-accent' : 'text-gray-300'}`}>{pf.id}</p>
+                      <p className="text-[10px] text-gray-500 mt-0.5">{pf.desc}</p>
+                    </button>
+                  ))}
+                </div>
+                {userProfile.contentFormat === '其他' && (
                   <input
                     type="text"
-                    value={userProfile.contentFormat || ''}
+                    value={userProfile.contentFormat === '其他' ? '' : userProfile.contentFormat}
                     onChange={(e) => setUserProfile({ ...userProfile, contentFormat: e.target.value })}
-                    className="w-full bg-surface border border-gray-700 rounded-lg pl-10 pr-4 py-2.5 text-sm focus:outline-none focus:border-accent-alt transition-colors"
-                    placeholder="例如：短视频脚本、公众号文章、小红书笔记..."
+                    className="w-full mt-2 bg-surface border border-gray-700 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-accent-alt transition-colors"
+                    placeholder="输入你的内容形式..."
                   />
-                </div>
-                <p className="text-xs text-gray-500 mt-1">你主要创作什么媒介？AI 会按对应格式生成文案</p>
+                )}
+                <p className="text-xs text-gray-500 mt-1">选择平台后，AI 会按对应格式生成文案</p>
               </div>
             </div>
           </div>

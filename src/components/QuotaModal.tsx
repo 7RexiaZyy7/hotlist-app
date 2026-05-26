@@ -1,6 +1,6 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useAppStore } from '../store';
-import { QuotaInfo } from '../services/cozeApi';
+import { QuotaInfo, checkUserQuota } from '../services/cozeApi';
 
 interface Props {
   quota: QuotaInfo;
@@ -16,7 +16,10 @@ function getAfdianUrl(userId: string) {
 
 export default function QuotaModal({ quota, onClose, onLogin }: Props) {
   const cozeUid = useAppStore((s) => s.cozeUid);
+  const setQuota = useAppStore((s) => s.setQuota);
   const afdianUrl = getAfdianUrl(cozeUid);
+  const [checking, setChecking] = useState(false);
+
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose();
@@ -27,6 +30,24 @@ export default function QuotaModal({ quota, onClose, onLogin }: Props) {
 
   const isAnon = quota.tier === 'anon';
   const isPro = quota.tier === 'pro';
+
+  async function handleCheckPayment() {
+    if (!cozeUid) return;
+    setChecking(true);
+    try {
+      const r = await fetch('/api/proxy?action=afdian_check', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-user-id': cozeUid },
+        body: JSON.stringify({ user_id: cozeUid }),
+      });
+      const data = await r.json();
+      if (data.tier === 'pro') {
+        const newQuota = await checkUserQuota();
+        setQuota(newQuota);
+      }
+    } catch {}
+    setChecking(false);
+  }
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={onClose}>
@@ -86,9 +107,13 @@ export default function QuotaModal({ quota, onClose, onLogin }: Props) {
                 >
                   升级 Pro 无限使用 🚀
                 </button>
-                <p className="text-center text-xs text-white/30">
-                  付款后自动升级，无需手动操作
-                </p>
+                <button
+                  onClick={handleCheckPayment}
+                  disabled={checking}
+                  className="w-full py-2.5 rounded-xl bg-emerald-500/20 text-emerald-300 hover:bg-emerald-500/30 text-sm transition-colors disabled:opacity-50"
+                >
+                  {checking ? '检测中...' : '已付款？点击刷新状态'}
+                </button>
                 <button
                   onClick={onClose}
                   className="w-full py-2 rounded-xl text-white/50 hover:text-white/80 text-sm transition-colors"

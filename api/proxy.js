@@ -5,6 +5,10 @@ const COZE_TOKEN_URL = 'https://api.coze.cn/api/permission/oauth2/token';
 const COZE_USER_INFO_URL = 'https://api.coze.cn/v1/users/me';
 const API_BASE = 'https://api.coze.cn';
 
+const AFDIAN_USER_ID = process.env.AFDIAN_USER_ID || '1274b488576511f18a6f52540025c377';
+const AFDIAN_TOKEN = process.env.AFDIAN_TOKEN || 'UXjhNf7a4Cy9eAtwKpD8VGFdxv3JY5bm';
+const AFDIAN_API = 'https://afdian.net/api/open';
+
 let kv = null;
 try {
   const { Redis } = await import('@upstash/redis');
@@ -386,6 +390,15 @@ export default async function handler(req, res) {
       return res.status(200).json(quota);
     }
 
+    if (action === 'afdian_check' && req.method === 'POST') {
+      const userId = body.user_id || req.headers['x-user-id'] || '';
+      if (!userId) return res.json({ ok: false, error: 'Missing user_id' });
+
+      const upgraded = await syncAfdianOrder(userId);
+      const tier = await getUserTier(userId);
+      return res.json({ ok: true, upgraded, tier });
+    }
+
     return res.status(404).json({ error: `Unknown action: ${action}` });
   } catch (err) {
     return res.status(500).json({ error: err.message });
@@ -442,4 +455,62 @@ function getOrigin(req) {
   const proto = req.headers['x-forwarded-proto'] || 'http';
   const host = req.headers['x-forwarded-host'] || req.headers.host || 'localhost:5173';
   return `${proto}://${host}`;
+}
+
+async function syncAfdianOrder(cozeUserId) {
+  if (!kv || !AFDIAN_USER_ID || !AFDIAN_TOKEN) return false;
+
+  const cacheKey = `afdian_sync:${cozeUserId}`;
+  const lastSync = await kv.get(cacheKey);
+  if (lastSync && Date.now() - Number(lastSync) < 60000) return false;
+
+  try {
+    const ts = Math.floor(Date.now() / 1000);
+    const params = JSON.stringify({ page: 1 });
+    const signStr = `${AFDIAN_TOKEN}params${params}ts${ts}user_id${AFDIAN_USER_ID}`;
+
+    const crypto = await import('crypto');
+    const sign = crypto.createHash('md5').update(signStr).digest('hex');
+
+    const r = await fetch(`${AFDIAN_API}/query-order`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ user_id: AFDIAN_USER_ID, params, ts, sign }),
+    });
+    const data = await r.json();
+
+    if (data.ec !== 200) {
+      console.error('Afdian API error:', data);
+      return false;
+    }
+
+    const orders = data.data?.list || [];
+    let upgraded = false;
+
+    for (const order of orders) {
+      if (order.status !== 2) continue;
+
+      const customId = (order.custom_order_id || '').trim();
+      const remark = (order.remark || '').trim();
+      const possibleIds = [customId, remark].filter(Boolean);
+
+      if (possibleIds.some(id => id === cozeUserId || id.includes(cozeUserId))) {
+        const currentTier = await kv.get(`tier:${cozeUserId}`);
+        if (currentTier !== 'pro') {
+          const month = order.month || 1;
+          const expireDays = month * 31;
+          await kv.set(`tier:${cozeUserId}`, 'pro', { ex: expireDays * 86400 });
+          console.log(`Afdian sync: upgraded ${cozeUserId} to pro, expires in ${expireDays} days`);
+          upgraded = true;
+        }
+        break;
+      }
+    }
+
+    await kv.set(cacheKey, String(Date.now()), { ex: 120 });
+    return upgraded;
+  } catch (e) {
+    console.error('syncAfdianOrder error:', e.message);
+    return false;
+  }
 }

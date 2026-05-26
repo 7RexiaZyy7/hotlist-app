@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import { useAppStore } from '../store';
 import { QuotaInfo } from '../services/cozeApi';
 
 interface Props {
@@ -7,7 +8,15 @@ interface Props {
   onLogin: () => void;
 }
 
+function getAfdianUrl(userId: string) {
+  const base = 'https://afdian.com/a/rexia';
+  if (!userId) return base;
+  return `${base}?custom_order_id=${encodeURIComponent(userId)}`;
+}
+
 export default function QuotaModal({ quota, onClose, onLogin }: Props) {
+  const cozeUid = useAppStore((s) => s.cozeUid);
+  const afdianUrl = getAfdianUrl(cozeUid);
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose();
@@ -72,11 +81,14 @@ export default function QuotaModal({ quota, onClose, onLogin }: Props) {
             {!isAnon && !isPro && (
               <>
                 <button
-                  onClick={() => window.open('https://afdian.com/a/rexia', '_blank')}
+                  onClick={() => window.open(afdianUrl, '_blank')}
                   className="w-full py-3 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 text-white font-medium hover:from-amber-600 hover:to-orange-600 transition-all"
                 >
                   升级 Pro 无限使用 🚀
                 </button>
+                <p className="text-center text-xs text-white/30">
+                  付款后自动升级，无需手动操作
+                </p>
                 <button
                   onClick={onClose}
                   className="w-full py-2 rounded-xl text-white/50 hover:text-white/80 text-sm transition-colors"
@@ -103,7 +115,7 @@ export default function QuotaModal({ quota, onClose, onLogin }: Props) {
             </p>
             {!isAnon && (
               <button
-                onClick={() => window.open('https://afdian.com/a/rexia', '_blank')}
+                onClick={() => window.open(afdianUrl, '_blank')}
                 className="w-full py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 text-white text-sm font-medium hover:from-amber-600 hover:to-orange-600 transition-all"
               >
                 升级 Pro 无限使用

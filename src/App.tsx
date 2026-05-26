@@ -46,23 +46,17 @@ function App() {
   // Check login status on mount
   useEffect(() => {
     (async () => {
+      const savedUid = localStorage.getItem('coze_oauth_uid');
+      if (savedUid) {
+        setAuth(savedUid, '');
+      }
       try {
         const status = await getOAuthStatus();
-        if (status.loggedIn && status.access_token && status.uid) {
-          setAuth(status.uid, status.access_token);
+        if (status.loggedIn && status.uid) {
+          setAuth(status.uid, status.access_token || '');
           setUserId(status.uid);
-        } else {
-          localStorage.removeItem('coze_oauth_uid');
-          clearAuth();
         }
-      } catch {
-        const savedUid = localStorage.getItem('coze_oauth_uid');
-        if (savedUid) {
-          setAuth(savedUid, '');
-        } else {
-          clearAuth();
-        }
-      }
+      } catch {}
     })();
   }, [setAuth, clearAuth, setLoadingAuth]);
 

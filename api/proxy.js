@@ -136,14 +136,8 @@ export default async function handler(req, res) {
         userInfoError = e.message || String(e);
       }
 
-      if (!uid && COZE_PAT_TOKEN) {
-        try {
-          const patRes = await fetch(COZE_USER_INFO_URL, {
-            headers: { 'Authorization': `Bearer ${COZE_PAT_TOKEN}`, 'Content-Type': 'application/json' },
-          });
-          const patData = await patRes.json();
-          uid = patData?.data?.user_id || patData?.data?.id || patData?.id || '';
-        } catch {}
+      if (!uid) {
+        uid = tokenData.user_id || tokenData.open_id || '';
       }
 
       setTokenCookies(res, access_token, refresh_token, expires_in);

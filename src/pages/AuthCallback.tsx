@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useAppStore } from '../store';
-import { handleOAuthCallback, setUserId } from '../services/cozeApi';
+import { handleOAuthCallback, setUserId, getOAuthStatus } from '../services/cozeApi';
 import { LogIn, AlertCircle } from 'lucide-react';
 
 export function AuthCallback() {
@@ -28,9 +28,16 @@ export function AuthCallback() {
     (async () => {
       try {
         const result = await handleOAuthCallback(code);
-        if (result.ok && result.access_token && result.uid) {
-          setAuth(result.uid, result.access_token);
-          setUserId(result.uid);
+        let uid = result.uid || '';
+        if (result.ok && !uid) {
+          try {
+            const status = await getOAuthStatus();
+            if (status.loggedIn && status.uid) uid = status.uid;
+          } catch {}
+        }
+        if (result.ok && uid) {
+          setAuth(uid, result.access_token || '');
+          setUserId(uid);
           showToast('Coze 账号已绑定');
           setStatus('done');
           setTimeout(() => {

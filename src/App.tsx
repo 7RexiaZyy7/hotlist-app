@@ -54,19 +54,35 @@ function App() {
 
   // Check login status on mount
   useEffect(() => {
+    let mounted = true;
+    const timeout = setTimeout(() => {
+      if (mounted) clearAuth();
+    }, 5000);
+
     (async () => {
       const savedUid = localStorage.getItem('coze_oauth_uid');
       if (savedUid) {
         setAuth(savedUid, '');
+        clearTimeout(timeout);
       }
       try {
         const status = await getOAuthStatus();
+        if (!mounted) return;
+        clearTimeout(timeout);
         if (status.loggedIn && status.uid) {
           setAuth(status.uid, status.access_token || '');
           setUserId(status.uid);
+        } else if (!savedUid) {
+          clearAuth();
         }
-      } catch {}
+      } catch {
+        if (!mounted) return;
+        clearTimeout(timeout);
+        if (!savedUid) clearAuth();
+      }
     })();
+
+    return () => { mounted = false; clearTimeout(timeout); };
   }, [setAuth, clearAuth, setLoadingAuth]);
 
   // Handle OAuth callback route

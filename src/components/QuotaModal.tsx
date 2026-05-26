@@ -171,6 +171,28 @@ export default function QuotaModal({ quota, onClose, onLogin }: Props) {
             继续使用
           </button>
         )}
+
+        {cozeUid && !isPro && (
+          <button
+            onClick={async () => {
+              try {
+                const r = await fetch('/api/proxy?action=tier_set', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ user_id: cozeUid, tier: 'pro', days: 1 }),
+                });
+                const data = await r.json();
+                if (data.ok) {
+                  const newQuota = await checkUserQuota();
+                  setQuota(newQuota);
+                }
+              } catch {}
+            }}
+            className="w-full py-2 rounded-xl text-white/20 hover:text-white/40 text-xs transition-colors"
+          >
+            🧪 模拟升级Pro（测试用，1天有效）
+          </button>
+        )}
       </div>
     </div>
   );

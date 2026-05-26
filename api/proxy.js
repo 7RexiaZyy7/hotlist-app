@@ -399,6 +399,25 @@ export default async function handler(req, res) {
       return res.json({ ok: true, upgraded, tier });
     }
 
+    if (action === 'tier_set' && req.method === 'POST') {
+      const userId = body.user_id || '';
+      const tier = body.tier || 'pro';
+      const days = body.days || 31;
+      if (!userId) return res.json({ ok: false, error: 'Missing user_id' });
+      if (!kv) return res.json({ ok: false, error: 'KV not available' });
+
+      await kv.set(`tier:${userId}`, tier, { ex: days * 86400 });
+      const currentTier = await getUserTier(userId);
+      return res.json({ ok: true, user_id: userId, tier: currentTier, expires_in_days: days });
+    }
+
+    if (action === 'tier_get' && req.method === 'GET') {
+      const userId = req.query.user_id || req.headers['x-user-id'] || '';
+      if (!userId) return res.json({ ok: false, error: 'Missing user_id' });
+      const tier = await getUserTier(userId);
+      return res.json({ ok: true, user_id: userId, tier });
+    }
+
     return res.status(404).json({ error: `Unknown action: ${action}` });
   } catch (err) {
     return res.status(500).json({ error: err.message });

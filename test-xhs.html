@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>小红书API测试</title>
+</head>
+<body>
+  <h1>小红书热榜API测试</h1>
+  <button id="testBtn">测试API</button>
+  <div id="result"></div>
+
+  <script>
+    document.getElementById('testBtn').addEventListener('click', async () => {
+      try {
+        const res = await fetch('https://60s.viki.moe/v2/rednote');
+        const data = await res.json();
+        console.log('完整数据:', data);
+        
+        let html = `<h3>状态: ${data.code}</h3>`;
+        html += `<p>消息: ${data.message}</p>`;
+        html += `<h4>热榜列表 (${data.data?.length || 0}条):</h4>`;
+        
+        if (data.data && data.data.length > 0) {
+          html += '<ul>';
+          data.data.forEach(item => {
+            html += `<li>
+              <strong>${item.rank}.</strong> ${item.title} 
+              <span style="color:red;">(${item.score})</span>
+              ${item.word_type ? `<span style="color:blue;">[${item.word_type}]</span>` : ''}
+            </li>`;
+          });
+          html += '</ul>';
+        }
+        
+        document.getElementById('result').innerHTML = html;
+      } catch (e) {
+        document.getElementById('result').innerHTML = `<p style="color:red;">错误: ${e.message}</p>`;
+      }
+    });
+  </script>
+</body>
+</html>

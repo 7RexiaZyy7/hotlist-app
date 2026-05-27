@@ -58,16 +58,27 @@ export function HotRadar() {
 
   useEffect(() => {
     const cached = localStorage.getItem('hotList');
+    console.log('HotRadar init - cached exists:', !!cached);
+    
     if (cached) {
       try {
         const data = JSON.parse(cached);
+        console.log('HotRadar init - cached data:', data);
+        
         if (data.items && data.items.length > 0) {
+          console.log('HotRadar init - 使用缓存，跳过 API');
           setHotList(data.items);
           setSelectedPlatform(data.platform || 'all');
           return;
+        } else {
+          console.log('HotRadar init - 缓存数据为空');
         }
-      } catch {}
+      } catch (e) {
+        console.error('HotRadar init - 解析缓存失败:', e);
+      }
     }
+    
+    console.log('HotRadar init - 调用 API 获取热榜');
     fetchHotList('all');
   }, [fetchHotList]);
 

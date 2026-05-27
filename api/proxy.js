@@ -249,18 +249,21 @@ export default async function handler(req, res) {
       // 小红书热榜使用专门的 API
       if (type === 'xiaohongshu') {
         try {
-          const xhsR = await fetch('https://api.lxmus.com/api/xhs/hot');
+          const xhsR = await fetch('https://60s.viki.moe/v2/rednote');
           const xhsData = await xhsR.json();
-          if (xhsR.ok && xhsData.data && xhsData.data.list) {
+          if (xhsR.ok && xhsData.code === 200 && Array.isArray(xhsData.data)) {
             return res.json({
               type: 'xiaohongshu',
               update_time: new Date().toLocaleString('zh-CN'),
-              list: xhsData.data.list.map((item, index) => ({
-                index: index + 1,
+              list: xhsData.data.map((item) => ({
+                index: item.rank,
                 title: item.title,
-                url: item.url || '',
-                hot_value: item.hot || item.like_count || '0',
-                extra: {}
+                url: item.link || '',
+                hot_value: item.score || '0',
+                extra: {
+                  word_type: item.word_type || '',
+                  work_type_icon: item.work_type_icon || '',
+                }
               }))
             });
           }

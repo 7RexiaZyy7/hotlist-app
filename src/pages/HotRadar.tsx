@@ -279,18 +279,18 @@ function parseHotList(text: string) {
 function parseUapiHotList(data: any, platform: string) {
   const items: { rank: number; title: string; platform: string; heatScore: number; url?: string }[] = [];
   
-  if (!data || !data.data) return items;
+  if (!data) return items;
   
-  const list = data.data.list || data.data || data;
+  const list = data.list || data.data?.list || data.data || [];
   
   if (!Array.isArray(list)) return items;
   
   list.forEach((item: any, index: number) => {
     items.push({
-      rank: index + 1,
+      rank: parseInt(item.index) || index + 1,
       title: item.title || item.name || '',
       platform: platform,
-      heatScore: parseInt(item.hot || item.heat || item.count || 0) || 0,
+      heatScore: parseInt(item.hot_value || item.hot || item.heat || item.count || 0) || 0,
       url: item.url || undefined,
     });
   });

@@ -216,7 +216,23 @@ export function HotRadar() {
                     <h3 className="text-body font-medium text-text-primary truncate">
                       {item.title}
                     </h3>
-                    <ExternalLink className="w-3.5 h-3.5 text-text-tertiary shrink-0 mt-0.5" />
+                    {item.url ? (
+                      <a
+                        href={item.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                        }}
+                        className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-bg-elevated text-text-secondary hover:text-text-primary hover:bg-bg-secondary transition-colors shrink-0"
+                        title="跳转到原平台查看详情"
+                      >
+                        <ExternalLink className="w-3 h-3" />
+                        <span className="text-caption">查看</span>
+                      </a>
+                    ) : (
+                      <ExternalLink className="w-3.5 h-3.5 text-text-tertiary shrink-0 mt-0.5" />
+                    )}
                   </div>
                   <div className="flex items-center gap-3 text-caption text-text-tertiary mt-0.5">
                     <span className="flex items-center gap-1">

@@ -7,9 +7,10 @@ import { ContentForge } from './pages/ContentForge';
 import { CreatorProfile } from './pages/CreatorProfile';
 import { HitAnalyzer } from './pages/HitAnalyzer';
 import { AuthCallback } from './pages/AuthCallback';
+import { ThemeSelector } from './pages/ThemeSelector';
 import { useAppStore } from './store';
 import { getOAuthStatus, setUserId, getOAuthLoginUrl } from './services/cozeApi';
-import { Check, AlertCircle, Info, Loader2, AlertTriangle, Flame, Search, Sparkles, User, Scissors } from 'lucide-react';
+import { Check, AlertCircle, Info, Loader2, AlertTriangle, Flame, Search, Sparkles, User, Scissors, Palette } from 'lucide-react';
 import QuotaModal from './components/QuotaModal';
 import { clsx } from 'clsx';
 
@@ -111,6 +112,8 @@ function App() {
         return <CreatorProfile />;
       case 'analyze':
         return <HitAnalyzer />;
+      case 'theme':
+        return <ThemeSelector />;
       default:
         return <HotRadar />;
     }

@@ -1,5 +1,5 @@
 import { useAppStore } from '../store';
-import { Flame, Search, Sparkles, User, Scissors, Zap } from 'lucide-react';
+import { Flame, Search, Sparkles, User, Scissors, Zap, Palette } from 'lucide-react';
 import { clsx } from 'clsx';
 
 export function Sidebar() {
@@ -14,6 +14,7 @@ export function Sidebar() {
     { id: 'forge', label: '文案', icon: Sparkles },
     { id: 'analyze', label: '拆解', icon: Scissors },
     { id: 'profile', label: '档案', icon: User },
+    { id: 'theme', label: '风格', icon: Palette },
   ];
 
   return (

@@ -70,6 +70,7 @@ export function TopBar() {
               { id: 'forge', label: '文案工坊', icon: Sparkles },
               { id: 'analyze', label: '爆款拆解', icon: Scissors },
               { id: 'profile', label: '创作档案', icon: User },
+              { id: 'theme', label: '设计风格', icon: Palette },
             ].map((item) => {
               const Icon = item.icon;
               const isActive = activePage === item.id;

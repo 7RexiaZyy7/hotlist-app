@@ -8,11 +8,11 @@ import { LoadingState, EmptyState } from '../components/LoadingState';
 
 const platforms = [
   { id: 'all', label: '综合', icon: Flame },
-  { id: 'weibo', label: '微博', icon: Hash },
   { id: 'douyin', label: '抖音', icon: MessageSquare },
+  { id: 'xiaohongshu', label: '小红书', icon: Hash },
   { id: 'zhihu', label: '知乎', icon: Hash },
   { id: 'bilibili', label: 'B站', icon: MessageSquare },
-  { id: 'juejin', label: '掘金', icon: Hash },
+  { id: 'weibo', label: '微博', icon: Hash },
 ];
 
 export function HotRadar() {

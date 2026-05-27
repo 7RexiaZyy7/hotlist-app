@@ -20,8 +20,8 @@ try {
   }
 } catch {}
 
-const QUOTA_ANON = 2;
-const QUOTA_FREE = 3;
+const QUOTA_ANON = 3;
+const QUOTA_FREE = 15;
 const QUOTA_PRO = 9999;
 
 function getTodayKey() {

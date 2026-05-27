@@ -172,7 +172,7 @@ export default function QuotaModal({ quota, onClose, onLogin }: Props) {
           </button>
         )}
 
-        {cozeUid && !isPro && (
+        {/* {cozeUid && !isPro && (
           <button
             onClick={async () => {
               try {
@@ -192,7 +192,7 @@ export default function QuotaModal({ quota, onClose, onLogin }: Props) {
           >
             🧪 模拟升级Pro（测试用，1天有效）
           </button>
-        )}
+        )} */}
       </div>
     </div>
   );

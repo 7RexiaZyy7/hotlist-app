@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useAppStore } from '../store';
 import { Sparkles, Copy, Check, Wand2, MessageSquare, Clock, Type, ArrowRight, RotateCcw } from 'lucide-react';
 import { callCozeChat, buildCopyGenerateQuery } from '../services/cozeApi';
@@ -122,6 +122,8 @@ export function ContentForge() {
   const [convertedCopies, setConvertedCopies] = useState<Record<string, { angle: string; content: string }[]>>({});
   const [showHistory, setShowHistory] = useState(false);
   const [loadingStep, setLoadingStep] = useState(0);
+  const [copiesAnimation, setCopiesAnimation] = useState(false);
+  const resultsRef = useRef<HTMLDivElement>(null);
 
   const recommendedAngles = (() => {
     const topic = selectedTopic.toLowerCase();
@@ -200,6 +202,11 @@ export function ContentForge() {
           timestamp: Date.now(),
         });
         showToast(`已生成 ${selectedAngles.length} 种角度的文案`);
+        setCopiesAnimation(true);
+        setTimeout(() => {
+          resultsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          setTimeout(() => setCopiesAnimation(false), 600);
+        }, 100);
       }
     } catch (error) {
       console.error('生成失败:', error);
@@ -343,7 +350,7 @@ export function ContentForge() {
       )}
 
       {!isGenerating && generatedCopies.length > 0 && (
-        <div className="flex-1 overflow-y-auto">
+        <div ref={resultsRef} className={`flex-1 overflow-y-auto transition-all duration-500 ${copiesAnimation ? 'opacity-0 translate-y-4' : 'opacity-100 translate-y-0'}`}>
           <div className="flex items-center gap-2 mb-3">
             <div className="flex gap-1.5">
               {platformFormats.map((pf) => (

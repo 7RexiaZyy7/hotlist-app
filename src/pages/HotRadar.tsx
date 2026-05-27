@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useAppStore } from '../store';
 import { callCozeChat, buildHotListQuery } from '../services/cozeApi';
+import { PROXY_BASE } from '../services/cozeApi';
 import { Flame, RefreshCw, TrendingUp, Clock, ExternalLink, Hash, MessageSquare } from 'lucide-react';
 import { clsx } from 'clsx';
 import { LoadingState, EmptyState } from '../components/LoadingState';
@@ -27,9 +28,20 @@ export function HotRadar() {
     setError(null);
 
     try {
-      const query = buildHotListQuery(platform);
-      const result = await callCozeChat(query);
-      const items = parseHotList(result);
+      let items;
+      
+      if (platform === 'all') {
+        // 综合热榜走 Coze Agent
+        const query = buildHotListQuery(platform);
+        const result = await callCozeChat(query);
+        items = parseHotList(result);
+      } else {
+        // 单平台热榜直接调用 uapi.com
+        const r = await fetch(`${PROXY_BASE}?action=hotboard&type=${platform}`);
+        const data = await r.json();
+        items = parseUapiHotList(data, platform);
+      }
+      
       if (items.length === 0) {
         setError('热榜数据格式异常，请稍后重试');
       } else {
@@ -43,11 +55,9 @@ export function HotRadar() {
       if (cached) {
         try {
           const data = JSON.parse(cached);
-          if (Date.now() - data.timestamp < 3600000) {
-            setHotList(data.items);
-            showToast('网络异常，已加载缓存数据', 'warning');
-            setError(null);
-          }
+          setHotList(data.items);
+          showToast('网络异常，已加载缓存数据', 'warning');
+          setError(null);
         } catch {}
       }
     } finally {
@@ -258,6 +268,28 @@ function parseHotList(text: string) {
       }
     }
   }
+  
+  return items;
+}
+
+function parseUapiHotList(data: any, platform: string) {
+  const items: { rank: number; title: string; platform: string; heatScore: number; url?: string }[] = [];
+  
+  if (!data || !data.data) return items;
+  
+  const list = data.data.list || data.data || data;
+  
+  if (!Array.isArray(list)) return items;
+  
+  list.forEach((item: any, index: number) => {
+    items.push({
+      rank: index + 1,
+      title: item.title || item.name || '',
+      platform: platform,
+      heatScore: parseInt(item.hot || item.heat || item.count || 0) || 0,
+      url: item.url || undefined,
+    });
+  });
   
   return items;
 }

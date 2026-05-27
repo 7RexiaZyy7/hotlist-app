@@ -54,7 +54,10 @@ export async function oauthLogout(): Promise<void> {
 }
 
 export async function getCozeToken(): Promise<string> {
-  // 始终使用 PAT token，OAuth token 权限不足无法调用 retrieve 等端点
+  if (!FALLBACK_PAT || FALLBACK_PAT.length < 20) {
+    console.error('getCozeToken: PAT token 无效或未配置');
+    throw new Error('Coze API 配置错误');
+  }
   return FALLBACK_PAT;
 }
 

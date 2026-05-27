@@ -244,20 +244,23 @@ export default async function handler(req, res) {
     // ─── 热榜 ───
     if (action === 'hotboard' && req.method === 'GET') {
       const { type } = req.query;
+      console.log('HOTBOARD REQUEST RECEIVED, type=', type);
       if (!type) return res.status(400).json({ error: 'Missing type parameter' });
       
       // 小红书热榜使用专门的API
       if (type === 'xiaohongshu') {
-        console.log('Xiaohongshu hotboard request received, calling 60s.viki.moe');
+        console.log('ENTERING XIAOHONGSHU BLOCK');
         try {
+          console.log('CALLING 60s.viki.moe API...');
           const xhsR = await fetch('https://60s.viki.moe/v2/rednote');
-          console.log('Xiaohongshu API response status:', xhsR.status);
+          console.log('API RESPONSE STATUS:', xhsR.status);
           const text = await xhsR.text();
-          console.log('Xiaohongshu API raw response:', text.slice(0, 200));
+          console.log('API RESPONSE TEXT:', text.slice(0, 100));
           const xhsData = JSON.parse(text);
-          console.log('Xiaohongshu API parsed code:', xhsData.code, 'data is array:', Array.isArray(xhsData.data));
+          console.log('PARSED CODE:', xhsData.code, 'IS ARRAY:', Array.isArray(xhsData.data));
+          
           if (xhsData.code === 200 && Array.isArray(xhsData.data)) {
-            console.log('Xiaohongshu API success, returning real data, count:', xhsData.data.length);
+            console.log('SUCCESS! RETURNING REAL DATA, COUNT:', xhsData.data.length);
             const parseHotValue = (score) => {
               if (!score) return '0';
               const scoreStr = String(score);
@@ -284,11 +287,11 @@ export default async function handler(req, res) {
               }))
             });
           }
-          console.log('Xiaohongshu API data format invalid, code:', xhsData.code);
+          console.log('DATA FORMAT INVALID, CODE:', xhsData.code);
         } catch (e) {
-          console.error('Xiaohongshu API error:', e.message || e);
+          console.error('API ERROR:', e.message || e);
         }
-        console.log('Xiaohongshu returning fallback data');
+        console.log('RETURNING FALLBACK DATA');
         return res.json({
           type: 'xiaohongshu',
           source: 'fallback',
@@ -309,6 +312,7 @@ export default async function handler(req, res) {
       }
       
       // 其他平台使用 uapi.com
+      console.log('USING UAPI FOR TYPE:', type);
       const r = await fetch(`https://uapis.cn/api/v1/misc/hotboard?type=${encodeURIComponent(type)}`);
       const data = await r.json();
       return res.status(r.status).json(data);

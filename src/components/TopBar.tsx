@@ -39,7 +39,7 @@ export function TopBar() {
     await oauthLogout();
     localStorage.removeItem('coze_oauth_uid');
     clearAuth();
-    setQuota({ allowed: true, used: 0, limit: 2, tier: 'anon', remaining: 2 });
+    setQuota({ allowed: true, used: 0, limit: 3, tier: 'anon', remaining: 3 });
     showToast('已退出登录');
     checkUserQuota().then(setQuota);
   };

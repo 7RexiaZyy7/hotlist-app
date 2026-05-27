@@ -1,12 +1,11 @@
 import { useState, useEffect } from 'react';
 import { useAppStore } from '../store';
 import { getOAuthLoginUrl, oauthLogout, checkUserQuota, QuotaInfo } from '../services/cozeApi';
-import { Settings, Zap, Scissors, LogIn, LogOut, User } from 'lucide-react';
+import { Settings, Zap, Scissors, LogIn, LogOut, User, Flame, Search, Sparkles } from 'lucide-react';
 import { clsx } from 'clsx';
 
 export function TopBar() {
   const isConnected = useAppStore((s) => s.isConnected);
-  const setConnected = useAppStore((s) => s.setConnected);
   const activePage = useAppStore((s) => s.activePage);
   const isLoggedIn = useAppStore((s) => s.isLoggedIn);
   const cozeUid = useAppStore((s) => s.cozeUid);
@@ -44,112 +43,119 @@ export function TopBar() {
     checkUserQuota().then(setQuota);
   };
 
-  const pageLabels: Record<string, string> = {
-    radar: '热榜驾驶舱',
-    explore: '话题勘探',
-    forge: '文案工坊',
-    profile: '创作档案',
-    analyze: '爆款拆解',
+  const getTierBadge = (tier: string) => {
+    if (tier === 'pro') return <span className="tier-badge pro">Pro</span>;
+    if (tier === 'free') return <span className="tier-badge free">登录用户</span>;
+    return <span className="tier-badge anon">游客</span>;
   };
 
   return (
     <>
-      <header className="h-16 bg-surface border-b border-gray-800 flex items-center justify-between px-6">
-        <div className="flex items-center gap-4">
-          <h1 className="font-display text-xl font-semibold">
-            {pageLabels[activePage] || '内容引力引擎'}
-          </h1>
+      <header className="h-16 glass-card mx-4 mt-4 rounded-2xl px-6 flex items-center justify-between relative z-10">
+        <div className="flex items-center gap-6">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-secondary flex items-center justify-center pulse-glow">
+              <Flame className="w-5 h-5 text-white" />
+            </div>
+            <div>
+              <h1 className="font-semibold text-lg gradient-text">热点引力引擎</h1>
+              <p className="text-xs text-text-muted">爆款文案生成器</p>
+            </div>
+          </div>
+
+          <nav className="hidden md:flex items-center gap-1">
+            {[
+              { id: 'radar', label: '热榜驾驶舱', icon: Flame },
+              { id: 'explore', label: '话题勘探', icon: Search },
+              { id: 'forge', label: '文案工坊', icon: Sparkles },
+              { id: 'analyze', label: '爆款拆解', icon: Scissors },
+              { id: 'profile', label: '创作档案', icon: User },
+            ].map((item) => {
+              const Icon = item.icon;
+              const isActive = activePage === item.id;
+              return (
+                <button
+                  key={item.id}
+                  onClick={() => useAppStore.getState().setActivePage(item.id)}
+                  className={clsx(
+                    'px-4 py-2 rounded-xl flex items-center gap-2 transition-all duration-300',
+                    isActive
+                      ? 'bg-gradient-to-r from-primary/20 to-secondary/20 text-primary border border-primary/30'
+                      : 'text-text-secondary hover:text-text-primary hover:bg-white/5'
+                  )}
+                >
+                  <Icon className="w-4 h-4" />
+                  <span className="text-sm font-medium">{item.label}</span>
+                </button>
+              );
+            })}
+          </nav>
         </div>
 
-        <div className="flex items-center gap-6">
-          <div className="flex items-center gap-4">
-            {quota && (
-              <div
-                className="flex items-center gap-2 cursor-pointer hover:bg-white/5 px-2 py-1 rounded-lg transition-colors"
-                onClick={() => setShowQuotaModal(true)}
+        <div className="flex items-center gap-4">
+          <button
+            onClick={() => setShowQuotaModal(true)}
+            className="flex items-center gap-3 px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 transition-all duration-300 cursor-pointer"
+          >
+            <div className="flex items-center gap-2">
+              <Zap className="w-4 h-4 text-accent" />
+              <span className="text-sm font-medium">
+                {quota ? `${quota.used}/${quota.limit}` : '--'}
+              </span>
+            </div>
+            {quota && quota.tier && getTierBadge(quota.tier)}
+          </button>
+
+          {isLoggedIn ? (
+            <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2 text-text-secondary text-sm">
+                <User className="w-4 h-4" />
+                <span className="hidden sm:inline">{cozeUid.slice(0, 8)}...</span>
+              </div>
+              <button
+                onClick={handleLogout}
+                className="flex items-center gap-2 px-4 py-2 rounded-xl bg-red-500/10 text-red-400 hover:bg-red-500/20 transition-all duration-300"
               >
-                <Zap className="w-4 h-4 text-accent" />
-                <span className="text-sm text-gray-400">今日额度</span>
-                <span className={clsx(
-                  'font-mono text-lg font-semibold',
-                  quota.remaining <= 2 ? 'text-red-400' : quota.remaining <= 5 ? 'text-amber-400' : 'text-accent'
-                )}>
-                  {quota.remaining}/{quota.limit === 9999 ? '∞' : quota.limit}
-                </span>
+                <LogOut className="w-4 h-4" />
+                <span className="text-sm font-medium">退出</span>
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={handleLogin}
+              disabled={loggingIn}
+              className={clsx(
+                'flex items-center gap-2 px-4 py-2 rounded-xl transition-all duration-300',
+                loggingIn
+                  ? 'bg-white/10 text-text-muted cursor-not-allowed'
+                  : 'glow-button'
+              )}
+            >
+              <LogIn className="w-4 h-4" />
+              <span className="text-sm font-medium">{loggingIn ? '登录中...' : 'Coze登录'}</span>
+            </button>
+          )}
+
+          <div className="relative">
+            <button
+              onClick={() => setShowSettings(!showSettings)}
+              className="p-2 rounded-xl hover:bg-white/5 transition-all duration-300"
+            >
+              <Settings className="w-5 h-5 text-text-secondary" />
+            </button>
+            {showSettings && (
+              <div className="absolute right-0 mt-2 w-48 glass-card p-2 fade-in">
+                <button className="w-full px-4 py-2 rounded-lg text-left text-sm hover:bg-white/5 transition-colors">
+                  偏好设置
+                </button>
+                <button className="w-full px-4 py-2 rounded-lg text-left text-sm hover:bg-white/5 transition-colors">
+                  关于我们
+                </button>
               </div>
             )}
           </div>
-
-          <div className="flex items-center gap-3">
-            {isLoggedIn ? (
-              <button
-                onClick={handleLogout}
-                className="flex items-center gap-1.5 px-3 py-1.5 bg-card border border-gray-700 rounded-lg text-xs text-gray-300 hover:bg-gray-700 transition-colors cursor-pointer"
-                title={`Coze UID: ${cozeUid}`}
-              >
-                <User className="w-3.5 h-3.5 text-accent" />
-                <span className="max-w-20 truncate">{cozeUid.slice(0, 8)}...</span>
-                <LogOut className="w-3 h-3 text-gray-500" />
-              </button>
-            ) : (
-              <button
-                onClick={handleLogin}
-                disabled={loggingIn}
-                className="flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-accent to-orange-500 rounded-lg text-xs font-medium hover:opacity-90 transition-opacity cursor-pointer disabled:opacity-50"
-              >
-                <LogIn className="w-3.5 h-3.5" />
-                {loggingIn ? '跳转中...' : 'Coze 登录'}
-              </button>
-            )}
-
-            <div 
-              className={clsx(
-                'w-2 h-2 rounded-full animate-pulse',
-                isConnected ? 'bg-success' : 'bg-warning'
-              )}
-            />
-            <span className="text-sm text-gray-400">
-              {isConnected ? '已连接' : '未连接'}
-            </span>
-            <button
-              onClick={() => setShowSettings(true)}
-              className="p-2 hover:bg-card rounded-lg transition-colors"
-            >
-              <Settings className="w-4 h-4 text-gray-400" />
-            </button>
-          </div>
         </div>
       </header>
-
-      {showSettings && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-surface rounded-2xl p-6 w-96 border border-gray-800">
-            <h2 className="text-lg font-semibold mb-2">连接状态</h2>
-            <p className="text-sm text-gray-400 mb-4">
-              {isConnected 
-                ? 'API 代理已连接，Token 由服务端管理'
-                : '请在 Vercel 环境变量中配置 COZE_PAT_TOKEN'}
-            </p>
-            <div className="flex gap-3 mt-6">
-              <button
-                onClick={() => {
-                  setConnected(false);
-                  setShowSettings(false);
-                }}
-                className="flex-1 px-4 py-2 bg-surface border border-gray-700 rounded-lg text-sm hover:bg-gray-800 transition-colors"
-              >
-                断开
-              </button>
-              <button
-                onClick={() => setShowSettings(false)}
-                className="flex-1 px-4 py-2 bg-gradient-to-r from-accent to-orange-500 rounded-lg text-sm font-medium hover:opacity-90 transition-opacity"
-              >
-                关闭
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </>
   );
 }

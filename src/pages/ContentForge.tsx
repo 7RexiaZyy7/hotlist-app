@@ -1,443 +1,379 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useAppStore } from '../store';
-import { Sparkles, Copy, Check, Wand2, MessageSquare, Clock, Type, ArrowRight, RotateCcw } from 'lucide-react';
-import { callCozeChat, buildCopyGenerateQuery } from '../services/cozeApi';
-import { LoadingState, EmptyState } from '../components/LoadingState';
+import { callCozeChat, buildCopyGenerateQuery, checkUserQuota, incrementUserQuota, getUserVariables } from '../services/cozeApi';
+import { Sparkles, Copy, Check, RefreshCw, Wand2 } from 'lucide-react';
+import { clsx } from 'clsx';
+import LoadingState from '../components/LoadingState';
+import Empty from '../components/Empty';
 
-const copyAngles = [
-  { id: '共鸣型', label: '共鸣型', desc: '唤起情感共鸣', color: 'from-purple-500 to-pink-500' },
-  { id: '知识型', label: '知识型', desc: '传递有价值信息', color: 'from-blue-500 to-cyan-500' },
-  { id: '观点型', label: '观点型', desc: '表达鲜明态度', color: 'from-orange-500 to-red-500' },
-  { id: '趣味型', label: '趣味型', desc: '轻松幽默风格', color: 'from-green-500 to-emerald-500' },
-  { id: '实用型', label: '实用型', desc: '提供具体方法', color: 'from-indigo-500 to-purple-500' },
-  { id: '关联型', label: '关联型', desc: '跨界联想组合', color: 'from-teal-500 to-cyan-500' },
-  { id: '决策纠结型', label: '决策纠结型', desc: '引发选择焦虑', color: 'from-rose-500 to-pink-500' },
-  { id: '问题背后原因型', label: '问题原因型', desc: '深挖问题本质', color: 'from-amber-500 to-orange-500' },
-  { id: '填补盲区型', label: '填补盲区型', desc: '揭示认知盲区', color: 'from-violet-500 to-purple-500' },
-  { id: '替用户说话型', label: '替用户说话', desc: '表达用户心声', color: 'from-sky-500 to-blue-500' },
-  { id: '行业发心型', label: '行业发心型', desc: '传递行业使命感', color: 'from-emerald-500 to-teal-500' },
+interface GeneratedCopy {
+  angle: string;
+  content: string;
+}
+
+const angles = [
+  { id: 'emotional', label: '情感共鸣', icon: '💝' },
+  { id: 'knowledge', label: '知识科普', icon: '📚' },
+  { id: 'opinion', label: '观点评论', icon: '💬' },
+  { id: 'trend', label: '热点追踪', icon: '🔥' },
+  { id: 'future', label: '未来趋势', icon: '🚀' },
+  { id: 'analysis', label: '深度分析', icon: '🔍' },
+  { id: 'funny', label: '趣味解读', icon: '😄' },
+  { id: 'story', label: '故事叙述', icon: '📖' },
+  { id: 'suggestion', label: '实用建议', icon: '💡' },
+  { id: 'question', label: '提问互动', icon: '❓' },
+  { id: 'comparison', label: '对比分析', icon: '⚖️' },
 ];
 
-const topicAngleMap: Record<string, string[]> = {
-  default: ['共鸣型', '实用型', '观点型'],
-};
-
-const platformFormats = [
-  { id: '小红书', label: '小红书版', icon: '📕', desc: 'emoji标题+分段+标签' },
-  { id: '抖音', label: '抖音脚本', icon: '🎬', desc: '画面+口播+BGM' },
-  { id: '公众号', label: '公众号版', icon: '📰', desc: '深度长文格式' },
-  { id: '微博', label: '微博版', icon: '💬', desc: '短平快+话题标签' },
+const platformStyles = [
+  { id: 'xiaohongshu', label: '📕 小红书版', description: '适合小红书平台风格' },
+  { id: 'douyin', label: '🎬 抖音脚本', description: '适合抖音短视频' },
+  { id: 'gongzhonghao', label: '📰 公众号版', description: '适合公众号文章' },
+  { id: 'weibo', label: '💬 微博版', description: '适合微博短文案' },
 ];
-
-function splitByAngles(content: string, angles: string[]): { angle: string; content: string }[] {
-  const results: { angle: string; content: string }[] = [];
-  let remaining = content;
-
-  for (const angle of angles) {
-    const regex = new RegExp(`(?:【${angle}】|#+\\s*${angle}|\\d+\\.\\s*${angle})`, 'i');
-    const match = remaining.match(regex);
-    if (match) {
-      const startIdx = match.index!;
-      const nextAngle = angles.find((a, i) => {
-        if (a === angle) return false;
-        const nextRegex = new RegExp(`(?:【${a}】|#+\\s*${a}|\\d+\\.\\s*${a})`, 'i');
-        const nextMatch = remaining.slice(startIdx + match[0].length).match(nextRegex);
-        return nextMatch;
-      });
-
-      let sectionEnd = remaining.length;
-      if (nextAngle) {
-        const nextRegex = new RegExp(`(?:【${nextAngle}】|#+\\s*${nextAngle}|\\d+\\.\\s*${nextAngle})`, 'i');
-        const nextMatch = remaining.slice(startIdx + match[0].length).match(nextRegex);
-        if (nextMatch) {
-          sectionEnd = startIdx + match[0].length + nextMatch.index!;
-        }
-      }
-
-      results.push({
-        angle,
-        content: remaining.slice(startIdx + match[0].length, sectionEnd).trim(),
-      });
-      remaining = remaining.slice(0, startIdx) + remaining.slice(sectionEnd);
-    }
-  }
-
-  if (results.length === 0 && content.trim()) {
-    return angles.map(angle => ({ angle, content }));
-  }
-
-  return results;
-}
-
-function estimateReadingTime(text: string): string {
-  const chars = text.length;
-  const minutes = Math.max(1, Math.ceil(chars / 500));
-  return `${minutes}分钟`;
-}
-
-function countWords(text: string): number {
-  return text.replace(/\s/g, '').length;
-}
-
-interface HistoryItem {
-  topic: string;
-  angles: string[];
-  copies: { angle: string; content: string }[];
-  timestamp: number;
-}
-
-function getHistory(): HistoryItem[] {
-  try {
-    const raw = localStorage.getItem('copy_history');
-    return raw ? JSON.parse(raw) : [];
-  } catch { return []; }
-}
-
-function saveHistory(item: HistoryItem) {
-  const history = getHistory();
-  history.unshift(item);
-  if (history.length > 10) history.length = 10;
-  localStorage.setItem('copy_history', JSON.stringify(history));
-}
 
 export function ContentForge() {
-  const {
-    isConnected,
-    selectedTopic,
-    setSelectedTopic,
-    selectedAngles,
-    setSelectedAngles,
-    generatedCopies,
-    setGeneratedCopies,
-    isGenerating,
-    setGenerating,
-    userProfile,
-    incrementCopies,
-    showToast,
-    setActivePage,
-  } = useAppStore();
-
+  const { selectedTopic, setSelectedTopic, selectedAngles, setSelectedAngles, setGenerating, isGenerating, generatedCopies, setGeneratedCopies, setShowQuotaModal, showToast } = useAppStore();
   const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
   const [convertingPlatform, setConvertingPlatform] = useState<string | null>(null);
-  const [convertedCopies, setConvertedCopies] = useState<Record<string, { angle: string; content: string }[]>>({});
+  const [convertedCopies, setConvertedCopies] = useState<Record<string, GeneratedCopy[]>>({});
   const [showHistory, setShowHistory] = useState(false);
   const [loadingStep, setLoadingStep] = useState(0);
   const [copiesAnimation, setCopiesAnimation] = useState(false);
   const resultsRef = useRef<HTMLDivElement>(null);
 
-  const recommendedAngles = (() => {
-    const topic = selectedTopic.toLowerCase();
-    if (/情感|恋爱|关系|婚姻/.test(topic)) return ['共鸣型', '替用户说话型', '观点型'];
-    if (/赚钱|副业|投资|理财/.test(topic)) return ['实用型', '填补盲区型', '关联型'];
-    if (/科技|AI|数码|产品/.test(topic)) return ['知识型', '填补盲区型', '关联型'];
-    if (/职场|成长|学习|自律/.test(topic)) return ['实用型', '共鸣型', '决策纠结型'];
-    if (/美食|旅行|生活|穿搭/.test(topic)) return ['趣味型', '共鸣型', '实用型'];
-    return topicAngleMap.default;
-  })();
+  useEffect(() => {
+    if (isGenerating) {
+      const interval = setInterval(() => {
+        setLoadingStep(prev => (prev + 1) % 4);
+      }, 2000);
+      return () => clearInterval(interval);
+    }
+  }, [isGenerating]);
 
-  const handleToggleAngle = (angle: string) => {
-    setSelectedAngles(
-      selectedAngles.includes(angle)
-        ? selectedAngles.filter((a) => a !== angle)
-        : [...selectedAngles, angle]
-    );
+  const getStepMessage = () => {
+    const messages = ['正在分析热点话题...', '正在构思创作角度...', '正在生成爆款文案...', '正在优化内容质量...'];
+    return messages[loadingStep] || messages[0];
   };
 
-  const handleUseRecommended = () => {
-    setSelectedAngles(recommendedAngles);
+  const handleAngleToggle = (angle: string) => {
+    if (selectedAngles.includes(angle)) {
+      setSelectedAngles(selectedAngles.filter(a => a !== angle));
+    } else if (selectedAngles.length < 5) {
+      setSelectedAngles([...selectedAngles, angle]);
+    } else {
+      showToast('最多选择5个角度', 'warning');
+    }
   };
 
   const handleGenerate = async () => {
     if (!selectedTopic.trim()) {
-      showToast('请先选择或输入一个话题', 'info');
+      showToast('请输入话题关键词', 'warning');
       return;
     }
     if (selectedAngles.length === 0) {
-      showToast('请至少选择一种文案角度', 'info');
+      showToast('请至少选择一个创作角度', 'warning');
       return;
     }
-    if (!isConnected) {
-      showToast('API 代理未连接', 'error');
+
+    const quota = await checkUserQuota();
+    if (!quota.allowed) {
+      setShowQuotaModal(true);
       return;
     }
+
+    await incrementUserQuota();
 
     setGenerating(true);
-    setConvertedCopies({});
-    setLoadingStep(0);
-    const stepTimer = setInterval(() => setLoadingStep(s => Math.min(s + 1, 2)), 8000);
+    setGeneratedCopies([]);
+    setCopiesAnimation(false);
 
     try {
-      const { checkAndIncrementQuota } = useAppStore.getState();
-      const allowed = await checkAndIncrementQuota();
-      if (!allowed) { setGenerating(false); clearInterval(stepTimer); return; }
-
-      setLoadingStep(1);
+      const userProfile = getUserVariables() || {};
       const query = buildCopyGenerateQuery(selectedTopic, selectedAngles, userProfile);
-      const content = await callCozeChat(query);
+      const result = await callCozeChat(query);
 
-      setLoadingStep(2);
-      const askingInfo = content && /赛道|受众|告诉我|先告诉我/.test(content) && content.length < 300;
-      if (askingInfo) {
-        setGeneratedCopies([{
-          angle: '提示',
-          content: 'Bot 需要你的创作档案信息才能生成精准文案。请先去"创作档案"页面填写赛道和受众信息，然后重新生成。',
-        }]);
-        incrementCopies();
-        showToast('请先填写创作档案再生成文案', 'info');
+      const parsed = parseGeneratedCopies(result);
+      if (parsed.length > 0) {
+        setGeneratedCopies(parsed);
       } else {
-        const parsed = splitByAngles(content || '', selectedAngles);
-        if (parsed.length > 0) {
-          setGeneratedCopies(parsed);
-        } else {
-          setGeneratedCopies(selectedAngles.map(angle => ({
-            angle,
-            content: content || '',
-          })));
-        }
-        incrementCopies();
-        saveHistory({
-          topic: selectedTopic,
-          angles: selectedAngles,
-          copies: parsed.length > 0 ? parsed : selectedAngles.map(a => ({ angle: a, content: content || '' })),
-          timestamp: Date.now(),
-        });
-        showToast(`已生成 ${selectedAngles.length} 种角度的文案`);
-        setCopiesAnimation(true);
-        setTimeout(() => {
-          resultsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-          setTimeout(() => setCopiesAnimation(false), 600);
-        }, 100);
+        setGeneratedCopies(selectedAngles.map(angle => ({ angle, content: result })));
       }
-    } catch (error) {
-      console.error('生成失败:', error);
-      showToast(`生成失败: ${error instanceof Error ? error.message : '未知错误'}`, 'error');
+
+      saveHistory({
+        topic: selectedTopic,
+        angles: selectedAngles,
+        copies: parsed.length > 0 ? parsed : selectedAngles.map(a => ({ angle: a, content: result })),
+        timestamp: Date.now(),
+      });
+
+      showToast(`已生成 ${selectedAngles.length} 种角度的文案`);
+      setCopiesAnimation(true);
+      setTimeout(() => {
+        resultsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        setTimeout(() => setCopiesAnimation(false), 600);
+      }, 100);
+    } catch (e) {
+      console.error('generate error:', e);
+      showToast('生成失败，请稍后重试', 'error');
     } finally {
       setGenerating(false);
-      clearInterval(stepTimer);
     }
   };
 
-  const handleCopy = (content: string, index: number) => {
-    navigator.clipboard.writeText(content);
-    setCopiedIndex(index);
-    setTimeout(() => setCopiedIndex(null), 2000);
-  };
+  const handleConvert = async (platform: string) => {
+    if (!generatedCopies.length || convertingPlatform) return;
 
-  const handlePlatformConvert = async (platform: string) => {
-    if (generatedCopies.length === 0) return;
     setConvertingPlatform(platform);
     try {
-      const allContent = generatedCopies.map(c => c.content).join('\n\n');
-      const query = `请将以下文案改写为${platform}平台最适合的格式和风格，保持核心信息不变：\n\n${allContent}\n\n直接输出改写后的文案，不要问问题。`;
-      const result = await callCozeChat(query);
-      const parsed = splitByAngles(result || '', generatedCopies.map(c => c.angle));
-      setConvertedCopies(prev => ({
-        ...prev,
-        [platform]: parsed.length > 0 ? parsed : generatedCopies.map(c => ({ angle: c.angle, content: result || '' })),
-      }));
-      showToast(`已转换为${platform}版`);
+      const results: GeneratedCopy[] = [];
+      for (const copy of generatedCopies) {
+        const query = `请将以下文案转换为${platformStyles.find(p => p.id === platform)?.label || platform}风格：\n\n${copy.content}`;
+        const result = await callCozeChat(query);
+        results.push({ angle: copy.angle, content: result });
+      }
+      setConvertedCopies(prev => ({ ...prev, [platform]: results }));
+      showToast('转换完成');
     } catch {
-      showToast('格式转换失败', 'error');
+      showToast('转换失败', 'error');
     } finally {
       setConvertingPlatform(null);
     }
   };
 
-  const handleLoadHistory = (item: HistoryItem) => {
+  const handleCopy = async (text: string, index: number) => {
+    await navigator.clipboard.writeText(text);
+    setCopiedIndex(index);
+    setTimeout(() => setCopiedIndex(null), 2000);
+    showToast('已复制到剪贴板');
+  };
+
+  const history = JSON.parse(localStorage.getItem('copyHistory') || '[]');
+
+  const saveHistory = (item: any) => {
+    const current = JSON.parse(localStorage.getItem('copyHistory') || '[]');
+    const updated = [item, ...current].slice(0, 10);
+    localStorage.setItem('copyHistory', JSON.stringify(updated));
+  };
+
+  const loadHistory = (item: any) => {
     setSelectedTopic(item.topic);
     setSelectedAngles(item.angles);
     setGeneratedCopies(item.copies);
-    setConvertedCopies({});
     setShowHistory(false);
   };
 
-  const history = getHistory();
+  const currentCopies = convertedCopies[convertingPlatform || ''] || generatedCopies;
 
   return (
-    <div className="p-6 h-full flex flex-col overflow-hidden">
-      <div className="mb-4 flex items-end gap-3">
-        <div className="flex-1">
-          <label className="block text-sm text-gray-400 mb-1">当前话题</label>
+    <div className="p-4 md:p-6 pb-24 md:pb-6">
+      <div className="mb-6">
+        <h2 className="text-2xl font-bold gradient-text mb-2">文案工坊</h2>
+        <p className="text-text-secondary text-sm">输入话题，AI帮你生成爆款文案</p>
+      </div>
+
+      <div className="glass-card p-4 mb-6">
+        <div className="flex gap-3">
           <input
             type="text"
             value={selectedTopic}
             onChange={(e) => setSelectedTopic(e.target.value)}
-            className="w-full bg-card border border-gray-700 rounded-xl px-4 py-2.5 text-base focus:outline-none focus:border-accent"
-            placeholder="输入或选择一个话题..."
+            placeholder="输入热点话题或关键词..."
+            className="flex-1 px-4 py-3 rounded-xl bg-white/5 border border-border focus:border-primary focus:outline-none transition-colors"
           />
-        </div>
-        <button
-          onClick={handleGenerate}
-          disabled={isGenerating}
-          className="px-6 py-2.5 bg-gradient-to-r from-accent to-orange-500 rounded-xl font-semibold hover:opacity-90 transition-opacity disabled:opacity-50 flex items-center gap-2 shrink-0"
-        >
-          {isGenerating ? (
-            <Wand2 className="w-4 h-4 animate-spin" />
-          ) : (
-            <Sparkles className="w-4 h-4" />
-          )}
-          {isGenerating ? '生成中...' : `生成 (${selectedAngles.length})`}
-        </button>
-        {history.length > 0 && (
           <button
-            onClick={() => setShowHistory(!showHistory)}
-            className="px-3 py-2.5 bg-card border border-gray-700 rounded-xl text-sm text-gray-400 hover:text-gray-200 hover:bg-gray-700 transition-colors shrink-0"
+            onClick={handleGenerate}
+            disabled={isGenerating}
+            className={clsx(
+              'px-6 py-3 rounded-xl flex items-center gap-2 font-medium transition-all duration-300',
+              isGenerating
+                ? 'bg-white/10 text-text-muted cursor-not-allowed'
+                : 'glow-button'
+            )}
           >
-            <RotateCcw className="w-4 h-4" />
+            {isGenerating ? (
+              <>
+                <RefreshCw className="w-4 h-4 animate-spin" />
+                <span>生成中...</span>
+              </>
+            ) : (
+              <>
+                <Sparkles className="w-4 h-4" />
+                <span>生成文案</span>
+              </>
+            )}
           </button>
-        )}
+        </div>
       </div>
 
-      {showHistory && history.length > 0 && (
-        <div className="mb-4 bg-card border border-gray-700 rounded-xl p-3 max-h-40 overflow-y-auto">
-          <p className="text-xs text-gray-500 mb-2">最近生成记录</p>
-          {history.map((item, i) => (
+      <div className="mb-6">
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="text-sm font-medium text-text-secondary">选择创作角度</h3>
+          <span className="text-xs text-text-muted">已选 {selectedAngles.length}/5</span>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          {angles.map((angle) => (
             <button
-              key={i}
-              onClick={() => handleLoadHistory(item)}
-              className="w-full text-left px-3 py-2 rounded-lg text-sm hover:bg-surface transition-colors flex items-center justify-between"
+              key={angle.id}
+              onClick={() => handleAngleToggle(angle.label)}
+              className={clsx(
+                'flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all duration-300',
+                selectedAngles.includes(angle.label)
+                  ? 'bg-gradient-to-r from-primary/30 to-secondary/30 text-primary border border-primary/30'
+                  : 'glass-card text-text-secondary hover:text-text-primary'
+              )}
             >
-              <span className="text-gray-300 truncate">{item.topic}</span>
-              <span className="text-xs text-gray-500 shrink-0 ml-2">{new Date(item.timestamp).toLocaleDateString()}</span>
+              <span>{angle.icon}</span>
+              <span>{angle.label}</span>
             </button>
           ))}
         </div>
-      )}
-
-      <div className="mb-4">
-        <div className="flex items-center justify-between mb-1">
-          <label className="text-sm text-gray-400">文案角度</label>
-          {selectedTopic && (
-            <button
-              onClick={handleUseRecommended}
-              className="text-xs text-accent hover:text-accent/80 transition-colors flex items-center gap-1"
-            >
-              <Sparkles className="w-3 h-3" />
-              推荐角度
-            </button>
-          )}
-        </div>
-        <div className="flex flex-wrap gap-1.5">
-          {copyAngles.map((angle) => {
-            const isRecommended = recommendedAngles.includes(angle.id);
-            return (
-              <button
-                key={angle.id}
-                onClick={() => handleToggleAngle(angle.id)}
-                className={`px-2.5 py-1 rounded-lg border text-xs transition-all flex items-center gap-1 ${
-                  selectedAngles.includes(angle.id)
-                    ? 'border-accent bg-accent/20 text-accent'
-                    : isRecommended
-                      ? 'border-accent/30 bg-accent/5 text-accent/60 hover:border-accent/50'
-                      : 'border-gray-700 bg-card text-gray-400 hover:border-gray-500'
-                }`}
-              >
-                {angle.label}
-                {isRecommended && !selectedAngles.includes(angle.id) && (
-                  <Sparkles className="w-3 h-3 text-accent/40" />
-                )}
-              </button>
-            );
-          })}
-        </div>
       </div>
 
-      {isGenerating && (
-        <LoadingState
-          steps={['正在分析话题和角度', '正在调用 AI 生成文案', '正在整理输出结果']}
-          currentStep={loadingStep}
+      {isGenerating ? (
+        <LoadingState message={getStepMessage()} />
+      ) : generatedCopies.length === 0 ? (
+        <Empty 
+          message="还没有生成文案" 
+          actionText="开始创作" 
+          onAction={() => document.querySelector('input')?.focus()}
         />
-      )}
-
-      {!isGenerating && generatedCopies.length > 0 && (
-        <div ref={resultsRef} className={`flex-1 overflow-y-auto transition-all duration-500 ${copiesAnimation ? 'opacity-0 translate-y-4' : 'opacity-100 translate-y-0'}`}>
-          <div className="flex items-center gap-2 mb-3">
-            <div className="flex gap-1.5">
-              {platformFormats.map((pf) => (
+      ) : (
+        <div ref={resultsRef} className={clsx('transition-all duration-500', copiesAnimation ? 'opacity-0 translate-y-4' : 'opacity-100 translate-y-0')}>
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-semibold">生成结果</h3>
+            <div className="flex gap-2">
+              {platformStyles.map((platform) => (
                 <button
-                  key={pf.id}
-                  onClick={() => handlePlatformConvert(pf.id)}
-                  disabled={!!convertingPlatform}
-                  className="px-2.5 py-1 rounded-lg bg-card border border-gray-700 text-xs text-gray-400 hover:text-gray-200 hover:border-gray-500 transition-colors disabled:opacity-50 flex items-center gap-1"
+                  key={platform.id}
+                  onClick={() => handleConvert(platform.id)}
+                  disabled={convertingPlatform !== null}
+                  className={clsx(
+                    'px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-300',
+                    convertingPlatform === platform.id
+                      ? 'bg-primary/30 text-primary'
+                      : convertedCopies[platform.id]
+                        ? 'bg-green-500/20 text-green-400 border border-green-500/30'
+                        : 'glass-card text-text-secondary hover:text-text-primary'
+                  )}
+                  title={platform.description}
                 >
-                  <span>{pf.icon}</span>
-                  {convertingPlatform === pf.id ? '...' : pf.label}
+                  {platform.label}
                 </button>
               ))}
             </div>
           </div>
 
           <div className="grid gap-4">
-            {generatedCopies.map((copy, index) => {
-              const angleConfig = copyAngles.find((a) => a.id === copy.angle);
-              const wordCount = countWords(copy.content);
-              const readTime = estimateReadingTime(copy.content);
-              const convertedContent = convertedCopies['小红书']?.[index]?.content || convertedCopies['抖音']?.[index]?.content || convertedCopies['公众号']?.[index]?.content || convertedCopies['微博']?.[index]?.content;
-              const activePlatformConvert = Object.keys(convertedCopies)[0] || null;
-
-              return (
-                <div
-                  key={index}
-                  className="bg-card border border-gray-800 rounded-xl p-5"
-                >
-                  <div className="flex items-start justify-between mb-3">
-                    <div className="flex items-center gap-2">
-                      <div className={`w-3 h-3 rounded-full bg-gradient-to-r ${angleConfig?.color}`} />
-                      <span className="font-medium">{copy.angle}</span>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <span className="text-xs text-gray-500 flex items-center gap-1">
-                        <Type className="w-3 h-3" />{wordCount}字
-                      </span>
-                      <span className="text-xs text-gray-500 flex items-center gap-1">
-                        <Clock className="w-3 h-3" />{readTime}
-                      </span>
-                      <button
-                        onClick={() => handleCopy(convertedContent || copy.content, index)}
-                        className="p-1.5 hover:bg-surface rounded-lg transition-colors"
-                      >
-                        {copiedIndex === index ? (
-                          <Check className="w-4 h-4 text-success" />
-                        ) : (
-                          <Copy className="w-4 h-4 text-gray-400" />
-                        )}
-                      </button>
-                    </div>
-                  </div>
-                  <pre className="whitespace-pre-wrap text-sm text-gray-300 font-sans">
-                    {activePlatformConvert && convertedContent ? convertedContent : copy.content}
-                  </pre>
-                  {activePlatformConvert && (
-                    <div className="mt-3 pt-3 border-t border-gray-800 flex items-center gap-2">
-                      <span className="text-xs text-gray-500">
-                        {platformFormats.find(p => p.id === activePlatformConvert)?.icon} 已转换为{activePlatformConvert}版
-                      </span>
-                      <button
-                        onClick={() => setConvertedCopies({})}
-                        className="text-xs text-accent hover:text-accent/80"
-                      >
-                        查看原文
-                      </button>
-                    </div>
-                  )}
+            {currentCopies.map((copy, index) => (
+              <div key={index} className="glass-card p-4">
+                <div className="flex items-center justify-between mb-3">
+                  <span className="px-3 py-1 rounded-lg bg-primary/10 text-primary text-sm font-medium">
+                    {copy.angle}
+                  </span>
+                  <button
+                    onClick={() => handleCopy(copy.content, index)}
+                    className={clsx(
+                      'flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs transition-all duration-300',
+                      copiedIndex === index
+                        ? 'bg-green-500/20 text-green-400'
+                        : 'bg-white/5 text-text-secondary hover:text-text-primary'
+                    )}
+                  >
+                    {copiedIndex === index ? (
+                      <>
+                        <Check className="w-3 h-3" />
+                        <span>已复制</span>
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="w-3 h-3" />
+                        <span>复制</span>
+                      </>
+                    )}
+                  </button>
                 </div>
-              );
-            })}
+                <p className="text-text-primary leading-relaxed whitespace-pre-wrap">
+                  {copy.content}
+                </p>
+                <div className="mt-3 pt-3 border-t border-border flex items-center justify-between text-xs text-text-muted">
+                  <span>{copy.content.length} 字</span>
+                  <span>预计阅读 {Math.ceil(copy.content.length / 500)} 分钟</span>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       )}
 
-      {!isGenerating && generatedCopies.length === 0 && (
-        <EmptyState
-          icon={<MessageSquare className="w-10 h-10 text-gray-500 opacity-40" />}
-          title="选择话题和角度开始创作"
-          description="去热榜选个热门话题，或直接输入你想写的方向"
-          action={{
-            label: '去热榜看看',
-            onClick: () => setActivePage('radar'),
-          }}
-        />
+      {history.length > 0 && (
+        <div className="mt-6">
+          <button
+            onClick={() => setShowHistory(!showHistory)}
+            className="flex items-center gap-2 px-4 py-2 rounded-xl glass-card text-text-secondary hover:text-text-primary transition-all duration-300"
+          >
+            <Wand2 className="w-4 h-4" />
+            <span>历史记录</span>
+            <span className="text-xs bg-white/10 px-2 py-0.5 rounded-full">{history.length}</span>
+          </button>
+
+          {showHistory && (
+            <div className="mt-4 space-y-2">
+              {history.map((item: any, index) => (
+                <div
+                  key={index}
+                  onClick={() => loadHistory(item)}
+                  className="glass-card p-3 cursor-pointer hover:bg-white/5 transition-all duration-300"
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium truncate">{item.topic}</span>
+                    <span className="text-xs text-text-muted">{item.angles.join('、')}</span>
+                  </div>
+                  <div className="text-xs text-text-muted mt-1">
+                    {new Date(item.timestamp).toLocaleString()}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       )}
     </div>
   );
+}
+
+function parseGeneratedCopies(text: string): GeneratedCopy[] {
+  const lines = text.split('\n').filter(line => line.trim());
+  const copies: GeneratedCopy[] = [];
+  let currentAngle = '';
+  let currentContent = '';
+
+  for (const line of lines) {
+    const angleMatch = line.match(/^(【|《|\[|#)\s*([^】》\]#]+?)\s*(】|》|\]|#)/);
+    if (angleMatch) {
+      if (currentAngle && currentContent) {
+        copies.push({ angle: currentAngle.trim(), content: currentContent.trim() });
+      }
+      currentAngle = angleMatch[2].trim();
+      currentContent = '';
+    } else if (line.match(/^\d+[\.\uff0e、]/)) {
+      const contentMatch = line.match(/^\d+[\.\uff0e、]\s*(.+)/);
+      if (contentMatch) {
+        if (!currentAngle) {
+          currentAngle = `角度${copies.length + 1}`;
+        }
+        if (currentContent) currentContent += '\n';
+        currentContent += contentMatch[1];
+      }
+    } else if (currentAngle) {
+      if (currentContent) currentContent += '\n';
+      currentContent += line;
+    }
+  }
+
+  if (currentAngle && currentContent) {
+    copies.push({ angle: currentAngle.trim(), content: currentContent.trim() });
+  }
+
+  return copies.length > 0 ? copies : [];
 }

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useAppStore } from '../store';
 import { getOAuthLoginUrl, oauthLogout, checkUserQuota, QuotaInfo } from '../services/cozeApi';
-import { Settings, Zap, Scissors, LogIn, LogOut, User, Flame, Search, Sparkles } from 'lucide-react';
+import { Settings, Zap, Scissors, LogIn, LogOut, User, Flame, Search, Sparkles, Palette } from 'lucide-react';
 import { clsx } from 'clsx';
 
 export function TopBar() {

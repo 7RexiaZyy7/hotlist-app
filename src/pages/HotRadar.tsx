@@ -3,16 +3,7 @@ import { useAppStore } from '../store';
 import { callCozeChat, buildHotListQuery } from '../services/cozeApi';
 import { Flame, RefreshCw, TrendingUp, Clock, ExternalLink } from 'lucide-react';
 import { clsx } from 'clsx';
-import LoadingState from '../components/LoadingState';
-import Empty from '../components/Empty';
-
-interface HotItem {
-  rank: number;
-  title: string;
-  heat: string;
-  url?: string;
-  platform?: string;
-}
+import { LoadingState, EmptyState } from '../components/LoadingState';
 
 const platforms = [
   { id: 'all', label: '综合', icon: Flame },
@@ -73,7 +64,7 @@ export function HotRadar() {
     fetchHotList();
   };
 
-  const handleItemClick = (item: HotItem) => {
+  const handleItemClick = (item: typeof hotList[0]) => {
     setSelectedTopic(item.title);
     const angles = recommendAngles(item.title);
     setSelectedAngles(angles);
@@ -81,7 +72,6 @@ export function HotRadar() {
   };
 
   const recommendAngles = (topic: string): string[] => {
-    const keywords = ['科技', 'AI', '人工智能', '创业', '互联网', '经济', '政策', '教育', '健康', '娱乐', '明星', '体育'];
     const topicLower = topic.toLowerCase();
     if (topicLower.includes('科技') || topicLower.includes('ai') || topicLower.includes('智能')) {
       return ['知识科普', '未来趋势', '深度分析'];
@@ -127,11 +117,21 @@ export function HotRadar() {
       </div>
 
       {isLoadingHotList ? (
-        <LoadingState message="正在扫描全网热榜..." />
+        <LoadingState />
       ) : error ? (
-        <Empty message={error} actionText="重新加载" onAction={handleRefresh} />
+        <EmptyState
+          icon={<RefreshCw className="w-8 h-8 text-gray-500" />}
+          title="获取热榜失败"
+          description={error}
+          action={{ label: '重新加载', onClick: handleRefresh }}
+        />
       ) : hotList.length === 0 ? (
-        <Empty message="暂无热榜数据" actionText="刷新热榜" onAction={handleRefresh} />
+        <EmptyState
+          icon={<Flame className="w-8 h-8 text-gray-500" />}
+          title="暂无热榜数据"
+          description="当前没有可用的热榜数据，请点击下方按钮刷新"
+          action={{ label: '刷新热榜', onClick: handleRefresh }}
+        />
       ) : (
         <div className="space-y-4">
           <div className="flex items-center justify-between mb-4">
@@ -149,7 +149,7 @@ export function HotRadar() {
           </div>
 
           <div className="grid gap-4">
-            {hotList.slice(0, 15).map((item: HotItem, index) => (
+            {hotList.slice(0, 15).map((item, index) => (
               <div
                 key={index}
                 onClick={() => handleItemClick(item)}
@@ -176,7 +176,7 @@ export function HotRadar() {
                     <div className="flex items-center gap-3 text-xs text-text-muted">
                       <span className="flex items-center gap-1">
                         <Flame className="w-3 h-3 text-accent" />
-                        {item.heat}
+                        {item.heatScore > 0 ? `${item.heatScore}` : '-'}
                       </span>
                       {item.platform && (
                         <span>{item.platform}</span>
@@ -212,9 +212,9 @@ export function HotRadar() {
   );
 }
 
-function parseHotList(text: string): HotItem[] {
-  const items: HotItem[] = [];
+function parseHotList(text: string) {
   const lines = text.split('\n').filter(line => line.trim());
+  const items: { rank: number; title: string; platform: string; heatScore: number; url?: string }[] = [];
   
   for (const line of lines) {
     const match = line.match(/^(\d+)\.\s*([^\s]+)\s+(.*?)(?:\s*\|.*)?$/);
@@ -222,7 +222,8 @@ function parseHotList(text: string): HotItem[] {
       items.push({
         rank: parseInt(match[1]),
         title: match[3] || match[2],
-        heat: match[2],
+        platform: '',
+        heatScore: parseInt(match[2]) || 0,
       });
     } else {
       const simpleMatch = line.match(/^(\d+)\.\s*(.+)$/);
@@ -230,7 +231,8 @@ function parseHotList(text: string): HotItem[] {
         items.push({
           rank: parseInt(simpleMatch[1]),
           title: simpleMatch[2],
-          heat: '-',
+          platform: '',
+          heatScore: 0,
         });
       }
     }

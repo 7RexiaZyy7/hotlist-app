@@ -1,10 +1,9 @@
 import { useState, useRef, useEffect } from 'react';
 import { useAppStore } from '../store';
 import { callCozeChat, buildCopyGenerateQuery, checkUserQuota, incrementUserQuota, getUserVariables } from '../services/cozeApi';
-import { Sparkles, Copy, Check, RefreshCw, Wand2 } from 'lucide-react';
+import { Sparkles, Copy, Check, RefreshCw, Wand2, FileText } from 'lucide-react';
 import { clsx } from 'clsx';
-import LoadingState from '../components/LoadingState';
-import Empty from '../components/Empty';
+import { LoadingState, EmptyState } from '../components/LoadingState';
 
 interface GeneratedCopy {
   angle: string;
@@ -231,12 +230,13 @@ export function ContentForge() {
       </div>
 
       {isGenerating ? (
-        <LoadingState message={getStepMessage()} />
+        <LoadingState steps={['正在分析热点话题...', '正在构思创作角度...', '正在生成爆款文案...', '正在优化内容质量...']} />
       ) : generatedCopies.length === 0 ? (
-        <Empty 
-          message="还没有生成文案" 
-          actionText="开始创作" 
-          onAction={() => document.querySelector('input')?.focus()}
+        <EmptyState
+          icon={<FileText className="w-8 h-8 text-gray-500" />}
+          title="还没有生成文案"
+          description="输入话题并选择创作角度，AI 帮你生成爆款文案"
+          action={{ label: '开始创作', onClick: () => document.querySelector('input')?.focus() }}
         />
       ) : (
         <div ref={resultsRef} className={clsx('transition-all duration-500', copiesAnimation ? 'opacity-0 translate-y-4' : 'opacity-100 translate-y-0')}>

@@ -133,7 +133,7 @@ export function ThemeSelector() {
             )}
             style={{
               background: `linear-gradient(135deg, ${theme.surface} 0%, ${theme.surfaceCard} 100%)`,
-              ringColor: theme.primary,
+              '--tw-ring-color': theme.primary,
               '--tw-ring-offset-color': theme.surface,
             }}
           >

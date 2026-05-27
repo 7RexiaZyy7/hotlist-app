@@ -66,19 +66,20 @@ export function HotRadar() {
         console.log('HotRadar init - cached data:', data);
         
         if (data.items && data.items.length > 0) {
-          console.log('HotRadar init - 使用缓存，跳过 API');
+          console.log('HotRadar init - 使用缓存数据');
           setHotList(data.items);
           setSelectedPlatform(data.platform || 'all');
-          return;
         } else {
-          console.log('HotRadar init - 缓存数据为空');
+          console.log('HotRadar init - 缓存存在但数据为空，不自动刷新');
         }
+        // 只要有缓存记录（无论内容是否有效），都不自动调用 API
+        return;
       } catch (e) {
         console.error('HotRadar init - 解析缓存失败:', e);
       }
     }
     
-    console.log('HotRadar init - 调用 API 获取热榜');
+    console.log('HotRadar init - 无缓存，调用 API 获取热榜');
     fetchHotList('all');
   }, [fetchHotList]);
 

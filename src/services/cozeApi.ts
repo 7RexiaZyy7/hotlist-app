@@ -54,11 +54,7 @@ export async function oauthLogout(): Promise<void> {
 }
 
 export async function getCozeToken(): Promise<string> {
-  try {
-    const r = await fetch(`${PROXY_BASE}?action=get_token`, { method: 'GET' });
-    const data = await r.json();
-    if (data.access_token && data.access_token.length > 10) return data.access_token;
-  } catch {}
+  // 始终使用 PAT token，OAuth token 权限不足无法调用 retrieve 等端点
   return FALLBACK_PAT;
 }
 

@@ -117,8 +117,8 @@ async function callDirect(body: Record<string, any>): Promise<string> {
 
 async function pollForResult(chat_id: string, conversation_id: string): Promise<string> {
   console.log('pollForResult: start chat_id=%s', chat_id);
-  const maxRetries = 40;
-  const retryInterval = 3000;
+  const maxRetries = 30;
+  const retryInterval = 2000;
 
   for (let i = 0; i < maxRetries; i++) {
     await new Promise(resolve => setTimeout(resolve, retryInterval));

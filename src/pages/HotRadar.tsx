@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useAppStore } from '../store';
 import { callCozeChat, buildHotListQuery } from '../services/cozeApi';
 import { Flame, RefreshCw, TrendingUp, Clock, ExternalLink, Hash, MessageSquare } from 'lucide-react';
@@ -15,36 +15,46 @@ const platforms = [
 ];
 
 export function HotRadar() {
-  const { hotList, setHotList, isLoadingHotList, setLoadingHotList, setSelectedTopic, setSelectedAngles, setActivePage } = useAppStore();
+  const { hotList, setHotList, isLoadingHotList, setLoadingHotList, setSelectedTopic, setSelectedAngles, setActivePage, showToast } = useAppStore();
   const [selectedPlatform, setSelectedPlatform] = useState('all');
   const [error, setError] = useState<string | null>(null);
+  const isLoadingRef = useRef(false);
 
-  const fetchHotList = useCallback(async () => {
-    if (isLoadingHotList) return;
+  const fetchHotList = useCallback(async (platform: string) => {
+    if (isLoadingRef.current) return;
+    isLoadingRef.current = true;
     setLoadingHotList(true);
     setError(null);
+
     try {
-      const query = buildHotListQuery(selectedPlatform);
+      const query = buildHotListQuery(platform);
       const result = await callCozeChat(query);
       const items = parseHotList(result);
-      setHotList(items);
-      localStorage.setItem('hotList', JSON.stringify({ items, platform: selectedPlatform, timestamp: Date.now() }));
-    } catch (e) {
+      if (items.length === 0) {
+        setError('热榜数据格式异常，请稍后重试');
+      } else {
+        setHotList(items);
+        localStorage.setItem('hotList', JSON.stringify({ items, platform, timestamp: Date.now() }));
+      }
+    } catch (e: any) {
       console.error('fetchHotList error:', e);
-      setError('获取热榜失败，请稍后重试');
+      setError(e?.message || '获取热榜失败，请稍后重试');
       const cached = localStorage.getItem('hotList');
       if (cached) {
         try {
           const data = JSON.parse(cached);
           if (Date.now() - data.timestamp < 3600000) {
             setHotList(data.items);
+            showToast('网络异常，已加载缓存数据', 'warning');
+            setError(null);
           }
         } catch {}
       }
     } finally {
+      isLoadingRef.current = false;
       setLoadingHotList(false);
     }
-  }, [isLoadingHotList, selectedPlatform, setHotList, setLoadingHotList]);
+  }, [setHotList, setLoadingHotList, showToast]);
 
   useEffect(() => {
     const cached = localStorage.getItem('hotList');
@@ -53,15 +63,20 @@ export function HotRadar() {
         const data = JSON.parse(cached);
         if (Date.now() - data.timestamp < 3600000) {
           setHotList(data.items);
-          setSelectedPlatform(data.platform);
+          setSelectedPlatform(data.platform || 'all');
         }
       } catch {}
     }
-    fetchHotList();
-  }, []);
+    fetchHotList('all');
+  }, [fetchHotList]);
 
   const handleRefresh = () => {
-    fetchHotList();
+    fetchHotList(selectedPlatform);
+  };
+
+  const handlePlatformChange = (platformId: string) => {
+    setSelectedPlatform(platformId);
+    fetchHotList(platformId);
   };
 
   const handleItemClick = (item: typeof hotList[0]) => {
@@ -92,20 +107,19 @@ export function HotRadar() {
         <p className="text-body-sm text-text-secondary">实时追踪全网热点，发现爆款选题</p>
       </div>
 
-      {/* Platform tabs - flat style */}
       <div className="flex gap-1 mb-6 overflow-x-auto scrollbar-hide">
         {platforms.map((platform) => {
           const Icon = platform.icon;
+          const isActive = selectedPlatform === platform.id;
           return (
             <button
               key={platform.id}
-              onClick={() => {
-                setSelectedPlatform(platform.id);
-                fetchHotList();
-              }}
+              onClick={() => handlePlatformChange(platform.id)}
+              disabled={isLoadingHotList}
               className={clsx(
                 'tab whitespace-nowrap',
-                selectedPlatform === platform.id && 'active'
+                isActive && 'active',
+                isLoadingHotList && 'opacity-60 cursor-not-allowed'
               )}
             >
               <Icon className="w-4 h-4" />
@@ -116,7 +130,16 @@ export function HotRadar() {
       </div>
 
       {isLoadingHotList ? (
-        <LoadingState />
+        <div className="flex-1 flex flex-col items-center justify-center py-16">
+          <LoadingState />
+          <button
+            onClick={handleRefresh}
+            className="mt-6 btn-ghost !py-1.5 !px-4 !text-body-sm text-text-tertiary hover:text-text-primary"
+          >
+            <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+            请求中，点击重新获取
+          </button>
+        </div>
       ) : error ? (
         <EmptyState
           icon={<RefreshCw className="w-8 h-8" />}
@@ -128,27 +151,22 @@ export function HotRadar() {
         <EmptyState
           icon={<Flame className="w-8 h-8" />}
           title="暂无热榜数据"
-          description="当前没有可用的热榜数据，请点击下方按钮刷新"
+          description="当前没有可用的热榜数据"
           action={{ label: '刷新热榜', onClick: handleRefresh }}
         />
       ) : (
         <div className="space-y-3">
-          {/* Header */}
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-2">
               <TrendingUp className="w-4 h-4 text-accent" />
-              <span className="text-body-sm text-text-secondary">实时热点</span>
+              <span className="text-body-sm text-text-secondary">实时热点 · {hotList.length}条</span>
             </div>
-            <button
-              onClick={handleRefresh}
-              className="btn-ghost !py-1.5 !px-3 !text-body-sm"
-            >
+            <button onClick={handleRefresh} className="btn-ghost !py-1.5 !px-3 !text-body-sm">
               <RefreshCw className={clsx('w-3.5 h-3.5', isLoadingHotList && 'animate-spin')} />
               刷新
             </button>
           </div>
 
-          {/* Hot items */}
           <div className="grid gap-3">
             {hotList.slice(0, 15).map((item, index) => (
               <div
@@ -156,7 +174,6 @@ export function HotRadar() {
                 onClick={() => handleItemClick(item)}
                 className="interactive-row flex items-start gap-3"
               >
-                {/* Rank */}
                 <div className={clsx(
                   'w-7 h-7 rounded-md flex items-center justify-center text-body-sm font-bold shrink-0 mt-0.5',
                   index === 0 && 'bg-accent text-white',
@@ -167,7 +184,6 @@ export function HotRadar() {
                   {index + 1}
                 </div>
 
-                {/* Content */}
                 <div className="flex-1 min-w-0">
                   <div className="flex items-start justify-between gap-2">
                     <h3 className="text-body font-medium text-text-primary truncate">
@@ -187,7 +203,6 @@ export function HotRadar() {
                     </span>
                   </div>
 
-                  {/* Angle tags for top 3 */}
                   {index < 3 && (
                     <div className="mt-2 flex gap-1.5 flex-wrap">
                       {recommendAngles(item.title).slice(0, 3).map((angle, i) => (

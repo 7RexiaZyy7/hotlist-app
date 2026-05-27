@@ -37,9 +37,13 @@ export function HotRadar() {
         items = parseHotList(result);
       } else {
         // 单平台热榜直接调用 uapi.com
+        console.log('fetchHotList: 单平台热榜, platform=%s', platform);
         const r = await fetch(`${PROXY_BASE}?action=hotboard&type=${platform}`);
+        console.log('fetchHotList: uapi response status=%d', r.status);
         const data = await r.json();
+        console.log('fetchHotList: uapi data:', JSON.stringify(data).slice(0, 500));
         items = parseUapiHotList(data, platform);
+        console.log('fetchHotList: 解析后 items=%d', items.length);
       }
       
       if (items.length === 0) {

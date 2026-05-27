@@ -118,8 +118,8 @@ async function callDirect(body: Record<string, any>): Promise<string> {
 
 async function pollForResult(chat_id: string, conversation_id: string): Promise<string> {
   console.log('pollForResult: start chat_id=%s', chat_id);
-  const maxRetries = 30;
-  const retryInterval = 2000;
+  const maxRetries = 45;
+  const retryInterval = 1500;
 
   for (let i = 0; i < maxRetries; i++) {
     await new Promise(resolve => setTimeout(resolve, retryInterval));
@@ -133,7 +133,14 @@ async function pollForResult(chat_id: string, conversation_id: string): Promise<
         `${COZE_API_BASE}/v3/chat/retrieve?chat_id=${chat_id}&conversation_id=${conversation_id}`,
         { headers }
       );
-      if (!retrieveResponse.ok) continue;
+      
+      if (!retrieveResponse.ok) {
+        console.error('pollForResult: retrieve failed, status=%d', retrieveResponse.status);
+        if (retrieveResponse.status === 401) {
+          console.error('pollForResult: 401 Unauthorized - 请检查 PAT token 是否有效');
+        }
+        continue;
+      }
 
       const retrieveResult = await retrieveResponse.json();
       const retrieveData = retrieveResult.data || retrieveResult;
@@ -141,7 +148,10 @@ async function pollForResult(chat_id: string, conversation_id: string): Promise<
 
       if (i % 3 === 0) console.log('pollForResult: iter %d, status=%s', i + 1, status || 'unknown');
       if (!status) continue;
-      if (status === 'failed') throw new Error('Bot 执行失败');
+      if (status === 'failed') {
+        const errorMsg = retrieveData?.error?.msg || retrieveData?.last_error?.msg || '未知错误';
+        throw new Error(`Bot 执行失败: ${errorMsg}`);
+      }
       if (status !== 'completed') continue;
 
       console.log('pollForResult: completed, fetching messages');
@@ -150,7 +160,10 @@ async function pollForResult(chat_id: string, conversation_id: string): Promise<
         `${COZE_API_BASE}/v3/chat/message/list?chat_id=${chat_id}&conversation_id=${conversation_id}`,
         { headers }
       );
-      if (!messagesResponse.ok) continue;
+      if (!messagesResponse.ok) {
+        console.error('pollForResult: messages failed, status=%d', messagesResponse.status);
+        continue;
+      }
 
       const messagesResult = await messagesResponse.json();
       const messages = messagesResult.data || messagesResult;

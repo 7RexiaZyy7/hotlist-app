@@ -105,14 +105,19 @@ async function callDirect(body: Record<string, any>): Promise<string> {
   }
 
   const chatResult = await chatResponse.json();
-  const data = chatResult.data || chatResult;
-  console.log('callDirect: chat response', JSON.stringify(data).slice(0, 200));
+  console.log('callDirect: raw response', JSON.stringify(chatResult).slice(0, 300));
 
-  if (!data.id || !data.conversation_id) {
-    throw new Error('Direct API 响应格式错误');
+  const data = chatResult.data || chatResult;
+
+  const chatId = data?.id || data?.chat_id;
+  const conversationId = data?.conversation_id;
+
+  if (!chatId || !conversationId) {
+    console.error('callDirect: missing id or conversation_id, data=', JSON.stringify(data));
+    throw new Error(`Direct API 响应格式错误: ${JSON.stringify(data).slice(0, 200)}`);
   }
 
-  return pollForResult(data.id, data.conversation_id);
+  return pollForResult(chatId, conversationId);
 }
 
 async function pollForResult(chat_id: string, conversation_id: string): Promise<string> {

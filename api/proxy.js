@@ -250,21 +250,14 @@ export default async function handler(req, res) {
       if (type === 'xiaohongshu') {
         console.log('Xiaohongshu hotboard request received, calling 60s.viki.moe');
         try {
-          const requestOptions = {
-            method: "GET",
-            redirect: "follow"
-          };
-          const xhsR = await fetch('https://60s.viki.moe/v2/rednote', requestOptions);
+          const xhsR = await fetch('https://60s.viki.moe/v2/rednote');
           console.log('Xiaohongshu API response status:', xhsR.status);
-          // 先获取文本再解析JSON，和示例保持一致
           const text = await xhsR.text();
           console.log('Xiaohongshu API raw response:', text.slice(0, 200));
           const xhsData = JSON.parse(text);
-          console.log('Xiaohongshu API parsed code:', xhsData.code);
-          console.log('Xiaohongshu API data is array:', Array.isArray(xhsData.data));
-          if (xhsR.ok && xhsData.code === 200 && Array.isArray(xhsData.data)) {
-            console.log('Xiaohongshu API success, returning real data');
-            // 转换热度值，处理"919w"、"907.6w"这种格式
+          console.log('Xiaohongshu API parsed code:', xhsData.code, 'data is array:', Array.isArray(xhsData.data));
+          if (xhsData.code === 200 && Array.isArray(xhsData.data)) {
+            console.log('Xiaohongshu API success, returning real data, count:', xhsData.data.length);
             const parseHotValue = (score) => {
               if (!score) return '0';
               const scoreStr = String(score);
@@ -272,7 +265,6 @@ export default async function handler(req, res) {
                 const num = parseFloat(scoreStr.replace('w', ''));
                 return String(Math.round(num * 10000));
               }
-              // 如果已经是数字格式，直接返回
               return scoreStr;
             };
             
@@ -291,13 +283,11 @@ export default async function handler(req, res) {
                 }
               }))
             });
-          } else {
-            console.log('Xiaohongshu API data format invalid, using fallback');
           }
+          console.log('Xiaohongshu API data format invalid, code:', xhsData.code);
         } catch (e) {
           console.error('Xiaohongshu API error:', e.message || e);
         }
-        // 兜底返回模拟数据
         console.log('Xiaohongshu returning fallback data');
         return res.json({
           type: 'xiaohongshu',

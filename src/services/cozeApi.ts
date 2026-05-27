@@ -1,4 +1,4 @@
-const PROXY_BASE = '/api/proxy';
+export const PROXY_BASE = '/api/proxy';
 const COZE_API_BASE = 'https://api.coze.cn';
 const BOT_ID = import.meta.env.VITE_COZE_BOT_ID || '7639197902187020297';
 const FALLBACK_PAT = 'pat_v9jyB55cV1xXHfIkouplLSqWFjh8bhmupHDtx5o7cg8oct2Fpyp7jwS2lBHOZU3h';

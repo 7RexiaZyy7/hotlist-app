@@ -61,9 +61,10 @@ export function HotRadar() {
     if (cached) {
       try {
         const data = JSON.parse(cached);
-        if (Date.now() - data.timestamp < 3600000) {
+        if (data.items && data.items.length > 0) {
           setHotList(data.items);
           setSelectedPlatform(data.platform || 'all');
+          return;
         }
       } catch {}
     }

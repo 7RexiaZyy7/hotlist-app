@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useAppStore } from '../store';
 import { Scissors, Sparkles, FileText, Target, Zap, AlertTriangle, Copy, Check } from 'lucide-react';
+import { clsx } from 'clsx';
 import { LoadingState, EmptyState } from '../components/LoadingState';
 import { 
   callCozeChat, 
@@ -202,24 +203,24 @@ export function HitAnalyzer() {
         const headers = rows[0]?.split('|').filter((c: string) => c.trim()).map((c: string) => c.trim()) || [];
         const body = rows.slice(2).filter(r => r.includes('|') && !r.includes('---'));
         return (
-          <div className="bg-card border border-gray-800 rounded-xl p-5 overflow-x-auto" key={key}>
+          <div className="card p-5 overflow-x-auto" key={key}>
             <div className="flex items-center gap-2 mb-3">
               <Icon className={`w-4 h-4 ${config?.color}`} />
-              <span className="font-medium">{config?.label || key}</span>
+              <span className="font-medium text-text-primary">{config?.label || key}</span>
             </div>
-            <table className="w-full text-sm">
+            <table className="w-full text-body-sm">
               <thead>
-                <tr className="border-b border-gray-700">
+                <tr className="border-b border-border">
                   {headers.map((h: string, i: number) => (
-                    <th key={i} className="text-left py-2 px-2 text-gray-400 font-medium">{h}</th>
+                    <th key={i} className="text-left py-2 px-2 text-text-secondary font-medium">{h}</th>
                   ))}
                 </tr>
               </thead>
               <tbody>
                 {body.map((row: string, i: number) => (
-                  <tr key={i} className="border-b border-gray-800 last:border-0">
+                  <tr key={i} className="border-b border-border last:border-0">
                     {row.split('|').filter((c: string) => c.trim()).map((cell: string, j: number) => (
-                      <td key={j} className="py-2 px-2 text-gray-300">{cell.trim()}</td>
+                      <td key={j} className="py-2 px-2 text-text-secondary">{cell.trim()}</td>
                     ))}
                   </tr>
                 ))}
@@ -229,15 +230,15 @@ export function HitAnalyzer() {
         );
       }
       return (
-        <div className="bg-card border border-gray-800 rounded-xl p-5" key={key}>
+        <div className="card p-5" key={key}>
           <div className="flex items-center gap-2 mb-3">
             <Icon className={`w-4 h-4 ${config?.color}`} />
-            <span className="font-medium">{config?.label || key}</span>
+            <span className="font-medium text-text-primary">{config?.label || key}</span>
           </div>
           <div className="flex flex-wrap gap-2">
             {rows.map((step: string, i: number) => (
-              <div key={i} className="flex items-center gap-2 bg-surface px-3 py-1.5 rounded-lg text-sm">
-                <span className="w-5 h-5 rounded-full bg-accent/20 text-accent text-xs flex items-center justify-center font-mono">{i + 1}</span>
+              <div key={i} className="flex items-center gap-2 bg-bg-elevated px-3 py-1.5 rounded-md text-body-sm text-text-secondary">
+                <span className="w-5 h-5 rounded-full bg-accent-subtle text-accent text-xs flex items-center justify-center font-mono">{i + 1}</span>
                 {step}
               </div>
             ))}
@@ -248,15 +249,15 @@ export function HitAnalyzer() {
 
     if (key === 'warnings' && Array.isArray(data)) {
       return (
-        <div className="bg-card border border-gray-800 rounded-xl p-5" key={key}>
+        <div className="card p-5" key={key}>
           <div className="flex items-center gap-2 mb-3">
             <Icon className={`w-4 h-4 ${config?.color}`} />
-            <span className="font-medium">{config?.label || key}</span>
+            <span className="font-medium text-text-primary">{config?.label || key}</span>
           </div>
           <div className="space-y-1.5">
             {data.map((w: string, i: number) => (
-              <div key={i} className="flex items-center gap-2 text-sm text-gray-400">
-                <span className="w-1.5 h-1.5 rounded-full bg-warning" />
+              <div key={i} className="flex items-center gap-2 text-body-sm text-text-secondary">
+                <span className="w-1.5 h-1.5 rounded-full bg-warning shrink-0" />
                 {w}
               </div>
             ))}
@@ -267,15 +268,15 @@ export function HitAnalyzer() {
 
     if (key === 'keyElements' && Array.isArray(data)) {
       return (
-        <div className="bg-card border border-gray-800 rounded-xl p-5" key={key}>
+        <div className="card p-5" key={key}>
           <div className="flex items-center gap-2 mb-3">
             <Icon className={`w-4 h-4 ${config?.color}`} />
-            <span className="font-medium">{config?.label || key}</span>
+            <span className="font-medium text-text-primary">{config?.label || key}</span>
           </div>
           <div className="space-y-1.5">
             {data.map((el: string, i: number) => (
-              <div key={i} className="flex items-center gap-2 text-sm text-gray-300">
-                <span className="w-1.5 h-1.5 rounded-full bg-success" />
+              <div key={i} className="flex items-center gap-2 text-body-sm text-text-secondary">
+                <span className="w-1.5 h-1.5 rounded-full bg-success shrink-0" />
                 {el}
               </div>
             ))}
@@ -286,12 +287,12 @@ export function HitAnalyzer() {
 
     if (typeof data === 'string') {
       return (
-        <div className="bg-card border border-gray-800 rounded-xl p-5" key={key}>
+        <div className="card p-5" key={key}>
           <div className="flex items-center gap-2 mb-3">
             <Icon className={`w-4 h-4 ${config?.color}`} />
-            <span className="font-medium">{config?.label || key}</span>
+            <span className="font-medium text-text-primary">{config?.label || key}</span>
           </div>
-          <p className="text-sm text-gray-300">{data}</p>
+          <p className="text-body-sm text-text-secondary whitespace-pre-wrap">{data}</p>
         </div>
       );
     }
@@ -300,23 +301,23 @@ export function HitAnalyzer() {
   };
 
   return (
-    <div className="p-6 h-full flex flex-col overflow-hidden">
+    <div className="p-4 md:p-6 pb-24 md:pb-6 h-full flex flex-col overflow-hidden max-w-shell mx-auto">
       <div className="mb-6">
         <div className="flex items-center gap-2 mb-3">
-          <FileText className="w-5 h-5 text-accent" />
-          <h2 className="text-xl font-semibold">爆款文案拆解</h2>
+          <Scissors className="w-5 h-5 text-accent" />
+          <h2 className="text-display text-text-primary">爆款文案拆解</h2>
         </div>
         <textarea
           value={inputCopy}
           onChange={(e) => setInputCopy(e.target.value)}
           rows={6}
-          className="w-full bg-card border border-gray-700 rounded-xl px-4 py-3 focus:outline-none focus:border-accent resize-none"
+          className="input-field resize-none"
           placeholder="在这里粘贴你想要拆解的爆款文案..."
         />
         <button
           onClick={handleAnalyze}
           disabled={isAnalyzing}
-          className="mt-3 px-6 py-2.5 bg-gradient-to-r from-accent to-orange-500 rounded-xl font-medium hover:opacity-90 transition-opacity disabled:opacity-50 flex items-center gap-2"
+          className="btn-primary mt-3"
         >
           <Scissors className="w-4 h-4" />
           {isAnalyzing ? '拆解中...' : '开始拆解'}
@@ -325,11 +326,11 @@ export function HitAnalyzer() {
 
       {analysis && (
         <div className="flex-1 overflow-y-auto">
-          <div className="grid lg:grid-cols-2 gap-6">
+          <div className="grid lg:grid-cols-2 gap-4">
             <div className="space-y-4">
               {analysis.raw ? (
-                <div className="bg-card border border-gray-800 rounded-xl p-5">
-                  <pre className="whitespace-pre-wrap text-sm text-gray-300 font-sans">{analysis.raw}</pre>
+                <div className="card p-5">
+                  <pre className="whitespace-pre-wrap text-body-sm text-text-secondary font-body">{analysis.raw}</pre>
                 </div>
               ) : (
                 Object.keys(analysis).map(key => renderSection(key, analysis[key]))
@@ -337,18 +338,19 @@ export function HitAnalyzer() {
             </div>
 
             <div className="space-y-4">
-              <div className="bg-card border border-gray-800 rounded-xl p-5">
-                <h3 className="font-medium mb-3">智能洗稿</h3>
+              <div className="card p-5">
+                <h3 className="text-body font-semibold text-text-primary mb-3">智能洗稿</h3>
                 <div className="grid grid-cols-2 gap-2 mb-4">
                   {rewriteStyles.map((style) => (
                     <button
                       key={style}
                       onClick={() => setRewriteStyle(style)}
-                      className={`px-3 py-2 rounded-lg text-sm transition-all ${
+                      className={clsx(
+                        'px-3 py-2 rounded-md text-body-sm transition-all duration-120',
                         rewriteStyle === style
                           ? 'bg-accent text-white'
-                          : 'bg-surface text-gray-400 hover:bg-gray-700'
-                      }`}
+                          : 'bg-bg-elevated text-text-secondary hover:text-text-primary'
+                      )}
                     >
                       {style}
                     </button>
@@ -357,7 +359,7 @@ export function HitAnalyzer() {
                 <button
                   onClick={handleRewrite}
                   disabled={isRewriting || !rewriteStyle}
-                  className="w-full py-2.5 bg-gradient-to-r from-accent-alt to-blue-500 rounded-lg font-medium hover:opacity-90 transition-opacity disabled:opacity-50 flex items-center justify-center gap-2"
+                  className="btn-primary w-full"
                 >
                   <Sparkles className="w-4 h-4" />
                   {isRewriting ? '生成中...' : '洗稿'}
@@ -365,30 +367,30 @@ export function HitAnalyzer() {
               </div>
 
               {rewriteResult && (
-                <div className="bg-card border border-gray-800 rounded-xl p-5">
+                <div className="card p-5">
                   <div className="flex items-center justify-between mb-3">
-                    <h3 className="font-medium">洗稿结果</h3>
+                    <h3 className="font-medium text-text-primary">洗稿结果</h3>
                     <button
                       onClick={handleCopyResult}
-                      className="p-1.5 hover:bg-surface rounded-lg transition-colors"
+                      className="p-1.5 rounded-md text-text-tertiary hover:text-text-primary hover:bg-bg-elevated transition-all duration-120"
                     >
                       {copied ? (
                         <Check className="w-4 h-4 text-success" />
                       ) : (
-                        <Copy className="w-4 h-4 text-gray-400" />
+                        <Copy className="w-4 h-4" />
                       )}
                     </button>
                   </div>
-                  <pre className="whitespace-pre-wrap text-sm text-gray-300 font-sans">
+                  <pre className="whitespace-pre-wrap text-body-sm text-text-secondary font-body">
                     {rewriteResult}
                   </pre>
                 </div>
               )}
 
               {!rewriteResult && (
-                <div className="bg-card border border-gray-800 rounded-xl p-8 text-center text-gray-500">
-                  <Sparkles className="w-8 h-8 mx-auto mb-2 opacity-30" />
-                  <p className="text-sm">选择一种风格开始洗稿</p>
+                <div className="card p-8 text-center">
+                  <Sparkles className="w-8 h-8 mx-auto mb-2 text-text-tertiary" />
+                  <p className="text-body-sm text-text-tertiary">选择一种风格开始洗稿</p>
                 </div>
               )}
             </div>
@@ -401,7 +403,7 @@ export function HitAnalyzer() {
       )}
 
       {!isAnalyzing && !analysis && (
-        <EmptyState icon={<Scissors className="w-10 h-10 text-gray-500 opacity-40" />} title="粘贴爆款文案开始拆解" description="AI 会帮你分析钩子、结构和关键元素" />
+        <EmptyState icon={<Scissors className="w-10 h-10" />} title="粘贴爆款文案开始拆解" description="AI 会帮你分析钩子、结构和关键元素" />
       )}
     </div>
   );

@@ -1,17 +1,17 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useAppStore } from '../store';
 import { callCozeChat, buildHotListQuery } from '../services/cozeApi';
-import { Flame, RefreshCw, TrendingUp, Clock, ExternalLink } from 'lucide-react';
+import { Flame, RefreshCw, TrendingUp, Clock, ExternalLink, Hash, MessageSquare } from 'lucide-react';
 import { clsx } from 'clsx';
 import { LoadingState, EmptyState } from '../components/LoadingState';
 
 const platforms = [
   { id: 'all', label: '综合', icon: Flame },
-  { id: 'weibo', label: '微博', icon: Flame },
-  { id: 'douyin', label: '抖音', icon: Flame },
-  { id: 'zhihu', label: '知乎', icon: Flame },
-  { id: 'bilibili', label: 'B站', icon: Flame },
-  { id: 'juejin', label: '掘金', icon: Flame },
+  { id: 'weibo', label: '微博', icon: Hash },
+  { id: 'douyin', label: '抖音', icon: MessageSquare },
+  { id: 'zhihu', label: '知乎', icon: Hash },
+  { id: 'bilibili', label: 'B站', icon: MessageSquare },
+  { id: 'juejin', label: '掘金', icon: Hash },
 ];
 
 export function HotRadar() {
@@ -86,13 +86,14 @@ export function HotRadar() {
   };
 
   return (
-    <div className="p-4 md:p-6 pb-24 md:pb-6">
+    <div className="p-4 md:p-6 pb-24 md:pb-6 max-w-shell mx-auto">
       <div className="mb-6">
-        <h2 className="text-2xl font-bold gradient-text mb-2">热榜驾驶舱</h2>
-        <p className="text-text-secondary text-sm">实时追踪全网热点，发现爆款选题</p>
+        <h2 className="text-display text-text-primary mb-1">热榜驾驶舱</h2>
+        <p className="text-body-sm text-text-secondary">实时追踪全网热点，发现爆款选题</p>
       </div>
 
-      <div className="flex gap-2 mb-6 overflow-x-auto scrollbar-hide pb-2">
+      {/* Platform tabs - flat style */}
+      <div className="flex gap-1 mb-6 overflow-x-auto scrollbar-hide">
         {platforms.map((platform) => {
           const Icon = platform.icon;
           return (
@@ -103,14 +104,12 @@ export function HotRadar() {
                 fetchHotList();
               }}
               className={clsx(
-                'flex items-center gap-2 px-4 py-2 rounded-xl whitespace-nowrap transition-all duration-300',
-                selectedPlatform === platform.id
-                  ? 'glow-button'
-                  : 'glass-card text-text-secondary hover:text-text-primary'
+                'tab whitespace-nowrap',
+                selectedPlatform === platform.id && 'active'
               )}
             >
               <Icon className="w-4 h-4" />
-              <span className="text-sm font-medium">{platform.label}</span>
+              <span className="text-body-sm">{platform.label}</span>
             </button>
           );
         })}
@@ -120,89 +119,83 @@ export function HotRadar() {
         <LoadingState />
       ) : error ? (
         <EmptyState
-          icon={<RefreshCw className="w-8 h-8 text-gray-500" />}
+          icon={<RefreshCw className="w-8 h-8" />}
           title="获取热榜失败"
           description={error}
           action={{ label: '重新加载', onClick: handleRefresh }}
         />
       ) : hotList.length === 0 ? (
         <EmptyState
-          icon={<Flame className="w-8 h-8 text-gray-500" />}
+          icon={<Flame className="w-8 h-8" />}
           title="暂无热榜数据"
           description="当前没有可用的热榜数据，请点击下方按钮刷新"
           action={{ label: '刷新热榜', onClick: handleRefresh }}
         />
       ) : (
-        <div className="space-y-4">
-          <div className="flex items-center justify-between mb-4">
+        <div className="space-y-3">
+          {/* Header */}
+          <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-2">
-              <TrendingUp className="w-5 h-5 text-accent" />
-              <span className="text-sm text-text-secondary">实时热点</span>
+              <TrendingUp className="w-4 h-4 text-accent" />
+              <span className="text-body-sm text-text-secondary">实时热点</span>
             </div>
             <button
               onClick={handleRefresh}
-              className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 transition-all duration-300"
+              className="btn-ghost !py-1.5 !px-3 !text-body-sm"
             >
-              <RefreshCw className={clsx('w-4 h-4', isLoadingHotList && 'animate-spin')} />
-              <span className="text-sm text-text-secondary">刷新</span>
+              <RefreshCw className={clsx('w-3.5 h-3.5', isLoadingHotList && 'animate-spin')} />
+              刷新
             </button>
           </div>
 
-          <div className="grid gap-4">
+          {/* Hot items */}
+          <div className="grid gap-3">
             {hotList.slice(0, 15).map((item, index) => (
               <div
                 key={index}
                 onClick={() => handleItemClick(item)}
-                className={clsx(
-                  'hot-item glass-card p-4 cursor-pointer transition-all duration-300',
-                  index < 3 && 'ring-1 ring-primary/30'
-                )}
+                className="interactive-row flex items-start gap-3"
               >
-                <div className="flex items-start gap-4">
-                  <div className={clsx(
-                    'w-8 h-8 rounded-lg flex items-center justify-center font-bold text-sm shrink-0',
-                    index === 0 && 'bg-gradient-to-br from-yellow-400 to-orange-500 text-white',
-                    index === 1 && 'bg-gradient-to-br from-gray-300 to-gray-400 text-gray-700',
-                    index === 2 && 'bg-gradient-to-br from-amber-600 to-amber-700 text-white',
-                    index > 2 && 'bg-white/5 text-text-secondary'
-                  )}>
-                    {index === 0 ? '👑' : index + 1}
-                  </div>
-
-                  <div className="flex-1 min-w-0">
-                    <h3 className="font-medium text-text-primary truncate mb-1">
-                      {item.title}
-                    </h3>
-                    <div className="flex items-center gap-3 text-xs text-text-muted">
-                      <span className="flex items-center gap-1">
-                        <Flame className="w-3 h-3 text-accent" />
-                        {item.heatScore > 0 ? `${item.heatScore}` : '-'}
-                      </span>
-                      {item.platform && (
-                        <span>{item.platform}</span>
-                      )}
-                      <span className="flex items-center gap-1">
-                        <Clock className="w-3 h-3" />
-                        刚刚
-                      </span>
-                    </div>
-                  </div>
-
-                  <ExternalLink className="w-4 h-4 text-text-muted shrink-0" />
+                {/* Rank */}
+                <div className={clsx(
+                  'w-7 h-7 rounded-md flex items-center justify-center text-body-sm font-bold shrink-0 mt-0.5',
+                  index === 0 && 'bg-accent text-white',
+                  index === 1 && 'bg-bg-elevated text-text-secondary',
+                  index === 2 && 'bg-bg-elevated text-text-secondary',
+                  index > 2 && 'bg-bg-elevated text-text-tertiary'
+                )}>
+                  {index + 1}
                 </div>
 
-                {index < 3 && (
-                  <div className="mt-3 flex gap-2 flex-wrap">
-                    {recommendAngles(item.title).slice(0, 3).map((angle, i) => (
-                      <span
-                        key={i}
-                        className="px-2 py-1 rounded-md bg-primary/10 text-primary text-xs"
-                      >
-                        {angle}
-                      </span>
-                    ))}
+                {/* Content */}
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-start justify-between gap-2">
+                    <h3 className="text-body font-medium text-text-primary truncate">
+                      {item.title}
+                    </h3>
+                    <ExternalLink className="w-3.5 h-3.5 text-text-tertiary shrink-0 mt-0.5" />
                   </div>
-                )}
+                  <div className="flex items-center gap-3 text-caption text-text-tertiary mt-0.5">
+                    <span className="flex items-center gap-1">
+                      <Flame className="w-3 h-3 text-accent" />
+                      {item.heatScore > 0 ? `${item.heatScore}` : '-'}
+                    </span>
+                    {item.platform && <span>{item.platform}</span>}
+                    <span className="flex items-center gap-1">
+                      <Clock className="w-3 h-3" />
+                      刚刚
+                    </span>
+                  </div>
+
+                  {/* Angle tags for top 3 */}
+                  {index < 3 && (
+                    <div className="mt-2 flex gap-1.5 flex-wrap">
+                      {recommendAngles(item.title).slice(0, 3).map((angle, i) => (
+                        <span key={i} className="badge">{angle}</span>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
             ))}
           </div>

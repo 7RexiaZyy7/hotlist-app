@@ -19,35 +19,31 @@ export function LoadingState({ steps, currentStep }: LoadingStateProps) {
 
   return (
     <div className="flex-1 flex flex-col items-center justify-center py-16">
-      <div className="relative mb-8">
-        <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-accent/20 to-orange-500/20 flex items-center justify-center">
-          <div className="w-10 h-10 border-3 border-accent border-t-transparent rounded-full animate-spin" />
-        </div>
-        <div className="absolute -top-1 -right-1 w-4 h-4 bg-accent rounded-full animate-ping opacity-75" />
+      {/* Perplexity-style skeleton shimmer */}
+      <div className="skeleton w-12 h-12 rounded-lg mb-6" />
+
+      <p className="text-body text-text-primary mb-4">
+        {activeSteps[activeStep]}{'.'.repeat(dotCount)}
+      </p>
+
+      <div className="flex items-center gap-2">
+        {activeSteps.map((step, i) => (
+          <div key={i} className="flex items-center gap-2">
+            <div className={`w-2 h-2 rounded-full transition-all duration-200 ${
+              i < activeStep ? 'bg-success' :
+              i === activeStep ? 'bg-accent' :
+              'bg-bg-elevated'
+            }`} />
+            {i < activeSteps.length - 1 && (
+              <div className={`w-6 h-px rounded transition-all duration-200 ${
+                i < activeStep ? 'bg-success' : 'bg-border'
+              }`} />
+            )}
+          </div>
+        ))}
       </div>
 
-      <div className="text-center space-y-3">
-        <p className="text-lg font-medium text-white">
-          {activeSteps[activeStep]}{'.'.repeat(dotCount)}
-        </p>
-        <div className="flex items-center gap-2 justify-center">
-          {activeSteps.map((step, i) => (
-            <div key={i} className="flex items-center gap-2">
-              <div className={`w-2 h-2 rounded-full transition-all duration-300 ${
-                i < activeStep ? 'bg-success scale-100' :
-                i === activeStep ? 'bg-accent scale-125 animate-pulse' :
-                'bg-gray-600 scale-100'
-              }`} />
-              {i < activeSteps.length - 1 && (
-                <div className={`w-8 h-0.5 rounded transition-all duration-300 ${
-                  i < activeStep ? 'bg-success' : 'bg-gray-700'
-                }`} />
-              )}
-            </div>
-          ))}
-        </div>
-        <p className="text-xs text-gray-500">首次请求可能需要 10-30 秒</p>
-      </div>
+      <p className="text-caption text-text-tertiary mt-4">首次请求可能需要 10-30 秒</p>
     </div>
   );
 }
@@ -61,20 +57,14 @@ interface EmptyStateProps {
 
 export function EmptyState({ icon, title, description, action }: EmptyStateProps) {
   return (
-    <div className="flex-1 flex flex-col items-center justify-center py-16 animate-in fade-in duration-500">
-      <div className="relative mb-6">
-        <div className="w-24 h-24 rounded-3xl bg-gradient-to-br from-gray-800 to-gray-900 flex items-center justify-center border border-gray-700/50">
-          {icon}
-        </div>
-        <div className="absolute inset-0 w-24 h-24 rounded-3xl bg-accent/5 animate-pulse" />
+    <div className="flex-1 flex flex-col items-center justify-center py-16 animate-fadeIn">
+      <div className="text-text-tertiary mb-4">
+        {icon}
       </div>
-      <p className="text-lg font-medium text-gray-300 mb-1">{title}</p>
-      <p className="text-sm text-gray-500 mb-6 max-w-xs text-center">{description}</p>
+      <p className="text-body font-semibold text-text-primary mb-1">{title}</p>
+      <p className="text-body-sm text-text-tertiary mb-6 max-w-xs text-center">{description}</p>
       {action && (
-        <button
-          onClick={action.onClick}
-          className="px-5 py-2 bg-gradient-to-r from-accent to-orange-500 rounded-xl text-sm font-medium hover:opacity-90 transition-opacity"
-        >
+        <button onClick={action.onClick} className="btn-primary">
           {action.label}
         </button>
       )}

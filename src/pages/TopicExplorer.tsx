@@ -13,7 +13,6 @@ export function TopicExplorer() {
     setSelectedTopic,
     setActivePage,
     showToast,
-    cozeUid,
   } = useAppStore();
   
   const [query, setQuery] = useState('');
@@ -99,27 +98,30 @@ export function TopicExplorer() {
   };
 
   return (
-    <div className="p-6">
-      <div className="mb-8">
-        <h2 className="text-xl font-semibold mb-4">话题勘探</h2>
-        <div className="flex gap-3">
-          <input
-            type="text"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-            className="flex-1 bg-card border border-gray-700 rounded-xl px-5 py-3 text-lg focus:outline-none focus:border-accent"
-            placeholder="输入你想探索的话题，例如：AI+创业..."
-          />
-          <button
-            onClick={handleSearch}
-            disabled={isSearching}
-            className="px-6 py-3 bg-gradient-to-r from-accent to-orange-500 rounded-xl font-medium hover:opacity-90 transition-opacity disabled:opacity-50 flex items-center gap-2"
-          >
-            <Search className={`w-5 h-5 ${isSearching ? 'animate-spin' : ''}`} />
-            {isSearching ? '搜索中...' : '搜索'}
-          </button>
-        </div>
+    <div className="p-4 md:p-6 pb-24 md:pb-6 max-w-shell mx-auto">
+      <div className="mb-6">
+        <h2 className="text-display text-text-primary mb-1">话题勘探</h2>
+        <p className="text-body-sm text-text-secondary">探索各平台热门话题，发现创作灵感</p>
+      </div>
+
+      {/* Search bar */}
+      <div className="flex gap-2 mb-8">
+        <input
+          type="text"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+          className="input-field flex-1"
+          placeholder="输入你想探索的话题，例如：AI+创业..."
+        />
+        <button
+          onClick={handleSearch}
+          disabled={isSearching}
+          className="btn-primary"
+        >
+          <Search className={`w-4 h-4 ${isSearching ? 'animate-spin' : ''}`} />
+          {isSearching ? '搜索中...' : '搜索'}
+        </button>
       </div>
 
       {isSearching && (
@@ -127,36 +129,34 @@ export function TopicExplorer() {
       )}
 
       {!isSearching && searched && results.length === 0 && (
-        <EmptyState icon={<Hash className="w-10 h-10 text-gray-500 opacity-40" />} title="暂无结果" description="试试换个关键词，或者检查 API 连接状态" />
+        <EmptyState icon={<Hash className="w-10 h-10" />} title="暂无结果" description="试试换个关键词，或者检查 API 连接状态" />
       )}
 
       {results.length > 0 && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
           {results.map((result, index) => (
             <div
               key={index}
-              className={`bg-card border ${
-                result.matched ? 'border-gray-700' : 'border-gray-800 opacity-60'
-              } rounded-2xl p-5`}
+              className={`card p-5 ${!result.matched ? 'opacity-50' : ''}`}
             >
               <div className="flex items-center justify-between mb-3">
-                <span className="font-medium">{result.platform}</span>
-                <span className={`text-xs px-2 py-1 rounded-full ${
-                  result.matched ? 'bg-success/20 text-success' : 'bg-gray-700 text-gray-400'
+                <span className="text-body font-medium text-text-primary">{result.platform}</span>
+                <span className={`badge ${
+                  result.matched ? '!text-accent !border-accent' : '!text-text-tertiary'
                 }`}>
                   {result.matched ? '已命中' : '无结果'}
                 </span>
               </div>
               {result.matched && (
-                <div className="space-y-2">
+                <div className="space-y-1">
                   {result.topics.map((topic: string, i: number) => (
                     <button
                       key={i}
                       onClick={() => handleSelectTopic(topic)}
-                      className="w-full text-left px-3 py-2 bg-surface rounded-lg text-sm hover:bg-gray-700 transition-colors flex items-center justify-between"
+                      className="w-full text-left px-3 py-2 rounded-md text-body-sm text-text-secondary hover:bg-bg-elevated hover:text-text-primary transition-all duration-120 flex items-center justify-between"
                     >
-                      {topic}
-                      <ArrowRight className="w-4 h-4 text-gray-500 shrink-0" />
+                      <span className="truncate">{topic}</span>
+                      <ArrowRight className="w-3.5 h-3.5 text-text-tertiary shrink-0 ml-2" />
                     </button>
                   ))}
                 </div>
@@ -167,7 +167,7 @@ export function TopicExplorer() {
       )}
 
       {!isSearching && !searched && (
-        <EmptyState icon={<Search className="w-10 h-10 text-gray-500 opacity-40" />} title="搜索你感兴趣的话题" description="看看各大平台上大家都在聊什么" />
+        <EmptyState icon={<Search className="w-10 h-10" />} title="搜索你感兴趣的话题" description="看看各大平台上大家都在聊什么" />
       )}
     </div>
   );

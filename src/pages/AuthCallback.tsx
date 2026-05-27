@@ -56,38 +56,38 @@ export function AuthCallback() {
   }, [setAuth, showToast]);
 
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center p-6">
-      <div className="bg-card border border-gray-800 rounded-2xl p-10 max-w-md w-full text-center">
+    <div className="min-h-screen bg-bg-base flex items-center justify-center p-6">
+      <div className="card p-10 max-w-md w-full text-center">
         {status === 'processing' && (
           <>
-            <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-accent to-orange-500 flex items-center justify-center animate-pulse">
-              <LogIn className="w-8 h-8 text-white" />
+            <div className="w-16 h-16 mx-auto mb-4 rounded-xl bg-accent/20 flex items-center justify-center animate-pulse">
+              <LogIn className="w-8 h-8 text-accent" />
             </div>
-            <h2 className="text-xl font-semibold font-display mb-2">正在登录</h2>
-            <p className="text-sm text-gray-400">绑定 Coze 账号中...</p>
+            <h2 className="text-heading-m text-text-primary mb-2">正在登录</h2>
+            <p className="text-body-sm text-text-secondary">绑定 Coze 账号中...</p>
           </>
         )}
 
         {status === 'done' && (
           <>
-            <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-green-400 to-emerald-500 flex items-center justify-center">
-              <LogIn className="w-8 h-8 text-white" />
+            <div className="w-16 h-16 mx-auto mb-4 rounded-xl bg-success/20 flex items-center justify-center">
+              <LogIn className="w-8 h-8 text-success" />
             </div>
-            <h2 className="text-xl font-semibold font-display mb-2">登录成功</h2>
-            <p className="text-sm text-gray-400">即将跳转回首页</p>
+            <h2 className="text-heading-m text-text-primary mb-2">登录成功</h2>
+            <p className="text-body-sm text-text-secondary">即将跳转回首页</p>
           </>
         )}
 
         {status === 'error' && (
           <>
-            <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-red-500/20 border border-red-500/30 flex items-center justify-center">
-              <AlertCircle className="w-8 h-8 text-red-400" />
+            <div className="w-16 h-16 mx-auto mb-4 rounded-xl bg-error/10 border border-error/30 flex items-center justify-center">
+              <AlertCircle className="w-8 h-8 text-error" />
             </div>
-            <h2 className="text-xl font-semibold font-display mb-2 text-red-400">登录失败</h2>
-            <p className="text-sm text-gray-400 mb-6">{errorMsg}</p>
+            <h2 className="text-heading-m text-error mb-2">登录失败</h2>
+            <p className="text-body-sm text-text-secondary mb-6">{errorMsg}</p>
             <button
               onClick={() => window.location.href = '/'}
-              className="px-6 py-2.5 bg-gradient-to-r from-accent to-orange-500 rounded-xl text-sm font-medium hover:opacity-90 transition-opacity cursor-pointer"
+              className="btn-primary"
             >
               返回首页
             </button>

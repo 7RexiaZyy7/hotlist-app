@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useAppStore } from '../store';
 import { Flame, Palette, Sparkles, Moon, Sun, Zap } from 'lucide-react';
 import { clsx } from 'clsx';
 
@@ -22,13 +23,13 @@ const themes: Theme[] = [
     id: 'cyber-dark',
     name: '赛博深色',
     description: '深邃的科技感，适合夜间使用',
-    primary: '#8b5cf6',
+    primary: '#a855f7',
     secondary: '#06b6d4',
     accent: '#f97316',
-    surface: '#0f0f1a',
-    surfaceCard: '#16162a',
-    textPrimary: '#f8fafc',
-    textSecondary: '#94a3b8',
+    surface: '#0f0f10',
+    surfaceCard: '#19191a',
+    textPrimary: '#f0f0f0',
+    textSecondary: '#9b9b9b',
     gradient: 'from-indigo-900 via-purple-900 to-slate-900',
     icon: <Moon className="w-5 h-5" />
   },
@@ -105,16 +106,34 @@ const themes: Theme[] = [
 ];
 
 export function ThemeSelector() {
-  const [selectedTheme, setSelectedTheme] = useState<Theme>(themes[0]);
+  const [selectedTheme, setSelectedTheme] = useState<Theme>(() => {
+    const saved = localStorage.getItem('selectedTheme');
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch {}
+    }
+    return themes[0];
+  });
   const [hoveredTheme, setHoveredTheme] = useState<string | null>(null);
+  const showToast = useAppStore((s) => s.showToast);
+
+  const applyTheme = (theme: Theme) => {
+    const root = document.documentElement;
+    root.style.setProperty('--color-bg-base', theme.surface);
+    root.style.setProperty('--color-bg-surface', theme.surfaceCard);
+    root.style.setProperty('--color-text-primary', theme.textPrimary);
+    root.style.setProperty('--color-text-secondary', theme.textSecondary);
+    root.style.setProperty('--color-accent', theme.primary);
+    localStorage.setItem('selectedTheme', JSON.stringify(theme));
+    showToast(`已应用「${theme.name}」风格，刷新页面完全生效`, 'success');
+  };
 
   return (
-    <div className="p-4 md:p-6 pb-24">
+    <div className="p-4 md:p-6 pb-20 md:pb-6 max-w-shell mx-auto">
       <div className="mb-6">
-        <h2 className="text-2xl font-bold mb-2" style={{ color: selectedTheme.textPrimary }}>
-          设计风格选择器
-        </h2>
-        <p style={{ color: selectedTheme.textSecondary }}>
+        <h2 className="text-display text-text-primary mb-2">设计风格选择器</h2>
+        <p className="text-body-sm text-text-secondary">
           选择你喜欢的界面风格，实时预览效果
         </p>
       </div>
@@ -127,24 +146,22 @@ export function ThemeSelector() {
             onMouseEnter={() => setHoveredTheme(theme.id)}
             onMouseLeave={() => setHoveredTheme(null)}
             className={clsx(
-              'relative overflow-hidden rounded-2xl p-6 cursor-pointer transition-all duration-500',
+              'relative overflow-hidden rounded-xl p-5 cursor-pointer transition-all duration-200',
               hoveredTheme === theme.id && 'transform scale-[1.02]'
             )}
             style={{
               background: `linear-gradient(135deg, ${theme.surface} 0%, ${theme.surfaceCard} 100%)`,
-              border: selectedTheme.id === theme.id ? `2px solid ${theme.primary}` : 'none',
-              outline: selectedTheme.id === theme.id ? `2px solid ${theme.surface}` : 'none',
-              outlineOffset: '2px',
+              border: selectedTheme.id === theme.id ? `2px solid ${theme.primary}` : '1px solid rgba(255,255,255,0.1)',
             }}
           >
             <div
               className="absolute top-0 right-0 w-32 h-32 rounded-full opacity-20 blur-3xl"
               style={{ background: theme.primary }}
             />
-            
+
             <div className="relative z-10">
               <div
-                className="w-12 h-12 rounded-xl flex items-center justify-center mb-4 transition-transform duration-300"
+                className="w-10 h-10 rounded-lg flex items-center justify-center mb-3 transition-transform duration-200"
                 style={{
                   background: `linear-gradient(135deg, ${theme.primary} 0%, ${theme.secondary} 100%)`,
                   transform: hoveredTheme === theme.id ? 'scale(1.1)' : 'scale(1)'
@@ -152,43 +169,25 @@ export function ThemeSelector() {
               >
                 <span style={{ color: '#ffffff' }}>{theme.icon}</span>
               </div>
-              
-              <h3
-                className="text-lg font-semibold mb-2"
-                style={{ color: theme.textPrimary }}
-              >
+
+              <h3 className="text-base font-semibold mb-1" style={{ color: theme.textPrimary }}>
                 {theme.name}
               </h3>
-              
-              <p
-                className="text-sm"
-                style={{ color: theme.textSecondary }}
-              >
+
+              <p className="text-sm" style={{ color: theme.textSecondary }}>
                 {theme.description}
               </p>
 
-              <div className="flex gap-2 mt-4">
-                <div
-                  className="w-6 h-6 rounded-full"
-                  style={{ backgroundColor: theme.primary }}
-                  title="主色调"
-                />
-                <div
-                  className="w-6 h-6 rounded-full"
-                  style={{ backgroundColor: theme.secondary }}
-                  title="辅助色"
-                />
-                <div
-                  className="w-6 h-6 rounded-full"
-                  style={{ backgroundColor: theme.accent }}
-                  title="强调色"
-                />
+              <div className="flex gap-2 mt-3">
+                <div className="w-5 h-5 rounded-full" style={{ backgroundColor: theme.primary }} />
+                <div className="w-5 h-5 rounded-full" style={{ backgroundColor: theme.secondary }} />
+                <div className="w-5 h-5 rounded-full" style={{ backgroundColor: theme.accent }} />
               </div>
 
               {selectedTheme.id === theme.id && (
-                <div className="absolute top-3 right-3">
+                <div className="absolute top-2 right-2">
                   <div
-                    className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold"
+                    className="w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold"
                     style={{
                       background: `linear-gradient(135deg, ${theme.primary} 0%, ${theme.secondary} 100%)`,
                       color: '#ffffff'
@@ -204,22 +203,19 @@ export function ThemeSelector() {
       </div>
 
       <div
-        className="rounded-2xl p-6 space-y-4"
+        className="rounded-xl p-5 space-y-4"
         style={{
           background: `linear-gradient(135deg, ${selectedTheme.surface} 0%, ${selectedTheme.surfaceCard} 100%)`,
           border: `1px solid ${selectedTheme.primary}20`
         }}
       >
-        <h3
-          className="text-lg font-semibold"
-          style={{ color: selectedTheme.textPrimary }}
-        >
+        <h3 className="text-base font-semibold" style={{ color: selectedTheme.textPrimary }}>
           实时预览
         </h3>
 
         <div className="grid grid-cols-3 gap-3">
           <button
-            className="p-4 rounded-xl transition-all duration-300 hover:scale-105"
+            className="p-3 rounded-lg transition-all duration-200 hover:scale-105"
             style={{
               background: `linear-gradient(135deg, ${selectedTheme.primary} 0%, ${selectedTheme.secondary} 100%)`,
               color: '#ffffff'
@@ -228,9 +224,9 @@ export function ThemeSelector() {
             主要按钮
           </button>
           <button
-            className="p-4 rounded-xl transition-all duration-300 hover:scale-105"
+            className="p-3 rounded-lg transition-all duration-200 hover:scale-105"
             style={{
-              background: `${selectedTheme.surface}`,
+              background: selectedTheme.surface,
               border: `1px solid ${selectedTheme.primary}40`,
               color: selectedTheme.textPrimary
             }}
@@ -238,7 +234,7 @@ export function ThemeSelector() {
             次要按钮
           </button>
           <button
-            className="p-4 rounded-xl transition-all duration-300 hover:scale-105"
+            className="p-3 rounded-lg transition-all duration-200 hover:scale-105"
             style={{
               background: `${selectedTheme.accent}20`,
               color: selectedTheme.accent
@@ -248,19 +244,19 @@ export function ThemeSelector() {
           </button>
         </div>
 
-        <div className="space-y-3">
+        <div className="space-y-2">
           {[1, 2, 3].map((i) => (
             <div
               key={i}
-              className="p-4 rounded-xl transition-all duration-300 hover:translate-x-1"
+              className="p-3 rounded-lg transition-all duration-200 hover:translate-x-1"
               style={{
-                background: `${selectedTheme.surface}`,
+                background: selectedTheme.surface,
                 border: `1px solid ${selectedTheme.primary}10`
               }}
             >
               <div className="flex items-center gap-3">
                 <div
-                  className="w-8 h-8 rounded-lg flex items-center justify-center"
+                  className="w-7 h-7 rounded-md flex items-center justify-center"
                   style={{
                     background: `linear-gradient(135deg, ${selectedTheme.primary}30 0%, ${selectedTheme.secondary}30 100%)`
                   }}
@@ -270,16 +266,10 @@ export function ThemeSelector() {
                   </span>
                 </div>
                 <div>
-                  <p
-                    className="font-medium text-sm"
-                    style={{ color: selectedTheme.textPrimary }}
-                  >
+                  <p className="font-medium text-sm" style={{ color: selectedTheme.textPrimary }}>
                     示例内容 {i}
                   </p>
-                  <p
-                    className="text-xs"
-                    style={{ color: selectedTheme.textSecondary }}
-                  >
+                  <p className="text-xs" style={{ color: selectedTheme.textSecondary }}>
                     描述文字
                   </p>
                 </div>
@@ -289,11 +279,8 @@ export function ThemeSelector() {
         </div>
 
         <button
-          onClick={() => {
-            localStorage.setItem('selectedTheme', JSON.stringify(selectedTheme));
-            alert(`已应用「${selectedTheme.name}」风格！刷新页面生效`);
-          }}
-          className="w-full py-3 rounded-xl font-medium transition-all duration-300 hover:scale-[1.02]"
+          onClick={() => applyTheme(selectedTheme)}
+          className="w-full py-2.5 rounded-lg font-medium transition-all duration-200 hover:scale-[1.01]"
           style={{
             background: `linear-gradient(135deg, ${selectedTheme.primary} 0%, ${selectedTheme.secondary} 100%)`,
             color: '#ffffff'

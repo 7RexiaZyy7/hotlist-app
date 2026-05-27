@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { useAppStore } from '../store';
 import { callCozeChat, buildCopyGenerateQuery, checkUserQuota, incrementUserQuota, getUserVariables } from '../services/cozeApi';
-import { Sparkles, Copy, Check, RefreshCw, Wand2, FileText } from 'lucide-react';
+import { Sparkles, Copy, Check, RefreshCw, Wand2, FileText, Heart, BookOpen, MessageSquare, Flame, Rocket, Search, Smile, Book, Lightbulb, HelpCircle, GitCompare } from 'lucide-react';
 import { clsx } from 'clsx';
 import { LoadingState, EmptyState } from '../components/LoadingState';
 
@@ -11,24 +11,24 @@ interface GeneratedCopy {
 }
 
 const angles = [
-  { id: 'emotional', label: '情感共鸣', icon: '💝' },
-  { id: 'knowledge', label: '知识科普', icon: '📚' },
-  { id: 'opinion', label: '观点评论', icon: '💬' },
-  { id: 'trend', label: '热点追踪', icon: '🔥' },
-  { id: 'future', label: '未来趋势', icon: '🚀' },
-  { id: 'analysis', label: '深度分析', icon: '🔍' },
-  { id: 'funny', label: '趣味解读', icon: '😄' },
-  { id: 'story', label: '故事叙述', icon: '📖' },
-  { id: 'suggestion', label: '实用建议', icon: '💡' },
-  { id: 'question', label: '提问互动', icon: '❓' },
-  { id: 'comparison', label: '对比分析', icon: '⚖️' },
+  { id: 'emotional', label: '情感共鸣', icon: Heart },
+  { id: 'knowledge', label: '知识科普', icon: BookOpen },
+  { id: 'opinion', label: '观点评论', icon: MessageSquare },
+  { id: 'trend', label: '热点追踪', icon: Flame },
+  { id: 'future', label: '未来趋势', icon: Rocket },
+  { id: 'analysis', label: '深度分析', icon: Search },
+  { id: 'funny', label: '趣味解读', icon: Smile },
+  { id: 'story', label: '故事叙述', icon: Book },
+  { id: 'suggestion', label: '实用建议', icon: Lightbulb },
+  { id: 'question', label: '提问互动', icon: HelpCircle },
+  { id: 'comparison', label: '对比分析', icon: GitCompare },
 ];
 
 const platformStyles = [
-  { id: 'xiaohongshu', label: '📕 小红书版', description: '适合小红书平台风格' },
-  { id: 'douyin', label: '🎬 抖音脚本', description: '适合抖音短视频' },
-  { id: 'gongzhonghao', label: '📰 公众号版', description: '适合公众号文章' },
-  { id: 'weibo', label: '💬 微博版', description: '适合微博短文案' },
+  { id: 'xiaohongshu', label: '小红书版', description: '适合小红书平台风格' },
+  { id: 'douyin', label: '抖音脚本', description: '适合抖音短视频' },
+  { id: 'gongzhonghao', label: '公众号版', description: '适合公众号文章' },
+  { id: 'weibo', label: '微博版', description: '适合微博短文案' },
 ];
 
 export function ContentForge() {
@@ -38,7 +38,6 @@ export function ContentForge() {
   const [convertedCopies, setConvertedCopies] = useState<Record<string, GeneratedCopy[]>>({});
   const [showHistory, setShowHistory] = useState(false);
   const [loadingStep, setLoadingStep] = useState(0);
-  const [copiesAnimation, setCopiesAnimation] = useState(false);
   const resultsRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -49,11 +48,6 @@ export function ContentForge() {
       return () => clearInterval(interval);
     }
   }, [isGenerating]);
-
-  const getStepMessage = () => {
-    const messages = ['正在分析热点话题...', '正在构思创作角度...', '正在生成爆款文案...', '正在优化内容质量...'];
-    return messages[loadingStep] || messages[0];
-  };
 
   const handleAngleToggle = (angle: string) => {
     if (selectedAngles.includes(angle)) {
@@ -85,7 +79,6 @@ export function ContentForge() {
 
     setGenerating(true);
     setGeneratedCopies([]);
-    setCopiesAnimation(false);
 
     try {
       const userProfile = getUserVariables() || {};
@@ -107,10 +100,8 @@ export function ContentForge() {
       });
 
       showToast(`已生成 ${selectedAngles.length} 种角度的文案`);
-      setCopiesAnimation(true);
       setTimeout(() => {
         resultsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        setTimeout(() => setCopiesAnimation(false), 600);
       }, 100);
     } catch (e) {
       console.error('generate error:', e);
@@ -165,67 +156,70 @@ export function ContentForge() {
   const currentCopies = convertedCopies[convertingPlatform || ''] || generatedCopies;
 
   return (
-    <div className="p-4 md:p-6 pb-24 md:pb-6">
+    <div className="p-4 md:p-6 pb-24 md:pb-6 max-w-shell mx-auto">
       <div className="mb-6">
-        <h2 className="text-2xl font-bold gradient-text mb-2">文案工坊</h2>
-        <p className="text-text-secondary text-sm">输入话题，AI帮你生成爆款文案</p>
+        <h2 className="text-display text-text-primary mb-1">文案工坊</h2>
+        <p className="text-body-sm text-text-secondary">输入话题，AI帮你生成爆款文案</p>
       </div>
 
-      <div className="glass-card p-4 mb-6">
-        <div className="flex gap-3">
+      {/* Search input */}
+      <div className="card p-4 mb-6">
+        <div className="flex gap-2">
           <input
             type="text"
             value={selectedTopic}
             onChange={(e) => setSelectedTopic(e.target.value)}
             placeholder="输入热点话题或关键词..."
-            className="flex-1 px-4 py-3 rounded-xl bg-white/5 border border-border focus:border-primary focus:outline-none transition-colors"
+            className="input-field flex-1"
           />
           <button
             onClick={handleGenerate}
             disabled={isGenerating}
             className={clsx(
-              'px-6 py-3 rounded-xl flex items-center gap-2 font-medium transition-all duration-300',
-              isGenerating
-                ? 'bg-white/10 text-text-muted cursor-not-allowed'
-                : 'glow-button'
+              'btn-primary',
+              isGenerating && 'opacity-40 cursor-not-allowed'
             )}
           >
             {isGenerating ? (
               <>
                 <RefreshCw className="w-4 h-4 animate-spin" />
-                <span>生成中...</span>
+                生成中...
               </>
             ) : (
               <>
                 <Sparkles className="w-4 h-4" />
-                <span>生成文案</span>
+                生成文案
               </>
             )}
           </button>
         </div>
       </div>
 
+      {/* Angle selection */}
       <div className="mb-6">
         <div className="flex items-center justify-between mb-3">
-          <h3 className="text-sm font-medium text-text-secondary">选择创作角度</h3>
-          <span className="text-xs text-text-muted">已选 {selectedAngles.length}/5</span>
+          <h3 className="text-body-sm font-medium text-text-secondary">选择创作角度</h3>
+          <span className="text-caption text-text-tertiary">已选 {selectedAngles.length}/5</span>
         </div>
         <div className="flex flex-wrap gap-2">
-          {angles.map((angle) => (
-            <button
-              key={angle.id}
-              onClick={() => handleAngleToggle(angle.label)}
-              className={clsx(
-                'flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all duration-300',
-                selectedAngles.includes(angle.label)
-                  ? 'bg-gradient-to-r from-primary/30 to-secondary/30 text-primary border border-primary/30'
-                  : 'glass-card text-text-secondary hover:text-text-primary'
-              )}
-            >
-              <span>{angle.icon}</span>
-              <span>{angle.label}</span>
-            </button>
-          ))}
+          {angles.map((angle) => {
+            const Icon = angle.icon;
+            return (
+              <button
+                key={angle.id}
+                onClick={() => handleAngleToggle(angle.label)}
+                className={clsx(
+                  'flex items-center gap-1.5 px-3 py-1.5 rounded-md text-body-sm font-medium transition-all duration-120',
+                  selectedAngles.includes(angle.label)
+                    ? 'bg-accent-subtle text-accent border border-accent'
+                    : 'bg-bg-surface border border-border text-text-secondary hover:text-text-primary hover:bg-bg-elevated'
+                )}
+              >
+                <Icon className="w-3.5 h-3.5" />
+                <span>{angle.label}</span>
+              </button>
+            );
+          })}
         </div>
       </div>
 
@@ -233,28 +227,28 @@ export function ContentForge() {
         <LoadingState steps={['正在分析热点话题...', '正在构思创作角度...', '正在生成爆款文案...', '正在优化内容质量...']} />
       ) : generatedCopies.length === 0 ? (
         <EmptyState
-          icon={<FileText className="w-8 h-8 text-gray-500" />}
+          icon={<FileText className="w-10 h-10" />}
           title="还没有生成文案"
           description="输入话题并选择创作角度，AI 帮你生成爆款文案"
           action={{ label: '开始创作', onClick: () => document.querySelector('input')?.focus() }}
         />
       ) : (
-        <div ref={resultsRef} className={clsx('transition-all duration-500', copiesAnimation ? 'opacity-0 translate-y-4' : 'opacity-100 translate-y-0')}>
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold">生成结果</h3>
-            <div className="flex gap-2">
+        <div ref={resultsRef} className="space-y-4">
+          <div className="flex items-center justify-between mb-2">
+            <h3 className="text-body font-semibold text-text-primary">生成结果</h3>
+            <div className="flex gap-1.5">
               {platformStyles.map((platform) => (
                 <button
                   key={platform.id}
                   onClick={() => handleConvert(platform.id)}
                   disabled={convertingPlatform !== null}
                   className={clsx(
-                    'px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-300',
+                    'px-2.5 py-1 rounded-md text-caption font-medium transition-all duration-120',
                     convertingPlatform === platform.id
-                      ? 'bg-primary/30 text-primary'
+                      ? 'bg-accent-subtle text-accent'
                       : convertedCopies[platform.id]
-                        ? 'bg-green-500/20 text-green-400 border border-green-500/30'
-                        : 'glass-card text-text-secondary hover:text-text-primary'
+                        ? 'bg-accent-subtle text-accent'
+                        : 'bg-bg-surface border border-border text-text-secondary hover:text-text-primary'
                   )}
                   title={platform.description}
                 >
@@ -264,20 +258,18 @@ export function ContentForge() {
             </div>
           </div>
 
-          <div className="grid gap-4">
+          <div className="grid gap-3">
             {currentCopies.map((copy, index) => (
-              <div key={index} className="glass-card p-4">
+              <div key={index} className="card p-4">
                 <div className="flex items-center justify-between mb-3">
-                  <span className="px-3 py-1 rounded-lg bg-primary/10 text-primary text-sm font-medium">
-                    {copy.angle}
-                  </span>
+                  <span className="badge !text-accent !border-accent">{copy.angle}</span>
                   <button
                     onClick={() => handleCopy(copy.content, index)}
                     className={clsx(
-                      'flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs transition-all duration-300',
+                      'flex items-center gap-1 px-2.5 py-1 rounded-md text-caption transition-all duration-120',
                       copiedIndex === index
-                        ? 'bg-green-500/20 text-green-400'
-                        : 'bg-white/5 text-text-secondary hover:text-text-primary'
+                        ? 'bg-accent-subtle text-accent'
+                        : 'bg-bg-elevated text-text-secondary hover:text-text-primary'
                     )}
                   >
                     {copiedIndex === index ? (
@@ -293,10 +285,10 @@ export function ContentForge() {
                     )}
                   </button>
                 </div>
-                <p className="text-text-primary leading-relaxed whitespace-pre-wrap">
+                <p className="text-body text-text-primary leading-relaxed whitespace-pre-wrap">
                   {copy.content}
                 </p>
-                <div className="mt-3 pt-3 border-t border-border flex items-center justify-between text-xs text-text-muted">
+                <div className="mt-3 pt-3 border-t border-border flex items-center justify-between text-caption text-text-tertiary">
                   <span>{copy.content.length} 字</span>
                   <span>预计阅读 {Math.ceil(copy.content.length / 500)} 分钟</span>
                 </div>
@@ -310,26 +302,26 @@ export function ContentForge() {
         <div className="mt-6">
           <button
             onClick={() => setShowHistory(!showHistory)}
-            className="flex items-center gap-2 px-4 py-2 rounded-xl glass-card text-text-secondary hover:text-text-primary transition-all duration-300"
+            className="btn-ghost"
           >
             <Wand2 className="w-4 h-4" />
             <span>历史记录</span>
-            <span className="text-xs bg-white/10 px-2 py-0.5 rounded-full">{history.length}</span>
+            <span className="text-caption bg-bg-elevated px-2 py-0.5 rounded-full ml-1">{history.length}</span>
           </button>
 
           {showHistory && (
-            <div className="mt-4 space-y-2">
+            <div className="mt-3 space-y-1.5">
               {history.map((item: any, index) => (
                 <div
                   key={index}
                   onClick={() => loadHistory(item)}
-                  className="glass-card p-3 cursor-pointer hover:bg-white/5 transition-all duration-300"
+                  className="interactive-row"
                 >
                   <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium truncate">{item.topic}</span>
-                    <span className="text-xs text-text-muted">{item.angles.join('、')}</span>
+                    <span className="text-body-sm font-medium text-text-primary truncate">{item.topic}</span>
+                    <span className="text-caption text-text-tertiary shrink-0 ml-2">{item.angles.join('、')}</span>
                   </div>
-                  <div className="text-xs text-text-muted mt-1">
+                  <div className="text-caption text-text-tertiary mt-0.5">
                     {new Date(item.timestamp).toLocaleString()}
                   </div>
                 </div>

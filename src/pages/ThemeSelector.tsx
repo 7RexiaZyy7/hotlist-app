@@ -128,13 +128,13 @@ export function ThemeSelector() {
             onMouseLeave={() => setHoveredTheme(null)}
             className={clsx(
               'relative overflow-hidden rounded-2xl p-6 cursor-pointer transition-all duration-500',
-              selectedTheme.id === theme.id && 'ring-2 ring-offset-2',
               hoveredTheme === theme.id && 'transform scale-[1.02]'
             )}
             style={{
               background: `linear-gradient(135deg, ${theme.surface} 0%, ${theme.surfaceCard} 100%)`,
-              '--tw-ring-color': theme.primary,
-              '--tw-ring-offset-color': theme.surface,
+              border: selectedTheme.id === theme.id ? `2px solid ${theme.primary}` : 'none',
+              outline: selectedTheme.id === theme.id ? `2px solid ${theme.surface}` : 'none',
+              outlineOffset: '2px',
             }}
           >
             <div

@@ -3,9 +3,9 @@ import { Flame, Search, Sparkles } from 'lucide-react';
 import { clsx } from 'clsx';
 
 const navItems = [
-  { id: 'radar', label: '热榜', icon: Flame },
-  { id: 'explore', label: '话题', icon: Search },
-  { id: 'forge', label: '文案', icon: Sparkles },
+  { id: 'radar', label: '热点雷达', icon: Flame },
+  { id: 'explore', label: '话题勘探', icon: Search },
+  { id: 'forge', label: '文案创作', icon: Sparkles },
 ];
 
 export function Sidebar() {

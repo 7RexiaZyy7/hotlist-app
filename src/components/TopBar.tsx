@@ -71,11 +71,11 @@ export function TopBar() {
           <h1 className="text-sm font-semibold text-text-primary">热点工坊</h1>
         </div>
 
-        <nav className="hidden md:flex items-center gap-1">
+        <nav className="hidden lg:flex items-center gap-1">
           {[
-            { id: 'radar', label: '热榜', icon: Flame },
-            { id: 'explore', label: '话题', icon: Search },
-            { id: 'forge', label: '文案', icon: Sparkles },
+            { id: 'radar', label: '热点雷达', icon: Flame },
+            { id: 'explore', label: '话题勘探', icon: Search },
+            { id: 'forge', label: '文案创作', icon: Sparkles },
           ].map((item) => {
             const Icon = item.icon;
             const isActive = activePage === item.id;

@@ -18,7 +18,8 @@ export function HotRadar() {
   const [selectedPlatform, setSelectedPlatform] = useState('douyin');
   const [error, setError] = useState<string | null>(null);
   const isLoadingRef = useRef(false);
-  const [showPool, setShowPool] = useState(false);
+  const [showAll, setShowAll] = useState(false);
+  const INITIAL_COUNT = 15;
   const [showCount, setShowCount] = useState(20);
 
   const fetchHotList = useCallback(async (platform: string) => {

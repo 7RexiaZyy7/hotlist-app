@@ -71,31 +71,7 @@ export function TopBar() {
           <h1 className="text-sm font-semibold text-text-primary">热点工坊</h1>
         </div>
 
-        <nav className="hidden lg:flex items-center gap-1">
-          {[
-            { id: 'radar', label: '热点雷达', icon: Flame },
-            { id: 'explore', label: '话题勘探', icon: Search },
-            { id: 'forge', label: '文案创作', icon: Sparkles },
-          ].map((item) => {
-            const Icon = item.icon;
-            const isActive = activePage === item.id;
-            return (
-              <button
-                key={item.id}
-                onClick={() => useAppStore.getState().setActivePage(item.id)}
-                className={clsx(
-                  'px-3 py-1.5 rounded-md flex items-center gap-2 transition-all duration-120',
-                  isActive
-                    ? 'bg-accent-subtle text-accent'
-                    : 'text-text-secondary hover:text-text-primary hover:bg-bg-elevated'
-                )}
-              >
-                <Icon className="w-4 h-4" />
-                <span className="text-body-sm font-medium">{item.label}</span>
-              </button>
-            );
-          })}
-        </nav>
+
       </div>
 
       <div className="flex items-center gap-3">

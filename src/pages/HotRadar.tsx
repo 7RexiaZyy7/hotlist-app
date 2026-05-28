@@ -37,6 +37,13 @@ export function HotRadar() {
       console.log('fetchHotList: proxy data source=%s:', data.source || 'unknown', JSON.stringify(data).slice(0, 500));
       items = parseUapiHotList(data, platform);
       console.log('fetchHotList: 解析后 items=%d', items.length);
+
+      if (items.length === 0) {
+        setError('热榜数据格式异常，请稍后重试');
+      } else {
+        setHotList(items);
+        localStorage.setItem('hotList', JSON.stringify({ items, platform, timestamp: Date.now() }));
+      }
     } catch (e: any) {
       console.error('fetchHotList error:', e);
       setError(e?.message || '获取热榜失败，请稍后重试');

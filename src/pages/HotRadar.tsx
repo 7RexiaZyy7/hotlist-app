@@ -19,6 +19,7 @@ export function HotRadar() {
   const [error, setError] = useState<string | null>(null);
   const isLoadingRef = useRef(false);
   const [showPool, setShowPool] = useState(false);
+  const [showCount, setShowCount] = useState(20);
 
   const fetchHotList = useCallback(async (platform: string) => {
     if (isLoadingRef.current) return;
@@ -101,6 +102,7 @@ export function HotRadar() {
   };
 
   const handlePlatformChange = (platformId: string) => {
+    setShowCount(20);
     setSelectedPlatform(platformId);
     fetchHotList(platformId);
   };
@@ -207,7 +209,7 @@ export function HotRadar() {
           </div>
 
           <div className="grid gap-3">
-            {hotList.slice(0, 15).map((item, index) => {
+            {hotList.slice(0, showCount).map((item, index) => {
               const isSaved = savedTopics.some((t) => t.title === item.title);
               return (
               <div
@@ -287,6 +289,16 @@ export function HotRadar() {
               );
             })}
           </div>
+          {hotList.length > showCount && (
+            <div className="flex justify-center mt-4">
+              <button
+                onClick={() => setShowCount((c) => c + 20)}
+                className="btn-ghost !py-2 !px-6 !text-body-sm"
+              >
+                加载更多 ({hotList.length - showCount}条)
+              </button>
+            </div>
+          )}
         </div>
       )}
 

@@ -193,10 +193,10 @@ export function HotRadar() {
             <div className="flex items-center gap-2">
               {savedTopics.length > 0 && (
                 <button
-                  onClick={() => setShowPool(!showPool)}
+                  onClick={() => setShowAll(!showAll)}
                   className={clsx(
                     'btn-ghost !py-1.5 !px-3 !text-body-sm',
-                    showPool && 'bg-accent-subtle text-accent'
+                    showAll && 'bg-accent-subtle text-accent'
                   )}
                 >
                   收藏池 ({savedTopics.length})
@@ -303,11 +303,11 @@ export function HotRadar() {
         </div>
       )}
 
-      {showPool && savedTopics.length > 0 && (
+      {showAll && savedTopics.length > 0 && (
         <div className="fixed bottom-20 md:bottom-6 left-1/2 -translate-x-1/2 w-[calc(100%-2rem)] max-w-lg bg-bg-surface border border-border rounded-xl shadow-2xl p-4 z-50 animate-fadeIn">
           <div className="flex items-center justify-between mb-3">
             <h3 className="text-body font-semibold text-text-primary">收藏话题池 ({savedTopics.length})</h3>
-            <button onClick={() => setShowPool(false)} className="p-1 rounded hover:bg-bg-elevated">
+            <button onClick={() => setShowAll(false)} className="p-1 rounded hover:bg-bg-elevated">
               <X className="w-4 h-4 text-text-tertiary" />
             </button>
           </div>

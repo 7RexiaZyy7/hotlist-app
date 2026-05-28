@@ -5,7 +5,7 @@ import { LoadingState, EmptyState } from '../components/LoadingState';
 import { 
   callCozeChat, 
   buildTopicSearchQuery,
-  buildAnalysisQuery,
+  buildTopicAnalysisQuery,
 } from '../services/cozeApi';
 
 export function TopicExplorer() {
@@ -117,7 +117,7 @@ export function TopicExplorer() {
         const allowed = await checkAndIncrementQuota();
         if (!allowed) break;
 
-        const query = buildAnalysisQuery(topic.title);
+        const query = buildTopicAnalysisQuery(topic.title);
         const analysis = await callCozeChat(query);
         setAnalysisResults(prev => [...prev, { topic: topic.title, analysis }]);
       }

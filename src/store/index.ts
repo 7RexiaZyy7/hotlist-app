@@ -61,6 +61,12 @@ interface AppState {
   setSelectedPlatform: (platform: string) => void;
   setLoadingHotList: (loading: boolean) => void;
 
+  // 收藏话题
+  savedTopics: HotItem[];
+  toggleSaveTopic: (item: HotItem) => void;
+  isTopicSaved: (title: string) => boolean;
+  clearSavedTopics: () => void;
+
   selectedTopic: string;
   selectedAngles: string[];
   generatedCopies: GeneratedCopy[];
@@ -125,11 +131,24 @@ export const useAppStore = create<AppState>()((set) => ({
   },
 
   hotList: [],
-  selectedPlatform: 'all',
+  selectedPlatform: 'douyin',
   isLoadingHotList: false,
   setHotList: (list) => set({ hotList: list }),
   setSelectedPlatform: (platform) => set({ selectedPlatform: platform }),
   setLoadingHotList: (loading) => set({ isLoadingHotList: loading }),
+
+  // 收藏话题
+  savedTopics: [],
+  toggleSaveTopic: (item) =>
+    set((state) => {
+      const exists = state.savedTopics.some((t) => t.title === item.title);
+      if (exists) {
+        return { savedTopics: state.savedTopics.filter((t) => t.title !== item.title) };
+      }
+      return { savedTopics: [...state.savedTopics, item] };
+    }),
+  isTopicSaved: (_title) => false,
+  clearSavedTopics: () => set({ savedTopics: [] }),
 
   selectedTopic: '',
   selectedAngles: [],

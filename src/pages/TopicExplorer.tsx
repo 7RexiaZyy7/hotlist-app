@@ -1,10 +1,11 @@
 import { useState } from 'react';
 import { useAppStore } from '../store';
-import { Search, ArrowRight, Hash } from 'lucide-react';
+import { Search, ArrowRight, Hash, Sparkles } from 'lucide-react';
 import { LoadingState, EmptyState } from '../components/LoadingState';
 import { 
   callCozeChat, 
-  buildTopicSearchQuery 
+  buildTopicSearchQuery,
+  buildAnalysisQuery,
 } from '../services/cozeApi';
 
 export function TopicExplorer() {
@@ -13,6 +14,8 @@ export function TopicExplorer() {
     setSelectedTopic,
     setActivePage,
     showToast,
+    savedTopics,
+    clearSavedTopics,
   } = useAppStore();
   
   const [query, setQuery] = useState('');
@@ -20,6 +23,10 @@ export function TopicExplorer() {
   const [results, setResults] = useState<any[]>([]);
   const [searched, setSearched] = useState(false);
   const [loadingStep, setLoadingStep] = useState(0);
+
+  // 结构化分析相关
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [analysisResults, setAnalysisResults] = useState<{topic: string; analysis: string}[]>([]);
 
   const parseResults = (content: string): any[] => {
     const lines = content.split('\n').filter(l => l.trim());
@@ -92,6 +99,37 @@ export function TopicExplorer() {
     }
   };
 
+  // 分析收藏池的话题
+  const handleAnalyzeSaved = async () => {
+    if (savedTopics.length === 0) return;
+    if (!isConnected) {
+      showToast('API 代理未连接', 'error');
+      return;
+    }
+
+    setIsAnalyzing(true);
+    setAnalysisResults([]);
+    
+    try {
+      const { checkAndIncrementQuota } = useAppStore.getState();
+      
+      for (const topic of savedTopics) {
+        const allowed = await checkAndIncrementQuota();
+        if (!allowed) break;
+
+        const query = buildAnalysisQuery(topic.title);
+        const analysis = await callCozeChat(query);
+        setAnalysisResults(prev => [...prev, { topic: topic.title, analysis }]);
+      }
+      
+      showToast(`${analysisResults.length + savedTopics.length} 个话题分析完成`);
+    } catch (error) {
+      showToast('分析失败，请稍后重试', 'error');
+    } finally {
+      setIsAnalyzing(false);
+    }
+  };
+
   const handleSelectTopic = (topic: string) => {
     setSelectedTopic(topic);
     setActivePage('forge');
@@ -103,6 +141,65 @@ export function TopicExplorer() {
         <h2 className="text-display text-text-primary mb-1">话题勘探</h2>
         <p className="text-body-sm text-text-secondary">探索各平台热门话题，发现创作灵感</p>
       </div>
+
+      {/* 收藏池提示 */}
+      {savedTopics.length > 0 && (
+        <div className="mb-6 p-4 rounded-xl bg-accent/5 border border-accent/20">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-body-sm font-medium text-accent">
+              已收藏 {savedTopics.length} 个话题，来自热榜
+            </span>
+            <div className="flex gap-2">
+              <button
+                onClick={handleAnalyzeSaved}
+                disabled={isAnalyzing}
+                className="btn-primary !py-1.5 !px-3 !text-body-sm flex items-center gap-1.5"
+              >
+                <Sparkles className="w-3.5 h-3.5" />
+                {isAnalyzing ? '分析中...' : '结构化分析'}
+              </button>
+              <button
+                onClick={clearSavedTopics}
+                className="btn-ghost !py-1.5 !px-3 !text-body-sm text-text-tertiary"
+              >
+                清空
+              </button>
+            </div>
+          </div>
+          <div className="flex flex-wrap gap-1.5">
+            {savedTopics.map((item, i) => (
+              <span key={i} className="badge">
+                {item.title}
+                <span className="ml-1 text-text-tertiary">·{item.platform}</span>
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* 结构化分析结果 */}
+      {analysisResults.length > 0 && (
+        <div className="mb-6 space-y-4">
+          <h3 className="text-body font-semibold text-text-primary">结构化分析结果</h3>
+          {analysisResults.map((item, i) => (
+            <div key={i} className="card p-5">
+              <div className="flex items-center justify-between mb-3">
+                <h4 className="text-body font-medium text-text-primary">{item.topic}</h4>
+                <button
+                  onClick={() => handleSelectTopic(item.topic)}
+                  className="btn-primary !py-1 !px-2 !text-caption flex items-center gap-1"
+                >
+                  <Sparkles className="w-3 h-3" />
+                  写文案
+                </button>
+              </div>
+              <div className="text-body-sm text-text-secondary whitespace-pre-wrap leading-relaxed">
+                {item.analysis}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
 
       {/* Search bar */}
       <div className="flex gap-2 mb-8">

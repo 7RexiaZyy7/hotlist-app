@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useAppStore } from '../store';
 import { getOAuthLoginUrl, oauthLogout, checkUserQuota, QuotaInfo } from '../services/cozeApi';
-import { Settings, Zap, Scissors, LogIn, LogOut, User, Flame, Search, Sparkles } from 'lucide-react';
+import { Settings, Zap, LogIn, LogOut, Flame, Search, Sparkles } from 'lucide-react';
 import { clsx } from 'clsx';
 
 export function TopBar() {
@@ -76,23 +76,18 @@ export function TopBar() {
             { id: 'radar', label: '热榜', icon: Flame },
             { id: 'explore', label: '话题', icon: Search },
             { id: 'forge', label: '文案', icon: Sparkles },
-            { id: 'analyze', label: '拆解', icon: Scissors, disabled: true },
-            { id: 'profile', label: '档案', icon: User, disabled: true },
           ].map((item) => {
             const Icon = item.icon;
             const isActive = activePage === item.id;
-            const isDisabled = item.disabled;
             return (
               <button
                 key={item.id}
-                onClick={() => !isDisabled && useAppStore.getState().setActivePage(item.id)}
+                onClick={() => useAppStore.getState().setActivePage(item.id)}
                 className={clsx(
                   'px-3 py-1.5 rounded-md flex items-center gap-2 transition-all duration-120',
-                  isActive && !isDisabled
+                  isActive
                     ? 'bg-accent-subtle text-accent'
-                    : isDisabled
-                      ? 'text-text-tertiary cursor-not-allowed'
-                      : 'text-text-secondary hover:text-text-primary hover:bg-bg-elevated'
+                    : 'text-text-secondary hover:text-text-primary hover:bg-bg-elevated'
                 )}
               >
                 <Icon className="w-4 h-4" />

@@ -275,11 +275,6 @@ export function getUserVariables(): Record<string, string> | undefined {
 
 // ─── 查询构建 ───
 
-export function buildHotListQuery(platform: string = 'all'): string {
-  if (platform === 'all') return '查看综合热榜 Top15';
-  return `查看${platform}热榜`;
-}
-
 export function buildCopyGenerateQuery(topic: string, angles: string[], userProfile: any): string {
   let query = `为话题"${topic}"生成高质量爆款文案\n`;
   query += `角度：${angles.join('、')}\n`;

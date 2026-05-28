@@ -4,12 +4,10 @@ import { TopBar } from './components/TopBar';
 import { HotRadar } from './pages/HotRadar';
 import { TopicExplorer } from './pages/TopicExplorer';
 import { ContentForge } from './pages/ContentForge';
-import { CreatorProfile } from './pages/CreatorProfile';
-import { HitAnalyzer } from './pages/HitAnalyzer';
 import { AuthCallback } from './pages/AuthCallback';
 import { useAppStore } from './store';
 import { getOAuthStatus, setUserId, getOAuthLoginUrl } from './services/cozeApi';
-import { Check, AlertCircle, Info, Loader2, AlertTriangle, Flame, Search, Sparkles, User, Scissors } from 'lucide-react';
+import { Check, AlertCircle, Info, Loader2, AlertTriangle, Flame, Search, Sparkles } from 'lucide-react';
 import QuotaModal from './components/QuotaModal';
 import { clsx } from 'clsx';
 
@@ -17,8 +15,6 @@ const mobileNavItems = [
   { id: 'radar', label: '热榜', icon: Flame },
   { id: 'explore', label: '话题', icon: Search },
   { id: 'forge', label: '文案', icon: Sparkles },
-  { id: 'analyze', label: '拆解', icon: Scissors, disabled: true },
-  { id: 'profile', label: '档案', icon: User, disabled: true },
 ];
 
 function Toast() {
@@ -94,8 +90,6 @@ function App() {
       case 'radar': return <HotRadar />;
       case 'explore': return <TopicExplorer />;
       case 'forge': return <ContentForge />;
-      case 'profile': return <CreatorProfile />;
-      case 'analyze': return <HitAnalyzer />;
       default: return <HotRadar />;
     }
   };
@@ -117,18 +111,15 @@ function App() {
         {mobileNavItems.map((item) => {
           const Icon = item.icon;
           const isActive = activePage === item.id;
-          const isDisabled = item.disabled;
           return (
             <button
               key={item.id}
-              onClick={() => !isDisabled && useAppStore.getState().setActivePage(item.id)}
+              onClick={() => useAppStore.getState().setActivePage(item.id)}
               className={clsx(
                 'flex flex-col items-center gap-0.5 py-1.5 px-3 rounded-md transition-all duration-120',
-                isDisabled
-                  ? 'text-text-tertiary/40 cursor-not-allowed'
-                  : isActive
-                    ? 'text-accent'
-                    : 'text-text-tertiary'
+                isActive
+                  ? 'text-accent'
+                  : 'text-text-tertiary'
               )}
             >
               <Icon className="w-5 h-5" />

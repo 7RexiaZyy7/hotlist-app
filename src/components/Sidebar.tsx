@@ -1,13 +1,11 @@
 import { useAppStore } from '../store';
-import { Flame, Search, Sparkles, User, Scissors } from 'lucide-react';
+import { Flame, Search, Sparkles } from 'lucide-react';
 import { clsx } from 'clsx';
 
 const navItems = [
   { id: 'radar', label: '热榜', icon: Flame },
   { id: 'explore', label: '话题', icon: Search },
   { id: 'forge', label: '文案', icon: Sparkles },
-  { id: 'analyze', label: '拆解', icon: Scissors, disabled: true },
-  { id: 'profile', label: '档案', icon: User, disabled: true },
 ];
 
 export function Sidebar() {
@@ -30,18 +28,15 @@ export function Sidebar() {
         {navItems.map((item) => {
           const Icon = item.icon;
           const isActive = activePage === item.id;
-          const isDisabled = item.disabled;
           return (
             <button
               key={item.id}
-              onClick={() => !isDisabled && setActivePage(item.id)}
+              onClick={() => setActivePage(item.id)}
               className={clsx(
                 'w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-all duration-120',
-                isActive && !isDisabled
+                isActive
                   ? 'bg-accent-subtle text-accent'
-                  : isDisabled
-                    ? 'text-text-tertiary cursor-not-allowed'
-                    : 'text-text-secondary hover:text-text-primary hover:bg-bg-elevated'
+                  : 'text-text-secondary hover:text-text-primary hover:bg-bg-elevated'
               )}
             >
               <Icon className="w-4 h-4 shrink-0" />

@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useAppStore } from '../store';
 import { PROXY_BASE } from '../services/cozeApi';
-import { Flame, RefreshCw, TrendingUp, Clock, ExternalLink, Hash, MessageSquare } from 'lucide-react';
+import { Flame, RefreshCw, TrendingUp, Clock, ExternalLink, Hash, MessageSquare, Check, X, Send } from 'lucide-react';
 import { clsx } from 'clsx';
 import { LoadingState, EmptyState } from '../components/LoadingState';
 
@@ -14,10 +14,11 @@ const platforms = [
 ];
 
 export function HotRadar() {
-  const { hotList, setHotList, isLoadingHotList, setLoadingHotList, setSelectedTopic, setSelectedAngles, setActivePage, showToast } = useAppStore();
+  const { hotList, setHotList, isLoadingHotList, setLoadingHotList, setSelectedTopic, setSelectedAngles, setActivePage, showToast, savedTopics, toggleSaveTopic } = useAppStore();
   const [selectedPlatform, setSelectedPlatform] = useState('douyin');
   const [error, setError] = useState<string | null>(null);
   const isLoadingRef = useRef(false);
+  const [showPool, setShowPool] = useState(false);
 
   const fetchHotList = useCallback(async (platform: string) => {
     if (isLoadingRef.current) return;
@@ -80,6 +81,13 @@ export function HotRadar() {
     console.log('HotRadar init - 无缓存，调用 API 获取热榜');
     fetchHotList('douyin');
   }, [fetchHotList]);
+
+  const handleAnalyzePool = () => {
+    if (savedTopics.length === 0) return;
+    showToast(`已选择 ${savedTopics.length} 个话题，即将开始分析`, 'info');
+    // 暂时跳转到话题勘探页，传入收藏的话题
+    setActivePage('explore');
+  };
 
   const handleRefresh = () => {
     fetchHotList(selectedPlatform);
@@ -172,17 +180,31 @@ export function HotRadar() {
               <TrendingUp className="w-4 h-4 text-accent" />
               <span className="text-body-sm text-text-secondary">实时热点 · {hotList.length}条</span>
             </div>
-            <button onClick={handleRefresh} className="btn-ghost !py-1.5 !px-3 !text-body-sm">
-              <RefreshCw className={clsx('w-3.5 h-3.5', isLoadingHotList && 'animate-spin')} />
-              刷新
-            </button>
+            <div className="flex items-center gap-2">
+              {savedTopics.length > 0 && (
+                <button
+                  onClick={() => setShowPool(!showPool)}
+                  className={clsx(
+                    'btn-ghost !py-1.5 !px-3 !text-body-sm',
+                    showPool && 'bg-accent-subtle text-accent'
+                  )}
+                >
+                  收藏池 ({savedTopics.length})
+                </button>
+              )}
+              <button onClick={handleRefresh} className="btn-ghost !py-1.5 !px-3 !text-body-sm">
+                <RefreshCw className={clsx('w-3.5 h-3.5', isLoadingHotList && 'animate-spin')} />
+                刷新
+              </button>
+            </div>
           </div>
 
           <div className="grid gap-3">
-            {hotList.slice(0, 15).map((item, index) => (
+            {hotList.slice(0, 15).map((item, index) => {
+              const isSaved = savedTopics.some((t) => t.title === item.title);
+              return (
               <div
                 key={index}
-                onClick={() => handleItemClick(item)}
                 className="interactive-row flex items-start gap-3"
               >
                 <div className={clsx(
@@ -195,7 +217,7 @@ export function HotRadar() {
                   {index + 1}
                 </div>
 
-                <div className="flex-1 min-w-0">
+                <div className="flex-1 min-w-0 cursor-pointer" onClick={() => handleItemClick(item)}>
                   <div className="flex items-start justify-between gap-2">
                     <h3 className="text-body font-medium text-text-primary truncate">
                       {item.title}
@@ -238,9 +260,58 @@ export function HotRadar() {
                     </div>
                   )}
                 </div>
+
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    toggleSaveTopic(item);
+                  }}
+                  className={clsx(
+                    'shrink-0 mt-1 w-7 h-7 rounded-md flex items-center justify-center transition-all duration-120',
+                    isSaved
+                      ? 'bg-accent text-white'
+                      : 'bg-bg-elevated text-text-tertiary hover:text-accent hover:bg-accent/10'
+                  )}
+                  title={isSaved ? '取消收藏' : '收藏话题'}
+                >
+                  <Check className="w-4 h-4" />
+                </button>
+              </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {showPool && savedTopics.length > 0 && (
+        <div className="fixed bottom-20 md:bottom-6 left-1/2 -translate-x-1/2 w-[calc(100%-2rem)] max-w-lg bg-bg-surface border border-border rounded-xl shadow-2xl p-4 z-50 animate-fadeIn">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-body font-semibold text-text-primary">收藏话题池 ({savedTopics.length})</h3>
+            <button onClick={() => setShowPool(false)} className="p-1 rounded hover:bg-bg-elevated">
+              <X className="w-4 h-4 text-text-tertiary" />
+            </button>
+          </div>
+          <div className="space-y-2 max-h-48 overflow-y-auto mb-3">
+            {savedTopics.map((item, i) => (
+              <div key={i} className="flex items-center gap-2 px-3 py-2 rounded-lg bg-bg-elevated">
+                <span className="text-body-sm text-text-primary flex-1 truncate">{item.title}</span>
+                <span className="text-caption text-text-tertiary">{item.platform}</span>
+                <button
+                  onClick={() => toggleSaveTopic(item)}
+                  className="p-1 rounded hover:bg-bg-secondary text-text-tertiary hover:text-error"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
               </div>
             ))}
           </div>
+          <button
+            onClick={handleAnalyzePool}
+            className="w-full btn-primary flex items-center justify-center gap-2"
+          >
+            <Send className="w-4 h-4" />
+            提交分析 ({savedTopics.length})
+          </button>
         </div>
       )}
     </div>

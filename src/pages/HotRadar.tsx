@@ -1,13 +1,11 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useAppStore } from '../store';
-import { callCozeChat, buildHotListQuery } from '../services/cozeApi';
 import { PROXY_BASE } from '../services/cozeApi';
 import { Flame, RefreshCw, TrendingUp, Clock, ExternalLink, Hash, MessageSquare } from 'lucide-react';
 import { clsx } from 'clsx';
 import { LoadingState, EmptyState } from '../components/LoadingState';
 
 const platforms = [
-  { id: 'all', label: '综合', icon: Flame },
   { id: 'douyin', label: '抖音', icon: MessageSquare },
   { id: 'xiaohongshu', label: '小红书', icon: Hash },
   { id: 'zhihu', label: '知乎', icon: Hash },
@@ -17,7 +15,7 @@ const platforms = [
 
 export function HotRadar() {
   const { hotList, setHotList, isLoadingHotList, setLoadingHotList, setSelectedTopic, setSelectedAngles, setActivePage, showToast } = useAppStore();
-  const [selectedPlatform, setSelectedPlatform] = useState('all');
+  const [selectedPlatform, setSelectedPlatform] = useState('douyin');
   const [error, setError] = useState<string | null>(null);
   const isLoadingRef = useRef(false);
 
@@ -30,28 +28,14 @@ export function HotRadar() {
     try {
       let items;
       
-      if (platform === 'all') {
-        // 综合热榜走 Coze Agent
-        const query = buildHotListQuery(platform);
-        const result = await callCozeChat(query);
-        items = parseHotList(result);
-      } else {
-        // 单平台热榜调用代理API
-        console.log('fetchHotList: 单平台热榜, platform=%s', platform);
-        const r = await fetch(`${PROXY_BASE}?action=hotboard&type=${platform}`);
-        console.log('fetchHotList: proxy response status=%d', r.status);
-        const data = await r.json();
-        console.log('fetchHotList: proxy data source=%s:', data.source || 'unknown', JSON.stringify(data).slice(0, 500));
-        items = parseUapiHotList(data, platform);
-        console.log('fetchHotList: 解析后 items=%d', items.length);
-      }
-      
-      if (items.length === 0) {
-        setError('热榜数据格式异常，请稍后重试');
-      } else {
-        setHotList(items);
-        localStorage.setItem('hotList', JSON.stringify({ items, platform, timestamp: Date.now() }));
-      }
+      // 热榜调用代理API
+      console.log('fetchHotList: 单平台热榜, platform=%s', platform);
+      const r = await fetch(`${PROXY_BASE}?action=hotboard&type=${platform}`);
+      console.log('fetchHotList: proxy response status=%d', r.status);
+      const data = await r.json();
+      console.log('fetchHotList: proxy data source=%s:', data.source || 'unknown', JSON.stringify(data).slice(0, 500));
+      items = parseUapiHotList(data, platform);
+      console.log('fetchHotList: 解析后 items=%d', items.length);
     } catch (e: any) {
       console.error('fetchHotList error:', e);
       setError(e?.message || '获取热榜失败，请稍后重试');
@@ -82,7 +66,7 @@ export function HotRadar() {
         if (data.items && data.items.length > 0) {
           console.log('HotRadar init - 使用缓存数据');
           setHotList(data.items);
-          setSelectedPlatform(data.platform || 'all');
+          setSelectedPlatform(data.platform || 'douyin');
         } else {
           console.log('HotRadar init - 缓存存在但数据为空，不自动刷新');
         }
@@ -94,7 +78,7 @@ export function HotRadar() {
     }
     
     console.log('HotRadar init - 无缓存，调用 API 获取热榜');
-    fetchHotList('all');
+    fetchHotList('douyin');
   }, [fetchHotList]);
 
   const handleRefresh = () => {
@@ -261,35 +245,6 @@ export function HotRadar() {
       )}
     </div>
   );
-}
-
-function parseHotList(text: string) {
-  const lines = text.split('\n').filter(line => line.trim());
-  const items: { rank: number; title: string; platform: string; heatScore: number; url?: string }[] = [];
-  
-  for (const line of lines) {
-    const match = line.match(/^(\d+)\.\s*([^\s]+)\s+(.*?)(?:\s*\|.*)?$/);
-    if (match) {
-      items.push({
-        rank: parseInt(match[1]),
-        title: match[3] || match[2],
-        platform: '',
-        heatScore: parseInt(match[2]) || 0,
-      });
-    } else {
-      const simpleMatch = line.match(/^(\d+)\.\s*(.+)$/);
-      if (simpleMatch) {
-        items.push({
-          rank: parseInt(simpleMatch[1]),
-          title: simpleMatch[2],
-          platform: '',
-          heatScore: 0,
-        });
-      }
-    }
-  }
-  
-  return items;
 }
 
 function parseUapiHotList(data: any, platform: string) {

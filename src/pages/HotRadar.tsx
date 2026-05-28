@@ -12,7 +12,7 @@ const platforms = [
   { id: 'xiaohongshu', label: '小红书', icon: Hash },
   { id: 'zhihu', label: '知乎', icon: Hash },
   { id: 'bilibili', label: 'B站', icon: MessageSquare },
-  { id: 'weibo', label: '微博', icon: Hash },
+  { id: 'maimai', label: '脉脉', icon: Hash },
 ];
 
 export function HotRadar() {

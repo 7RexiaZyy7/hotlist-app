@@ -244,75 +244,19 @@ export default async function handler(req, res) {
     // ─── 热榜 ───
     if (action === 'hotboard' && req.method === 'GET') {
       const { type } = req.query;
-      console.log('HOTBOARD REQUEST RECEIVED, type=', type);
       if (!type) return res.status(400).json({ error: 'Missing type parameter' });
-      
-      // 小红书热榜使用专门的API
-      if (type === 'xiaohongshu') {
-        console.log('ENTERING XIAOHONGSHU BLOCK');
-        try {
-          console.log('CALLING 60s.viki.moe API...');
-          const xhsR = await fetch('https://60s.viki.moe/v2/rednote');
-          console.log('API RESPONSE STATUS:', xhsR.status);
-          const text = await xhsR.text();
-          console.log('API RESPONSE TEXT:', text.slice(0, 100));
-          const xhsData = JSON.parse(text);
-          console.log('PARSED CODE:', xhsData.code, 'IS ARRAY:', Array.isArray(xhsData.data));
-          
-          if (xhsData.code === 200 && Array.isArray(xhsData.data)) {
-            console.log('SUCCESS! RETURNING REAL DATA, COUNT:', xhsData.data.length);
-            const parseHotValue = (score) => {
-              if (!score) return '0';
-              const scoreStr = String(score);
-              if (scoreStr.includes('w')) {
-                const num = parseFloat(scoreStr.replace('w', ''));
-                return String(Math.round(num * 10000));
-              }
-              return scoreStr;
-            };
-            
-            return res.json({
-              type: 'xiaohongshu',
-              source: 'real_api',
-              update_time: new Date().toLocaleString('zh-CN'),
-              list: xhsData.data.map((item) => ({
-                index: item.rank,
-                title: item.title,
-                url: item.link || '',
-                hot_value: parseHotValue(item.score),
-                extra: {
-                  word_type: item.word_type || '',
-                  work_type_icon: item.work_type_icon || '',
-                }
-              }))
-            });
-          }
-          console.log('DATA FORMAT INVALID, CODE:', xhsData.code);
-        } catch (e) {
-          console.error('API ERROR:', e.message || e);
-        }
-        console.log('RETURNING FALLBACK DATA');
-        return res.json({
-          type: 'xiaohongshu',
-          source: 'fallback',
-          update_time: new Date().toLocaleString('zh-CN'),
-          list: [
-            { index: 1, title: '2024年度最受欢迎护肤品榜单', url: '', hot_value: '2345678', extra: {} },
-            { index: 2, title: '夏日穿搭分享｜清爽又好看', url: '', hot_value: '1890123', extra: {} },
-            { index: 3, title: '减脂餐食谱｜一周不重样', url: '', hot_value: '1567890', extra: {} },
-            { index: 4, title: '居家好物推荐｜提升幸福感', url: '', hot_value: '1234567', extra: {} },
-            { index: 5, title: '旅行vlog｜云南大理攻略', url: '', hot_value: '987654', extra: {} },
-            { index: 6, title: '职场穿搭｜通勤也能很时尚', url: '', hot_value: '876543', extra: {} },
-            { index: 7, title: '读书分享｜这几本书值得一读', url: '', hot_value: '765432', extra: {} },
-            { index: 8, title: '护肤误区｜这些坑千万别踩', url: '', hot_value: '654321', extra: {} },
-            { index: 9, title: '早餐食谱｜简单又营养', url: '', hot_value: '543210', extra: {} },
-            { index: 10, title: '宠物日常｜我家猫咪太可爱了', url: '', hot_value: '432109', extra: {} },
-          ]
-        });
+
+      // 小红书/脉脉 → tophub.today 爬虫
+      const scrapeMap = {
+        xiaohongshu: { url: 'https://tophub.today/n/L4MdA5ldxD', name: '小红书' },
+        maimai: { url: 'https://tophub.today/n/2me3DQrowj', name: '脉脉' },
+      };
+      const scrapeTarget = scrapeMap[type];
+      if (scrapeTarget) {
+        return await handleTophubScrape(type, scrapeTarget, res);
       }
-      
-      // 其他平台使用 uapi.com
-      console.log('USING UAPI FOR TYPE:', type);
+
+      // 其他平台使用 uapis.cn
       const r = await fetch(`https://uapis.cn/api/v1/misc/hotboard?type=${encodeURIComponent(type)}`);
       const data = await r.json();
       return res.status(r.status).json(data);
@@ -594,4 +538,113 @@ async function syncAfdianOrder(cozeUserId) {
     console.error('syncAfdianOrder error:', e.message);
     return false;
   }
+}
+
+// ─── Tophub 爬虫 ───
+
+async function handleTophubScrape(type, target, res) {
+  const todayStr = getDateStr();
+  const cacheKey = `hotboard:scrape:${type}:${todayStr}`;
+
+  if (kv) {
+    try {
+      const cached = await kv.get(cacheKey);
+      if (cached && Array.isArray(cached) && cached.length > 0) {
+        return res.json({
+          type,
+          source: 'cached',
+          update_time: new Date().toLocaleString('zh-CN'),
+          list: cached,
+        });
+      }
+    } catch {}
+  }
+
+  const r = await fetch(target.url, {
+    headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36' },
+  });
+  const html = await r.text();
+  const rawItems = parseTophubItems(html);
+
+  const list = rawItems.map((item, i) => ({
+    index: i + 1,
+    title: item.title,
+    url: item.url,
+    hot_value: String(item.heatScore),
+    extra: {},
+  }));
+
+  if (kv && list.length > 0) {
+    const now = Date.now();
+    const midnight = new Date();
+    midnight.setDate(midnight.getDate() + 1);
+    midnight.setHours(0, 0, 0, 0);
+    const ttl = Math.floor((midnight.getTime() - now) / 1000);
+    if (ttl > 0) {
+      await kv.set(cacheKey, list, { ex: ttl });
+    }
+  }
+
+  return res.json({
+    type,
+    source: 'real_api',
+    update_time: new Date().toLocaleString('zh-CN'),
+    list,
+  });
+}
+
+function getDateStr() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+
+function parseTophubItems(html) {
+  const items = [];
+  const trRegex = /<tr[^>]*>[\s\S]*?<\/tr>/gi;
+  let trMatch;
+
+  while ((trMatch = trRegex.exec(html)) !== null) {
+    const tr = trMatch[0];
+    const rankMatch = tr.match(/<td[^>]*>\s*(\d+)\.\s*<\/td>/i);
+    if (!rankMatch) continue;
+
+    const linkMatch = tr.match(/<a\s+href="([^"]*)"[^>]*>([\s\S]*?)<\/a>/i);
+    if (!linkMatch) continue;
+
+    const rank = parseInt(rankMatch[1]);
+    const url = linkMatch[1].trim();
+    const title = linkMatch[2].replace(/<[^>]+>/g, '').trim();
+    if (!title) continue;
+
+    const tds = tr.split('</td>');
+    let heatRaw = '';
+    for (let i = 0; i < tds.length; i++) {
+      const cellContent = tds[i].replace(/<td[^>]*>/g, '').replace(/<[^>]+>/g, '').trim();
+      if (cellContent && !cellContent.match(/^\d+\.$/) && cellContent !== title && !cellContent.includes('')) {
+        heatRaw = cellContent;
+      }
+    }
+
+    items.push({
+      rank,
+      title,
+      url: url.startsWith('http') ? url : `https://tophub.today${url.startsWith('/') ? '' : '/'}${url}`,
+      heatScore: parseHeat(heatRaw),
+    });
+  }
+
+  items.sort((a, b) => a.rank - b.rank);
+  return items.slice(0, 30);
+}
+
+function parseHeat(raw) {
+  if (!raw) return 0;
+  const s = raw.trim();
+  const wMatch = s.match(/^([\d.]+)\s*w/i);
+  if (wMatch) return Math.round(parseFloat(wMatch[1]) * 10000);
+  const wanMatch = s.match(/^([\d.]+)\s*万/);
+  if (wanMatch) return Math.round(parseFloat(wanMatch[1]) * 10000);
+  const numMatch = s.match(/^(\d{1,9}(?:\.\d+)?)/);
+  if (numMatch) return parseFloat(numMatch[1]);
+  return 0;
 }

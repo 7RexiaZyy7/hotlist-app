@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { FileText, RefreshCw, ExternalLink, Search, AlertCircle } from 'lucide-react';
+import { FileText, RefreshCw, ExternalLink, Search, AlertCircle, Globe } from 'lucide-react';
 
 interface MaimaiArticle {
   id: string;
@@ -17,66 +17,32 @@ export function MaimaiTracker() {
   const [error, setError] = useState<string | null>(null);
   const [searchKeyword, setSearchKeyword] = useState('AI 焦虑');
   const [selectedTag, setSelectedTag] = useState<string | null>(null);
-
-  // 模拟数据（Vercel 上的降级方案）
-  const generateMockData = (keyword: string): MaimaiArticle[] => {
-    const templates = [
-      {
-        title: `${keyword}话题持续发酵，大家怎么看？`,
-        content: `最近脉脉上关于${keyword}的讨论很多，有人觉得这是趋势，也有人表示担忧...`,
-        tags: [keyword, '职场', '讨论']
-      },
-      {
-        title: `亲身经历：关于${keyword}的一些思考`,
-        content: `想分享一下自己对${keyword}的真实经历和看法，希望对大家有帮助...`,
-        tags: [keyword, '经验分享', '观点']
-      },
-      {
-        title: `${keyword}还是趋势吗？聊聊我的观察`,
-        content: `回顾这几年的变化，关于${keyword}有很多想说的，聊聊我的观察...`,
-        tags: [keyword, '趋势', '观察']
-      },
-      {
-        title: `身边的朋友都在讨论${keyword}，我来说两句`,
-        content: `最近聚会发现大家都在聊${keyword}，整理了一些观点和大家分享...`,
-        tags: [keyword, '话题', '分享']
-      }
-    ];
-    
-    return templates.map((t, i) => ({
-      id: `mock-${Date.now()}-${i}`,
-      title: t.title,
-      url: 'https://maimai.cn',
-      content: t.content,
-      date: new Date().toISOString().split('T')[0],
-      tags: t.tags,
-      views: Math.floor(Math.random() * 50000) + 1000
-    }));
-  };
+  const [searchSource, setSearchSource] = useState<'real' | 'demo'>('real');
 
   const handleFetch = async () => {
     setIsLoading(true);
     setError(null);
-    
+
     try {
-      const response = await fetch(`/api/maimai/search?keyword=${encodeURIComponent(searchKeyword)}`);
-      
+      const response = await fetch(`/api/proxy?action=maimai_search&keyword=${encodeURIComponent(searchKeyword)}`);
+
       if (!response.ok) {
-        throw new Error('API not available');
+        throw new Error(`API error: ${response.status}`);
       }
-      
+
       const result = await response.json();
-      
-      if (result.success) {
+
+      if (result.success && result.data.length > 0) {
         setArticles(result.data);
+        setSearchSource(result.source === 'bing_search' ? 'real' : 'demo');
       } else {
-        throw new Error(result.error || '获取数据失败');
+        throw new Error(result.error || 'No results');
       }
     } catch (err) {
-      // API 不可用时，使用模拟数据（Vercel 兼容）
-      console.log('API not available, using mock data:', err);
-      setArticles(generateMockData(searchKeyword));
-      setError(null); // 不显示错误，静默降级
+      console.log('Search API unavailable:', err);
+      setError(null);
+      setSearchSource('demo');
+      setArticles(generateFallbackData(searchKeyword));
     } finally {
       setIsLoading(false);
     }
@@ -96,7 +62,7 @@ export function MaimaiTracker() {
           <div>
             <h1 className="text-2xl font-bold text-text-primary mb-2">脉脉内容追踪</h1>
             <p className="text-body-md text-text-secondary">
-              追踪脉脉平台上的热门话题和文章
+              搜索脉脉平台上关于特定话题的讨论和热帖
             </p>
           </div>
           <button
@@ -105,7 +71,7 @@ export function MaimaiTracker() {
             className="flex items-center gap-2 px-4 py-2 bg-accent text-white rounded-md hover:bg-accent-hover transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
-            <span>抓取文章</span>
+            <span>搜索</span>
           </button>
         </div>
 
@@ -117,11 +83,24 @@ export function MaimaiTracker() {
               type="text"
               value={searchKeyword}
               onChange={(e) => setSearchKeyword(e.target.value)}
-              placeholder="输入关键词，如：AI 焦虑、裁员、职场..."
+              onKeyDown={(e) => e.key === 'Enter' && handleFetch()}
+              placeholder="输入关键词，如：AI 焦虑、裁员、行业趋势..."
               className="w-full pl-10 pr-4 py-2 bg-bg-surface border border-border rounded-md text-body-sm focus:outline-none focus:ring-2 focus:ring-accent/30"
             />
           </div>
         </div>
+
+        {/* 数据来源提示 */}
+        {articles.length > 0 && (
+          <div className="mt-2 flex items-center gap-2 text-caption text-text-tertiary">
+            <Globe className="w-3.5 h-3.5" />
+            <span>
+              {searchSource === 'real'
+                ? '数据来源：Bing 搜索（脉脉）'
+                : '数据来源：AI 生成（搜索未返回结果时的演示数据）'}
+            </span>
+          </div>
+        )}
       </div>
 
       {/* 标签筛选 */}
@@ -156,10 +135,8 @@ export function MaimaiTracker() {
         <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg flex items-start gap-3">
           <AlertCircle className="w-5 h-5 text-red-500 shrink-0 mt-0.5" />
           <div>
-            <h4 className="font-medium text-red-800 mb-1">需要启动 Python 服务</h4>
-            <pre className="text-sm text-red-700 whitespace-pre-wrap font-mono bg-white/50 p-2 rounded mt-2">
-              {error}
-            </pre>
+            <h4 className="font-medium text-red-800 mb-1">搜索失败</h4>
+            <p className="text-sm text-red-700">{error}</p>
           </div>
         </div>
       )}
@@ -169,7 +146,7 @@ export function MaimaiTracker() {
         {isLoading ? (
           <div className="flex items-center justify-center py-12">
             <RefreshCw className="w-6 h-6 text-accent animate-spin" />
-            <span className="ml-3 text-text-secondary">正在抓取文章...</span>
+            <span className="ml-3 text-text-secondary">正在搜索...</span>
           </div>
         ) : filteredArticles.length > 0 ? (
           filteredArticles.map(article => (
@@ -211,28 +188,32 @@ export function MaimaiTracker() {
         ) : (
           <div className="flex flex-col items-center justify-center py-16 text-center">
             <FileText className="w-12 h-12 text-text-tertiary mb-4" />
-            <h3 className="text-lg font-medium text-text-secondary mb-2">暂无文章</h3>
+            <h3 className="text-lg font-medium text-text-secondary mb-2">暂无内容</h3>
             <p className="text-body-sm text-text-tertiary mb-4">
-              点击上方"抓取文章"按钮开始获取脉脉内容
+              输入关键词，点击"搜索"获取脉脉相关讨论
             </p>
           </div>
         )}
       </div>
-
-      {/* 使用说明 */}
-      <div className="mt-8 p-4 bg-bg-elevated border border-border rounded-lg">
-        <h4 className="font-medium text-text-primary mb-2">使用说明</h4>
-        <div className="text-body-sm text-text-secondary space-y-2">
-          <p><strong>本地开发（真实数据）：</strong></p>
-          <ol className="list-decimal list-inside space-y-1 ml-2">
-            <li>进入 scripts 文件夹：<code>cd scripts</code></li>
-            <li>安装依赖：<code>pip install -r requirements.txt</code></li>
-            <li>启动服务：<code>python server.py</code></li>
-          </ol>
-          <p className="mt-3"><strong>Vercel 部署（演示模式）：</strong></p>
-          <p className="ml-2">自动使用模拟数据，无需 Python 后端</p>
-        </div>
-      </div>
     </div>
   );
+}
+
+function generateFallbackData(keyword: string): MaimaiArticle[] {
+  const templates = [
+    { title: `${keyword}话题在脉脉持续发酵，你怎么看？`, snippet: `脉脉上关于${keyword}的讨论越来越热，有用户分享了深度分析帖，引发大量跟帖讨论职场人的真实困境和应对策略。` },
+    { title: `聊聊${keyword}对职场人的影响`, snippet: `一位资深职场人在脉脉发帖分享了自己对${keyword}趋势的观察，从行业变化到个人职业规划，引发广泛共鸣。` },
+    { title: `${keyword}趋势下，哪些岗位正在消失？`, snippet: `脉脉用户整理了一份受${keyword}冲击最大的岗位清单，并给出了转型建议，收藏量过万。` },
+    { title: `亲身经历：${keyword}时代如何提升竞争力`, snippet: `从被裁到转型成功，一位脉脉用户分享了自己的真实经历和心路历程，干货满满。` },
+    { title: `大家都在聊${keyword}，我来说说我的观察`, snippet: `结合身边案例，深度分析${keyword}对不同行业、不同年龄段职场人的差异化影响。` },
+  ];
+  return templates.map((t, i) => ({
+    id: `demo-${Date.now()}-${i}`,
+    title: t.title,
+    url: `https://maimai.cn/search?keyword=${encodeURIComponent(keyword)}`,
+    content: t.snippet,
+    date: new Date().toISOString().split('T')[0],
+    tags: [keyword, '脉脉', '职场'],
+    views: Math.floor(Math.random() * 50000) + 1000,
+  }));
 }

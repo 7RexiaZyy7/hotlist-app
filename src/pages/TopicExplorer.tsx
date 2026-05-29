@@ -113,6 +113,7 @@ export function TopicExplorer() {
     
     try {
       const { checkAndIncrementQuota } = useAppStore.getState();
+      let completed = 0;
       
       for (const topic of savedTopics) {
         const allowed = await checkAndIncrementQuota();
@@ -121,9 +122,10 @@ export function TopicExplorer() {
         const query = buildTopicAnalysisQuery(topic.title);
         const analysis = await callCozeChat(query);
         setAnalysisResults(prev => [...prev, { topic: topic.title, analysis }]);
+        completed++;
       }
       
-      showToast(`${analysisResults.length + savedTopics.length} 个话题分析完成`);
+      showToast(`${completed} 个话题分析完成`);
     } catch (error) {
       showToast('分析失败，请稍后重试', 'error');
     } finally {

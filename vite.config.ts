@@ -34,10 +34,6 @@ export default defineConfig({
         target: 'http://localhost:3001',
         changeOrigin: true,
       },
-      '/api/maimai': {
-        target: 'http://localhost:8765',
-        changeOrigin: true,
-      },
       '/api': {
         target: 'https://api.coze.cn',
         changeOrigin: true,

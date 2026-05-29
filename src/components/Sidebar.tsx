@@ -1,5 +1,5 @@
 import { useAppStore } from '../store';
-import { Flame, Search, Sparkles, FileText, Globe } from 'lucide-react';
+import { Flame, Search, Sparkles, Globe } from 'lucide-react';
 import { clsx } from 'clsx';
 
 const navItems = [
@@ -7,7 +7,6 @@ const navItems = [
   { id: 'search', label: '内容搜索', icon: Globe },
   { id: 'explore', label: '话题勘探', icon: Search },
   { id: 'forge', label: '文案创作', icon: Sparkles },
-  { id: 'maimai', label: '脉脉追踪', icon: FileText },
 ];
 
 export function Sidebar() {
@@ -20,8 +19,11 @@ export function Sidebar() {
         <div className="w-7 h-7 rounded-md bg-accent flex items-center justify-center">
           <Flame className="w-3.5 h-3.5 text-white" />
         </div>
-        <div>
-          <h1 className="text-sm font-semibold text-text-primary leading-tight">热点工坊</h1>
+        <div className="flex flex-col gap-0">
+          <div className="flex items-center gap-2">
+            <h1 className="text-sm font-semibold text-text-primary leading-tight">热点工坊</h1>
+            <span className="px-1.5 py-0.5 rounded bg-bg-elevated text-caption text-text-tertiary font-mono leading-tight">v0.1</span>
+          </div>
           <p className="text-caption text-text-tertiary">爆款文案生成器</p>
         </div>
       </div>

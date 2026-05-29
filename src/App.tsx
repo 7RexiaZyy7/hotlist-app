@@ -4,12 +4,11 @@ import { TopBar } from './components/TopBar';
 import { HotRadar } from './pages/HotRadar';
 import { TopicExplorer } from './pages/TopicExplorer';
 import { ContentForge } from './pages/ContentForge';
-import { MaimaiTracker } from './pages/MaimaiTracker';
 import { ContentSearch } from './pages/ContentSearch';
 import { AuthCallback } from './pages/AuthCallback';
 import { useAppStore } from './store';
 import { getOAuthStatus, setUserId, getOAuthLoginUrl } from './services/cozeApi';
-import { Check, AlertCircle, Info, Loader2, AlertTriangle, Flame, Search, Sparkles, FileText, Globe } from 'lucide-react';
+import { Check, AlertCircle, Info, Loader2, AlertTriangle, Flame, Search, Sparkles, Globe } from 'lucide-react';
 import QuotaModal from './components/QuotaModal';
 import { clsx } from 'clsx';
 
@@ -18,7 +17,6 @@ const mobileNavItems = [
   { id: 'search', label: '搜索', icon: Globe },
   { id: 'explore', label: '话题', icon: Search },
   { id: 'forge', label: '文案', icon: Sparkles },
-  { id: 'maimai', label: '脉脉', icon: FileText },
 ];
 
 function Toast() {
@@ -51,7 +49,6 @@ function App() {
       search: '搜索 - 热点工坊',
       explore: '话题 - 热点工坊',
       forge: '文案 - 热点工坊',
-      maimai: '脉脉 - 热点工坊'
     };
     document.title = pageTitleMap[activePage] || '热点工坊';
   }, [activePage]);
@@ -106,7 +103,6 @@ function App() {
       case 'search': return <ContentSearch />;
       case 'explore': return <TopicExplorer />;
       case 'forge': return <ContentForge />;
-      case 'maimai': return <MaimaiTracker />;
       default: return <HotRadar />;
     }
   };

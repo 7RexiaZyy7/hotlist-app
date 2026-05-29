@@ -16,6 +16,7 @@ export function TopicExplorer() {
     showToast,
     savedTopics,
     clearSavedTopics,
+    setLastAnalysis,
   } = useAppStore();
   
   const [query, setQuery] = useState('');
@@ -186,7 +187,7 @@ export function TopicExplorer() {
               <div className="flex items-center justify-between mb-3">
                 <h4 className="text-body font-medium text-text-primary">{item.topic}</h4>
                 <button
-                  onClick={() => handleSelectTopic(item.topic)}
+                  onClick={() => { setLastAnalysis(item.analysis); handleSelectTopic(item.topic); }}
                   className="btn-primary !py-1 !px-2 !text-caption flex items-center gap-1"
                 >
                   <Sparkles className="w-3 h-3" />

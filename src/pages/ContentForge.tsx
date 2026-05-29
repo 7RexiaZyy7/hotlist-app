@@ -32,7 +32,7 @@ const platformStyles = [
 ];
 
 export function ContentForge() {
-  const { selectedTopic, setSelectedTopic, selectedAngles, setSelectedAngles, setGenerating, isGenerating, generatedCopies, setGeneratedCopies, setShowQuotaModal, showToast } = useAppStore();
+  const { selectedTopic, setSelectedTopic, selectedAngles, setSelectedAngles, lastAnalysis, setLastAnalysis, setGenerating, isGenerating, generatedCopies, setGeneratedCopies, setShowQuotaModal, showToast } = useAppStore();
   const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
   const [convertingPlatform, setConvertingPlatform] = useState<string | null>(null);
   const [convertedCopies, setConvertedCopies] = useState<Record<string, GeneratedCopy[]>>({});
@@ -82,7 +82,7 @@ export function ContentForge() {
 
     try {
       const userProfile = getUserVariables() || {};
-      const query = buildCopyGenerateQuery(selectedTopic, selectedAngles, userProfile);
+      const query = buildCopyGenerateQuery(selectedTopic, selectedAngles, userProfile, lastAnalysis);
       const result = await callCozeChat(query);
 
       const parsed = parseGeneratedCopies(result);
@@ -91,6 +91,8 @@ export function ContentForge() {
       } else {
         setGeneratedCopies(selectedAngles.map(angle => ({ angle, content: result })));
       }
+
+      setLastAnalysis('');
 
       saveHistory({
         topic: selectedTopic,

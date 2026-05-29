@@ -69,6 +69,8 @@ interface AppState {
 
   selectedTopic: string;
   selectedAngles: string[];
+  lastAnalysis: string;
+  setLastAnalysis: (analysis: string) => void;
   generatedCopies: GeneratedCopy[];
   isGenerating: boolean;
   setSelectedTopic: (topic: string) => void;
@@ -152,6 +154,8 @@ export const useAppStore = create<AppState>()((set) => ({
 
   selectedTopic: '',
   selectedAngles: [],
+  lastAnalysis: '',
+  setLastAnalysis: (analysis) => set({ lastAnalysis: analysis }),
   generatedCopies: [],
   isGenerating: false,
   setSelectedTopic: (topic) => set({ selectedTopic: topic }),

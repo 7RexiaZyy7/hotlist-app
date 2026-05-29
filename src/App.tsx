@@ -4,10 +4,11 @@ import { TopBar } from './components/TopBar';
 import { HotRadar } from './pages/HotRadar';
 import { TopicExplorer } from './pages/TopicExplorer';
 import { ContentForge } from './pages/ContentForge';
+import { MaimaiTracker } from './pages/MaimaiTracker';
 import { AuthCallback } from './pages/AuthCallback';
 import { useAppStore } from './store';
 import { getOAuthStatus, setUserId, getOAuthLoginUrl } from './services/cozeApi';
-import { Check, AlertCircle, Info, Loader2, AlertTriangle, Flame, Search, Sparkles } from 'lucide-react';
+import { Check, AlertCircle, Info, Loader2, AlertTriangle, Flame, Search, Sparkles, FileText } from 'lucide-react';
 import QuotaModal from './components/QuotaModal';
 import { clsx } from 'clsx';
 
@@ -15,6 +16,7 @@ const mobileNavItems = [
   { id: 'radar', label: '热榜', icon: Flame },
   { id: 'explore', label: '话题', icon: Search },
   { id: 'forge', label: '文案', icon: Sparkles },
+  { id: 'maimai', label: '脉脉', icon: FileText },
 ];
 
 function Toast() {
@@ -40,6 +42,16 @@ function Toast() {
 
 function App() {
   const { activePage, isLoggedIn, isLoadingAuth, setAuth, clearAuth, setLoadingAuth, quota, showQuotaModal, setShowQuotaModal } = useAppStore();
+
+  useEffect(() => {
+    const pageTitleMap: Record<string, string> = {
+      radar: '热榜 - 热点工坊',
+      explore: '话题 - 热点工坊',
+      forge: '文案 - 热点工坊',
+      maimai: '脉脉 - 热点工坊'
+    };
+    document.title = pageTitleMap[activePage] || '热点工坊';
+  }, [activePage]);
 
   useEffect(() => {
     let mounted = true;
@@ -90,6 +102,7 @@ function App() {
       case 'radar': return <HotRadar />;
       case 'explore': return <TopicExplorer />;
       case 'forge': return <ContentForge />;
+      case 'maimai': return <MaimaiTracker />;
       default: return <HotRadar />;
     }
   };

@@ -23,3 +23,14 @@ dist-ssr
 *.sln
 *.sw?
 .vercel
+
+# OpenCode Backups
+.opencode-old-backup-*
+.trae-cn-backup-*
+OpenCode-backup-*
+OpenCode-install-backup-*
+OpenCode-v11-installer-backup-*
+OpenCode-v12-final-backup-*
+ai.opencode.desktop-backup-*
+*会话记录.md
+*会话备份.md

@@ -264,22 +264,55 @@ export function getUserVariables(): Record<string, string> | undefined {
 
 // ─── 查询构建 ───
 
-export function buildCopyGenerateQuery(topic: string, angles: string[], userProfile: any): string {
-  let query = `为话题"${topic}"生成高质量爆款文案\n`;
-  query += `角度：${angles.join('、')}\n`;
-  query += `每个角度输出一条完整文案\n`;
+export function buildCopyGenerateQuery(topic: string, angles: string[], userProfile: any, analysis?: string): string {
+  let query = `请为以下话题生成高质量爆款文案：
 
-  if (userProfile.niche) query += `赛道：${userProfile.niche}\n`;
-  if (userProfile.audience) query += `受众：${userProfile.audience}\n`;
-  if (userProfile.style) query += `文风：${userProfile.style}\n`;
-  if (userProfile.contentFormat) query += `体裁：${userProfile.contentFormat}\n`;
+话题：${topic}
+角度：${angles.join('、')}
+每个角度输出一条完整文案`;
 
-  query += `\n直接输出，不要问问题，不要走列表流程`;
+  if (analysis) {
+    query += `\n\n话题分析结果（请参考以下信息来选择最佳切入角度和内容）：
+${analysis}`;
+  }
+
+  if (userProfile.niche) query += `\n赛道：${userProfile.niche}`;
+  if (userProfile.audience) query += `\n受众：${userProfile.audience}`;
+  if (userProfile.style) query += `\n文风：${userProfile.style}`;
+  if (userProfile.contentFormat) query += `\n体裁：${userProfile.contentFormat}`;
+
+  query += `
+
+文案要求：
+- 开头3个字必须抓住注意力（反常识/扎心提问/悬念缺口/具体数据）
+- 禁止开头用"最近""今天""我觉得""很多人"
+- 只说1个核心观点，打透，不说正确的废话
+- 多用短句、口语化、有节奏感
+- 自然融入1-2个emoji，不堆砌
+- 结尾必须有互动钩子（提问/反转/悬念），禁止无效提问"你觉得呢"
+- 全文150-300字，不超过350字
+
+去AI味要求：
+- 句式长短不一，避免AI的"完美感"
+- 加入口语化表达和语气词（"说真的""你猜怎么着"）
+- 适当加入不完美的表达（省略号、破折号、口语省略）
+- 避免"首先...其次...最后..."的AI八股结构
+- 加入具体的个人经验或场景细节（可以虚构）
+
+直接输出文案，不要问问题，不要解释，不要走列表流程`;
   return query;
 }
 
 export function buildTopicSearchQuery(keyword: string): string {
-  return `搜索关键词：${keyword}`;
+  return `请搜索关于"${keyword}"的最新热点话题和讨论，覆盖微博、抖音、小红书、知乎等平台。
+
+要求：
+1. 返回该话题下最热门的5-10个子话题或讨论角度
+2. 每个子话题标注来源平台和热度
+3. 优先返回最近24小时内的新讨论
+4. 剔除无意义内容（纯明星日常、广告等）
+
+直接输出话题列表，不要问问题`;
 }
 
 export function buildAnalysisQuery(copy: string): string {
@@ -298,18 +331,39 @@ ${copy}
 }
 
 export function buildTopicAnalysisQuery(topic: string): string {
-  return `请分析以下热点话题的讨论价值和创作切入点，按五个部分输出：
+  return `请深度分析以下热点话题的创作价值，输出结构化的分析报告：
 
-1. 热度评估 - 分析话题的当前热度、潜在爆发潜力、受众群体规模
-2. 讨论价值 - 评估话题的讨论深度、争议点、可延伸角度
-3. 创作切入点 - 提供3-5个不同角度的创作方向建议
-4. 内容形式 - 推荐适合该话题的内容形式（短视频/图文/直播等）
-5. 风险提示 - 指出话题可能存在的敏感点、合规风险、时效性限制
+话题：${topic}
 
-以下是需要分析的热点话题（直接分析，不要询问更多信息）：
-========================
-${topic}
-========================`;
+分析维度：
+
+1. 🔥 为什么火
+   - 触发事件：什么事件/现象引发了讨论
+   - 情绪特征：争议型/共鸣型/好奇型/焦虑型/娱乐型
+   - 受众画像：谁在讨论，核心人群特征
+   - 时间窗口：爆发期/持续期/衰退期（判断是否还值得追）
+
+2. 📊 各平台讨论差异
+   用表格对比抖音、小红书、知乎、B站上该话题的不同讨论角度和主流观点
+
+3. 💡 建议切入角度（3-5个）
+   每个角度包含：
+   - 角度类型（争议型/知识型/共鸣型/趣味型/实用型）
+   - 建议标题（具体可直接使用的标题）
+   - 适合平台（抖音/小红书/公众号等）
+   - 预估效果（为什么这个角度容易火）
+
+4. ⚠️ 风险提示
+   - 争议风险（会不会翻车）
+   - 时效性（还能火多久）
+   - 合规风险（有没有敏感点）
+
+5. 🎯 创作建议
+   - 推荐的内容形式（短视频/图文/长文）
+   - 推荐的写作风格
+   - 需要避免的坑
+
+直接输出分析报告，不要问问题`;
 }
 
 export function buildRewriteQuery(copy: string, style: string): string {

@@ -19,6 +19,7 @@ export function HotRadar() {
   const [error, setError] = useState<string | null>(null);
   const isLoadingRef = useRef(false);
   const [showAll, setShowAll] = useState(false);
+  const [showGuide, setShowGuide] = useState(() => !localStorage.getItem('hotRadar_guideShown'));
   const INITIAL_COUNT = 15;
   const [showCount, setShowCount] = useState(20);
 
@@ -32,13 +33,9 @@ export function HotRadar() {
       let items;
       
       // 热榜调用代理API
-      console.log('fetchHotList: 单平台热榜, platform=%s', platform);
       const r = await fetch(`${PROXY_BASE}?action=hotboard&type=${platform}`);
-      console.log('fetchHotList: proxy response status=%d', r.status);
       const data = await r.json();
-      console.log('fetchHotList: proxy data source=%s:', data.source || 'unknown', JSON.stringify(data).slice(0, 500));
       items = parseUapiHotList(data, platform);
-      console.log('fetchHotList: 解析后 items=%d', items.length);
 
       if (items.length === 0) {
         setError('热榜数据格式异常，请稍后重试');
@@ -66,19 +63,14 @@ export function HotRadar() {
 
   useEffect(() => {
     const cached = localStorage.getItem('hotList');
-    console.log('HotRadar init - cached exists:', !!cached);
     
     if (cached) {
       try {
         const data = JSON.parse(cached);
-        console.log('HotRadar init - cached data:', data);
         
         if (data.items && data.items.length > 0) {
-          console.log('HotRadar init - 使用缓存数据');
           setHotList(data.items);
           setSelectedPlatform(data.platform || 'douyin');
-        } else {
-          console.log('HotRadar init - 缓存存在但数据为空，不自动刷新');
         }
         // 只要有缓存记录（无论内容是否有效），都不自动调用 API
         return;
@@ -87,7 +79,6 @@ export function HotRadar() {
       }
     }
     
-    console.log('HotRadar init - 无缓存，调用 API 获取热榜');
     fetchHotList('douyin');
   }, [fetchHotList]);
 
@@ -106,6 +97,14 @@ export function HotRadar() {
     setShowCount(20);
     setSelectedPlatform(platformId);
     fetchHotList(platformId);
+  };
+
+  const handleToggleSave = (item: typeof hotList[0]) => {
+    const isSaved = savedTopics.some((t) => t.title === item.title);
+    toggleSaveTopic(item);
+    if (!isSaved) {
+      showToast('已收藏！点击「收藏池」查看并提交分析', 'success');
+    }
   };
 
   const handleItemClick = (item: typeof hotList[0]) => {
@@ -157,6 +156,13 @@ export function HotRadar() {
           );
         })}
       </div>
+
+      {showGuide && (
+        <div className="mb-4 p-3 rounded-lg bg-accent/5 border border-accent/20 flex items-center justify-between">
+          <span className="text-body-sm text-text-secondary">💡 勾选感兴趣的话题 → 收藏池 → 批量分析 → 生成文案</span>
+          <button onClick={() => { setShowGuide(false); localStorage.setItem('hotRadar_guideShown', '1'); }} className="text-caption text-accent hover:text-accent-hover">知道了</button>
+        </div>
+      )}
 
       {isLoadingHotList ? (
         <div className="flex-1 flex flex-col items-center justify-center py-16">
@@ -274,7 +280,7 @@ export function HotRadar() {
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
-                    toggleSaveTopic(item);
+                    handleToggleSave(item);
                   }}
                   className={clsx(
                     'shrink-0 mt-1 w-7 h-7 rounded-md flex items-center justify-center transition-all duration-120',

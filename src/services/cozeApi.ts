@@ -66,7 +66,6 @@ export async function getCozeToken(): Promise<string> {
 export async function callCozeChat(query: string): Promise<string> {
   const userId = getUserId();
   const userVariables = getUserVariables();
-  console.log('callCozeChat: userId=%s, query=%s', userId, query.slice(0, 50));
 
   const body: Record<string, any> = {
     bot_id: BOT_ID,
@@ -104,7 +103,6 @@ async function callDirect(body: Record<string, any>): Promise<string> {
   }
 
   const chatResult = await chatResponse.json();
-  console.log('callDirect: raw response', JSON.stringify(chatResult).slice(0, 300));
 
   const data = chatResult.data || chatResult;
 
@@ -120,13 +118,11 @@ async function callDirect(body: Record<string, any>): Promise<string> {
 }
 
 async function pollForResult(chat_id: string, conversation_id: string): Promise<string> {
-  console.log('pollForResult: start chat_id=%s', chat_id);
   const maxRetries = 45;
   const retryInterval = 1500;
 
   for (let i = 0; i < maxRetries; i++) {
     await new Promise(resolve => setTimeout(resolve, retryInterval));
-    if (i % 5 === 0) console.log('pollForResult: iteration %d/%d', i + 1, maxRetries);
 
     try {
       const token = await getCozeToken();
@@ -149,15 +145,12 @@ async function pollForResult(chat_id: string, conversation_id: string): Promise<
       const retrieveData = retrieveResult.data || retrieveResult;
       const status = retrieveData?.status;
 
-      if (i % 3 === 0) console.log('pollForResult: iter %d, status=%s', i + 1, status || 'unknown');
       if (!status) continue;
       if (status === 'failed') {
         const errorMsg = retrieveData?.error?.msg || retrieveData?.last_error?.msg || '未知错误';
         throw new Error(`Bot 执行失败: ${errorMsg}`);
       }
       if (status !== 'completed') continue;
-
-      console.log('pollForResult: completed, fetching messages');
 
       const messagesResponse = await fetch(
         `${COZE_API_BASE}/v3/chat/message/list?chat_id=${chat_id}&conversation_id=${conversation_id}`,
@@ -172,17 +165,13 @@ async function pollForResult(chat_id: string, conversation_id: string): Promise<
       const messages = messagesResult.data || messagesResult;
       if (!Array.isArray(messages)) continue;
 
-      console.log('pollForResult: %d messages, types: %s', messages.length, [...new Set(messages.map((m: any) => m.type || m.role))].join(','));
-
       const toolResponseMsg = messages.find((m: any) => m.type === 'tool_response');
       if (toolResponseMsg?.content) {
-        console.log('pollForResult: returning tool_response content');
         return toolResponseMsg.content;
       }
 
       const answerMsg = messages.find((m: any) => m.type === 'answer' || m.type === 'final');
       if (answerMsg?.content) {
-        console.log('pollForResult: returning answer content');
         return answerMsg.content;
       }
 

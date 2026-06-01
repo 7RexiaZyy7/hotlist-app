@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Search, ExternalLink, MessageSquare, ThumbsUp, Sparkles, TrendingUp, ShieldAlert, Lightbulb, Brain, RefreshCw, Clock, User } from 'lucide-react';
 import { useAppStore } from '../store';
 
-const SUBTOPICS = [
+const SUGGESTIONS = [
   { label: 'AI 替代人工', icon: Brain },
   { label: '35岁危机', icon: ShieldAlert },
   { label: '转行方向', icon: TrendingUp },
@@ -23,12 +23,12 @@ interface ZhihuItem {
 }
 
 export function ContentSearch() {
-  const [keyword, setKeyword] = useState('AI 行业焦虑');
+  const [keyword, setKeyword] = useState('');
   const [results, setResults] = useState<ZhihuItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [hasSearched, setHasSearched] = useState(false);
   const [expandedId, setExpandedId] = useState<string | null>(null);
-  const [showAllSubtopics, setShowAllSubtopics] = useState(false);
+  const [showAllSuggestions, setShowAllSuggestions] = useState(false);
 
   const handleSearch = async (searchKeyword?: string) => {
     const kw = searchKeyword || keyword;
@@ -40,7 +40,7 @@ export function ContentSearch() {
 
     try {
       const r = await fetch(`/api/proxy?action=zhihu_search&keyword=${encodeURIComponent(kw)}&count=10`);
-      if (!r.ok) throw new Error(`Zhihu API: ${r.status}`);
+      if (!r.ok) throw new Error(`搜索请求失败: ${r.status}`);
       const data = await r.json();
       if (data.Code === 0 && data.Data?.Items) {
         const items: ZhihuItem[] = data.Data.Items.map((item: any, i: number) => ({
@@ -58,34 +58,34 @@ export function ContentSearch() {
         setResults([]);
       }
     } catch (e: any) {
-      console.log('Zhihu search failed:', e.message);
+      console.log('搜索失败:', e.message);
       setResults([]);
     }
     setIsLoading(false);
   };
 
-  const displayedSubtopics = showAllSubtopics ? SUBTOPICS : SUBTOPICS.slice(0, 3);
+  const displayedSuggestions = showAllSuggestions ? SUGGESTIONS : SUGGESTIONS.slice(0, 3);
 
   return (
     <div className="p-6 max-w-5xl mx-auto">
-      {/* ─── Hero 区：AI + 行业焦虑 ─── */}
+      {/* Hero */}
       <div className="mb-10 text-center">
         <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-accent/10 text-accent text-caption font-medium mb-4">
           <Brain className="w-3.5 h-3.5" />
           知乎深度搜索
         </div>
         <h1 className="text-3xl font-bold text-text-primary mb-3 leading-tight">
-          AI + 行业焦虑
+          搜索你感兴趣的话题
         </h1>
         <p className="text-body-md text-text-secondary max-w-xl mx-auto">
-          搜索知乎上关于 AI 对行业冲击、职业焦虑、转行方向的真实讨论
+          搜索知乎上的真实讨论，发现热门观点和深度内容
         </p>
       </div>
 
-      {/* ─── 快捷话题入口 ─── */}
+      {/* Quick suggestions */}
       <div className="mb-8">
         <div className="flex items-center justify-center gap-2 flex-wrap">
-          {displayedSubtopics.map((sub) => {
+          {displayedSuggestions.map((sub) => {
             const Icon = sub.icon;
             return (
               <button
@@ -98,18 +98,18 @@ export function ContentSearch() {
               </button>
             );
           })}
-          {SUBTOPICS.length > 3 && (
+          {SUGGESTIONS.length > 3 && (
             <button
-              onClick={() => setShowAllSubtopics(!showAllSubtopics)}
+              onClick={() => setShowAllSuggestions(!showAllSuggestions)}
               className="text-caption text-text-tertiary hover:text-accent px-2"
             >
-              {showAllSubtopics ? '收起' : `+${SUBTOPICS.length - 3} 更多`}
+              {showAllSuggestions ? '收起' : `+${SUGGESTIONS.length - 3} 更多`}
             </button>
           )}
         </div>
       </div>
 
-      {/* ─── 搜索栏 ─── */}
+      {/* Search bar */}
       <div className="relative mb-8 max-w-2xl mx-auto">
         <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-text-tertiary" />
         <input
@@ -129,15 +129,14 @@ export function ContentSearch() {
         </button>
       </div>
 
-      {/* ─── 结果区 ─── */}
+      {/* Results */}
       {isLoading ? (
         <div className="flex flex-col items-center justify-center py-20">
           <RefreshCw className="w-6 h-6 text-accent animate-spin mb-4" />
-          <p className="text-body-sm text-text-secondary">正在搜索知乎...</p>
+          <p className="text-body-sm text-text-secondary">正在搜索...</p>
         </div>
       ) : results.length > 0 ? (
         <div>
-          {/* 结果统计 */}
           <div className="flex items-center justify-between mb-4">
             <p className="text-body-sm text-text-tertiary">
               找到 <span className="text-text-primary font-medium">{results.length}</span> 条结果
@@ -147,7 +146,6 @@ export function ContentSearch() {
             </p>
           </div>
 
-          {/* 结果列表 */}
           <div className="space-y-3">
             {results.map((item) => (
               <div
@@ -155,7 +153,6 @@ export function ContentSearch() {
                 className="bg-bg-surface border border-border rounded-xl overflow-hidden hover:shadow-md transition-all duration-120"
               >
                 <div className="p-5">
-                  {/* 标题 + 来源 */}
                   <div className="flex items-start justify-between gap-3 mb-2">
                     <a href={item.url} target="_blank" rel="noopener noreferrer" className="group flex-1">
                       <h3 className="text-base font-semibold text-text-primary group-hover:text-accent transition-colors leading-snug">
@@ -167,7 +164,6 @@ export function ContentSearch() {
                     </span>
                   </div>
 
-                  {/* 元信息 */}
                   <div className="flex items-center gap-4 text-caption text-text-tertiary mb-2 flex-wrap">
                     {item.author && (
                       <span className="flex items-center gap-1">
@@ -195,7 +191,6 @@ export function ContentSearch() {
                     )}
                   </div>
 
-                  {/* 摘要 */}
                   {item.summary && (
                     <>
                       <p className={`text-body-sm text-text-secondary leading-relaxed ${
@@ -214,7 +209,6 @@ export function ContentSearch() {
                     </>
                   )}
 
-                  {/* 操作按钮 */}
                   <div className="mt-3 flex items-center gap-3 pt-3 border-t border-border">
                     <a
                       href={item.url}
@@ -242,14 +236,13 @@ export function ContentSearch() {
           </div>
         </div>
       ) : hasSearched ? (
-        /* ─── 空结果 ─── */
         <div className="flex flex-col items-center justify-center py-16 text-center">
           <div className="w-14 h-14 rounded-full bg-bg-elevated flex items-center justify-center mb-4">
             <Search className="w-6 h-6 text-text-tertiary" />
           </div>
           <h3 className="text-lg font-medium text-text-secondary mb-2">没有搜到结果</h3>
           <p className="text-body-sm text-text-tertiary mb-6 max-w-sm">
-            知乎 API 需要配置 ZHIHU_API_TOKEN 环境变量才能使用，试试换个关键词
+            试试换个关键词，或检查 API 配置状态
           </p>
           <div className="flex gap-2">
             {['AI 焦虑', '转行', '职业发展'].map(tag => (
@@ -264,7 +257,6 @@ export function ContentSearch() {
           </div>
         </div>
       ) : (
-        /* ─── 初始状态 ─── */
         <div className="py-16">
           <div className="max-w-2xl mx-auto">
             <h2 className="text-lg font-semibold text-text-primary mb-4 text-center">
@@ -273,8 +265,8 @@ export function ContentSearch() {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               {[
                 { title: 'AI 会取代哪些行业？', desc: '看看知乎上关于 AI 替代的热门讨论' },
-                { title: '35岁遇上AI时代', desc: '中年职场人在 AI 浪潮中的困境与出路' },
-                { title: '2025热门转行方向', desc: 'AI 时代哪些行业值得投身' },
+                { title: '35 岁遇上 AI 时代', desc: '中年职场人在 AI 浪潮中的困境与出路' },
+                { title: '热门转行方向', desc: 'AI 时代哪些行业值得投身' },
                 { title: 'AI 焦虑怎么破', desc: '知乎高赞回答教你应对 AI 焦虑' },
               ].map((suggestion) => (
                 <button
@@ -293,14 +285,13 @@ export function ContentSearch() {
         </div>
       )}
 
-      {/* ─── 底部说明 ─── */}
       <div className="mt-8 p-4 rounded-xl bg-bg-elevated border border-border">
         <div className="flex items-start gap-3">
           <Brain className="w-4 h-4 text-accent shrink-0 mt-0.5" />
           <div>
             <h4 className="text-body-sm font-medium text-text-primary mb-1">关于本工具</h4>
             <p className="text-caption text-text-secondary leading-relaxed">
-              通过知乎开放平台 API 搜索有关 AI + 行业焦虑的讨论。搜索到的内容可以直接跳到「话题勘探」进行 AI 深度分析，或到「文案创作」生成内容。
+              通过知乎开放平台 API 搜索讨论内容。搜到的结果可以直接跳到「话题勘探」进行 AI 深度分析，或到「文案创作」生成内容。
             </p>
           </div>
         </div>

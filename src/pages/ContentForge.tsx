@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useMemo } from 'react';
 import { useAppStore } from '../store';
 import { callCozeChat, buildCopyGenerateQuery, checkUserQuota, incrementUserQuota, getUserVariables } from '../services/cozeApi';
 import { Sparkles, Copy, Check, RefreshCw, Wand2, FileText, Heart, BookOpen, MessageSquare, Flame, Rocket, Search, Smile, Book, Lightbulb, HelpCircle, GitCompare } from 'lucide-react';
@@ -40,6 +40,14 @@ export function ContentForge() {
   const [loadingStep, setLoadingStep] = useState(0);
   const resultsRef = useRef<HTMLDivElement>(null);
 
+  const history = useMemo(() => {
+    try {
+      return JSON.parse(localStorage.getItem('copyHistory') || '[]');
+    } catch {
+      return [];
+    }
+  }, []);  // Only loaded once; could be refreshed but this is acceptable for history
+
   useEffect(() => {
     if (isGenerating) {
       const interval = setInterval(() => {
@@ -55,7 +63,7 @@ export function ContentForge() {
     } else if (selectedAngles.length < 5) {
       setSelectedAngles([...selectedAngles, angle]);
     } else {
-      showToast('最多选择5个角度', 'warning');
+      showToast('最多选择 5 个角度', 'warning');
     }
   };
 
@@ -140,12 +148,12 @@ export function ContentForge() {
     showToast('已复制到剪贴板');
   };
 
-  const history = JSON.parse(localStorage.getItem('copyHistory') || '[]');
-
   const saveHistory = (item: any) => {
-    const current = JSON.parse(localStorage.getItem('copyHistory') || '[]');
-    const updated = [item, ...current].slice(0, 10);
-    localStorage.setItem('copyHistory', JSON.stringify(updated));
+    try {
+      const current = JSON.parse(localStorage.getItem('copyHistory') || '[]');
+      const updated = [item, ...current].slice(0, 10);
+      localStorage.setItem('copyHistory', JSON.stringify(updated));
+    } catch {}
   };
 
   const loadHistory = (item: any) => {
@@ -155,13 +163,13 @@ export function ContentForge() {
     setShowHistory(false);
   };
 
-  const currentCopies = convertedCopies[convertingPlatform || ''] || generatedCopies;
+  const currentCopies = convertingPlatform ? (convertedCopies[convertingPlatform] || generatedCopies) : generatedCopies;
 
   return (
     <div className="p-4 md:p-6 pb-24 md:pb-6 max-w-shell mx-auto">
       <div className="mb-6">
         <h2 className="text-display text-text-primary mb-1">文案工坊</h2>
-        <p className="text-body-sm text-text-secondary">输入话题，AI帮你生成爆款文案</p>
+        <p className="text-body-sm text-text-secondary">输入话题，AI 帮你生成爆款文案</p>
       </div>
 
       {/* Search input */}
@@ -277,12 +285,12 @@ export function ContentForge() {
                     {copiedIndex === index ? (
                       <>
                         <Check className="w-3 h-3" />
-                        <span>已复制</span>
+                        已复制
                       </>
                     ) : (
                       <>
                         <Copy className="w-3 h-3" />
-                        <span>复制</span>
+                        复制
                       </>
                     )}
                   </button>
@@ -313,7 +321,7 @@ export function ContentForge() {
 
           {showHistory && (
             <div className="mt-3 space-y-1.5">
-              {history.map((item: any, index) => (
+              {history.map((item: any, index: number) => (
                 <div
                   key={index}
                   onClick={() => loadHistory(item)}

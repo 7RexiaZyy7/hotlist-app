@@ -6,11 +6,23 @@ import { syncUserVariables } from '../services/cozeApi';
 
 const STORAGE_KEY = 'creator_profile';
 
+const contentFormatOptions = [
+  { id: '小红书笔记', desc: 'emoji + 分段 + 标签' },
+  { id: '抖音短视频', desc: '画面 + 口播 + BGM' },
+  { id: '公众号文章', desc: '深度长文' },
+  { id: '微博文案', desc: '短平快 + 话题' },
+  { id: 'B站视频', desc: '脚本 + 分镜' },
+  { id: '知乎回答', desc: '专业深度' },
+  { id: '视频号', desc: '口播 + 字幕' },
+  { id: '其他', desc: '自定义格式' },
+];
+
 export function CreatorProfile() {
-  const { userProfile, setUserProfile, isConnected, showToast, cozeUid } = useAppStore();
+  const { userProfile, setUserProfile, isConnected, showToast } = useAppStore();
   const [saved, setSaved] = useState(false);
   const [syncing, setSyncing] = useState(false);
   const [syncDone, setSyncDone] = useState(false);
+  const [customFormat, setCustomFormat] = useState('');
 
   useEffect(() => {
     const saved = localStorage.getItem(STORAGE_KEY);
@@ -21,7 +33,7 @@ export function CreatorProfile() {
     }
   }, [setUserProfile]);
 
-  const filledCount = Object.values(userProfile).filter(v => v && v.trim()).length;
+  const filledCount = Object.values(userProfile).filter((v): v is string => typeof v === 'string' && v.trim().length > 0).length;
   const totalFields = 5;
   const completeness = Math.round((filledCount / totalFields) * 100);
 
@@ -55,7 +67,7 @@ export function CreatorProfile() {
     setSyncing(false);
     if (ok) {
       setSyncDone(true);
-      showToast('档案已同步到 COZE 云端');
+      showToast('档案已同步到 Coze 云端');
     } else {
       showToast('同步失败，请稍后重试', 'info');
     }
@@ -74,11 +86,28 @@ export function CreatorProfile() {
     return userProfile.nickname?.[0] || userProfile.niche?.[0] || '?';
   };
 
+  const handleFormatSelect = (id: string) => {
+    if (id === '其他') {
+      setCustomFormat('');
+      setUserProfile({ ...userProfile, contentFormat: '' });
+    } else {
+      setCustomFormat('');
+      setUserProfile({ ...userProfile, contentFormat: id });
+    }
+  };
+
+  const handleCustomFormatChange = (value: string) => {
+    setCustomFormat(value);
+    if (value.trim()) {
+      setUserProfile({ ...userProfile, contentFormat: value });
+    }
+  };
+
   return (
     <div className="p-4 md:p-6 pb-24 md:pb-6 h-full overflow-y-auto">
       <div className="max-w-3xl mx-auto space-y-6">
 
-        {/* 头部 */}
+        {/* Header */}
         <div className="card p-6">
           <div className="flex items-start gap-5">
             {/* Avatar */}
@@ -95,7 +124,7 @@ export function CreatorProfile() {
 
             {/* Info */}
             <div className="flex-1 min-w-0">
-              <h2 className="text-heading-m text-text-primary">创作档案</h2>
+              <h2 className="text-heading-m text-text-primary">创作者档案</h2>
               <p className="text-body-sm text-text-secondary mt-0.5">
                 {userProfile.nickname || '未命名创作者'}
                 {userProfile.niche && ` · ${userProfile.niche}`}
@@ -160,7 +189,7 @@ export function CreatorProfile() {
             <div className="flex items-center gap-2 mb-1">
               <Target className="w-4 h-4 text-accent" />
               <h3 className="text-body font-semibold text-text-primary">核心信息</h3>
-              <span className="text-caption text-text-tertiary ml-1">（硬约束 · AI 创作的基础锚点）</span>
+              <span className="text-caption text-text-tertiary ml-1">（硬约束，AI 创作的基础锚点）</span>
             </div>
             <div className="grid gap-4 mt-4">
               <div>
@@ -192,7 +221,7 @@ export function CreatorProfile() {
                     value={userProfile.audience || ''}
                     onChange={(e) => setUserProfile({ ...userProfile, audience: e.target.value })}
                     className="input-field !rounded-md !pl-10"
-                    placeholder="例如：20-30岁职场新人、创业者、宝妈..."
+                    placeholder="例如：20-30 岁职场新人、创业者、宝妈..."
                   />
                 </div>
                 <p className="text-caption text-text-tertiary mt-1">你希望吸引什么人？越具体，AI 越懂你的读者</p>
@@ -205,7 +234,7 @@ export function CreatorProfile() {
             <div className="flex items-center gap-2 mb-1">
               <PenTool className="w-4 h-4 text-accent" />
               <h3 className="text-body font-semibold text-text-primary">扩展信息</h3>
-              <span className="text-caption text-text-tertiary ml-1">（软约束 · 让 AI 模仿你的语气和风格）</span>
+              <span className="text-caption text-text-tertiary ml-1">（软约束，让 AI 模仿你的语气和风格）</span>
             </div>
             <div className="grid gap-4 mt-4">
               <div>
@@ -247,39 +276,37 @@ export function CreatorProfile() {
                   内容形式
                 </label>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-1">
-                  {[
-                    { id: '小红书笔记', desc: 'emoji+分段+标签' },
-                    { id: '抖音短视频', desc: '画面+口播+BGM' },
-                    { id: '公众号文章', desc: '深度长文' },
-                    { id: '微博文案', desc: '短平快+话题' },
-                    { id: 'B站视频', desc: '脚本+分镜' },
-                    { id: '知乎回答', desc: '专业深度' },
-                    { id: '视频号', desc: '口播+字幕' },
-                    { id: '其他', desc: '自定义格式' },
-                  ].map((pf) => (
-                    <button
-                      key={pf.id}
-                      onClick={() => setUserProfile({ ...userProfile, contentFormat: pf.id === '其他' ? (userProfile.contentFormat || '') : pf.id })}
-                      className={clsx(
-                        'p-3 rounded-md border text-left transition-all duration-120',
-                        userProfile.contentFormat === pf.id
-                          ? 'border-accent bg-accent-subtle'
-                          : 'border-border bg-bg-surface hover:border-text-tertiary'
-                      )}
-                    >
-                      <p className={`text-body-sm font-medium ${userProfile.contentFormat === pf.id ? 'text-accent' : 'text-text-secondary'}`}>{pf.id}</p>
-                      <p className="text-caption text-text-tertiary mt-0.5">{pf.desc}</p>
-                    </button>
-                  ))}
+                  {contentFormatOptions.map((pf) => {
+                    const isSelected = userProfile.contentFormat === pf.id;
+                    return (
+                      <button
+                        key={pf.id}
+                        onClick={() => handleFormatSelect(pf.id)}
+                        className={clsx(
+                          'p-3 rounded-md border text-left transition-all duration-120',
+                          isSelected
+                            ? 'border-accent bg-accent-subtle'
+                            : 'border-border bg-bg-surface hover:border-text-tertiary'
+                        )}
+                      >
+                        <p className={`text-body-sm font-medium ${isSelected ? 'text-accent' : 'text-text-secondary'}`}>{pf.id}</p>
+                        <p className="text-caption text-text-tertiary mt-0.5">{pf.desc}</p>
+                      </button>
+                    );
+                  })}
                 </div>
-                {userProfile.contentFormat === '其他' && (
+                {userProfile.contentFormat === '' && !contentFormatOptions.some(o => o.id === '其他' && customFormat) && customFormat === '' ? null : null}
+                {userProfile.contentFormat === '' && (
                   <input
                     type="text"
-                    value={userProfile.contentFormat === '其他' ? '' : userProfile.contentFormat}
-                    onChange={(e) => setUserProfile({ ...userProfile, contentFormat: e.target.value })}
+                    value={customFormat}
+                    onChange={(e) => handleCustomFormatChange(e.target.value)}
                     className="input-field !rounded-md mt-2"
-                    placeholder="输入你的内容形式..."
+                    placeholder="输入自定义内容形式..."
                   />
+                )}
+                {userProfile.contentFormat && !contentFormatOptions.some(o => o.id === userProfile.contentFormat) && (
+                  <p className="text-caption text-text-tertiary mt-1">当前自定义格式：{userProfile.contentFormat}</p>
                 )}
                 <p className="text-caption text-text-tertiary mt-1">选择平台后，AI 会按对应格式生成文案</p>
               </div>
@@ -318,8 +345,8 @@ export function CreatorProfile() {
         {/* Footer note */}
         <p className="text-caption text-text-tertiary text-center pb-4">
           {import.meta.env.PROD
-            ? '保存后点击"同步到云端"可将档案同步到 COZE，后续对话中 Agent 会自动读取'
-            : '部署到 Vercel 后，档案可同步到 COZE 云端实现长期记忆'}
+            ? '保存后点击「同步到云端」可将档案同步到 Coze，后续对话中 Agent 会自动读取'
+            : '部署到 Vercel 后，档案可同步到 Coze 云端实现长期记忆'}
         </p>
       </div>
     </div>

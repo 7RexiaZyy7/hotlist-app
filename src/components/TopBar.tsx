@@ -1,7 +1,7 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { useAppStore } from '../store';
 import { getOAuthLoginUrl, oauthLogout, checkUserQuota, QuotaInfo } from '../services/cozeApi';
-import { Settings, Zap, LogIn, LogOut, Flame, Search, Sparkles } from 'lucide-react';
+import { Settings, Zap, LogIn, LogOut } from 'lucide-react';
 import { clsx } from 'clsx';
 
 export function TopBar() {
@@ -14,6 +14,7 @@ export function TopBar() {
   const quota = useAppStore((s) => s.quota);
   const setQuota = useAppStore((s) => s.setQuota);
   const setShowQuotaModal = useAppStore((s) => s.setShowQuotaModal);
+  const setActivePage = useAppStore((s) => s.setActivePage);
   const [showSettings, setShowSettings] = useState(false);
   const [loggingIn, setLoggingIn] = useState(false);
   const settingsRef = useRef<HTMLDivElement>(null);
@@ -61,17 +62,20 @@ export function TopBar() {
     return <span className="tier-badge anon">游客</span>;
   };
 
+  const displayUid = useMemo(() => {
+    if (!cozeUid) return '';
+    return cozeUid.length > 8 ? `${cozeUid.slice(0, 8)}...` : cozeUid;
+  }, [cozeUid]);
+
   return (
     <header className="h-14 bg-bg-surface border-b border-border flex items-center justify-between px-4 shrink-0">
       <div className="flex items-center gap-4">
         <div className="flex items-center gap-2 md:hidden">
           <div className="w-7 h-7 rounded-md bg-accent flex items-center justify-center">
-            <Flame className="w-3.5 h-3.5 text-white" />
+            <Zap className="w-3.5 h-3.5 text-white" />
           </div>
           <h1 className="text-sm font-semibold text-text-primary">热点工坊</h1>
         </div>
-
-
       </div>
 
       <div className="flex items-center gap-3">
@@ -88,7 +92,9 @@ export function TopBar() {
 
         {isLoggedIn ? (
           <div className="flex items-center gap-2">
-            <span className="text-caption text-text-tertiary hidden sm:inline">{cozeUid.slice(0, 8)}...</span>
+            {displayUid && (
+              <span className="text-caption text-text-tertiary hidden sm:inline">{displayUid}</span>
+            )}
             <button
               onClick={handleLogout}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-error/10 text-error hover:bg-error/20 transition-all duration-120"
@@ -109,7 +115,7 @@ export function TopBar() {
             )}
           >
             <LogIn className="w-3.5 h-3.5" />
-            <span className="text-body-sm font-medium">{loggingIn ? '登录中...' : 'Coze登录'}</span>
+            <span className="text-body-sm font-medium">{loggingIn ? '登录中...' : 'Coze 登录'}</span>
           </button>
         )}
 
@@ -117,16 +123,23 @@ export function TopBar() {
           <button
             onClick={() => setShowSettings(!showSettings)}
             className="p-1.5 rounded-md hover:bg-bg-elevated transition-all duration-120"
+            aria-label="设置"
           >
             <Settings className="w-4 h-4 text-text-tertiary" />
           </button>
           {showSettings && (
             <div className="absolute right-0 mt-1 w-48 bg-bg-surface border border-border rounded-lg p-1 z-40 animate-fadeIn shadow-lg">
-              <button className="w-full px-3 py-2 rounded-md text-left text-body-sm text-text-secondary hover:bg-bg-elevated transition-colors">
-                偏好设置
+              <button
+                onClick={() => { setShowSettings(false); setActivePage('profile'); }}
+                className="w-full px-3 py-2 rounded-md text-left text-body-sm text-text-secondary hover:bg-bg-elevated transition-colors"
+              >
+                创作者档案
               </button>
-              <button className="w-full px-3 py-2 rounded-md text-left text-body-sm text-text-secondary hover:bg-bg-elevated transition-colors">
-                关于我们
+              <button
+                onClick={() => { setShowSettings(false); setShowQuotaModal(true); }}
+                className="w-full px-3 py-2 rounded-md text-left text-body-sm text-text-secondary hover:bg-bg-elevated transition-colors"
+              >
+                使用额度
               </button>
             </div>
           )}

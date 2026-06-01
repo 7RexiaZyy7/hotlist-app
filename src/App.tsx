@@ -6,11 +6,13 @@ import { TopicExplorer } from './pages/TopicExplorer';
 import { ContentForge } from './pages/ContentForge';
 import { ContentSearch } from './pages/ContentSearch';
 import { AuthCallback } from './pages/AuthCallback';
+import { HitAnalyzer } from './pages/HitAnalyzer';
+import { CreatorProfile } from './pages/CreatorProfile';
 import { useAppStore } from './store';
-import { getOAuthStatus, setUserId, getOAuthLoginUrl } from './services/cozeApi';
+import { getOAuthStatus, setUserId } from './services/cozeApi';
 import { Check, AlertCircle, Info, Loader2, AlertTriangle, Flame, Search, Sparkles, Globe } from 'lucide-react';
-import QuotaModal from './components/QuotaModal';
 import { clsx } from 'clsx';
+import QuotaModal from './components/QuotaModal';
 
 const mobileNavItems = [
   { id: 'radar', label: '热榜', icon: Flame },
@@ -31,7 +33,7 @@ function Toast() {
   };
 
   return (
-    <div className="fixed top-16 right-4 z-50 animate-fadeIn">
+    <div className="fixed top-14 right-4 z-50 animate-fadeIn">
       <div className="bg-bg-surface border border-border rounded-lg px-4 py-2.5 flex items-center gap-2.5 shadow-lg">
         {iconMap[toast.type]}
         <span className="text-body-sm text-text-primary">{toast.message}</span>
@@ -45,10 +47,12 @@ function App() {
 
   useEffect(() => {
     const pageTitleMap: Record<string, string> = {
-      radar: '热榜 - 热点工坊',
-      search: '搜索 - 热点工坊',
-      explore: '话题 - 热点工坊',
-      forge: '文案 - 热点工坊',
+      radar: '热点雷达 - 热点工坊',
+      search: '内容搜索 - 热点工坊',
+      explore: '话题勘探 - 热点工坊',
+      forge: '文案工坊 - 热点工坊',
+      analyze: '文案拆解 - 热点工坊',
+      profile: '创作者档案 - 热点工坊',
     };
     document.title = pageTitleMap[activePage] || '热点工坊';
   }, [activePage]);
@@ -103,6 +107,8 @@ function App() {
       case 'search': return <ContentSearch />;
       case 'explore': return <TopicExplorer />;
       case 'forge': return <ContentForge />;
+      case 'analyze': return <HitAnalyzer />;
+      case 'profile': return <CreatorProfile />;
       default: return <HotRadar />;
     }
   };
@@ -151,6 +157,7 @@ function App() {
           onLogin={async () => {
             setShowQuotaModal(false);
             try {
+              const { getOAuthLoginUrl } = await import('./services/cozeApi');
               const url = await getOAuthLoginUrl();
               window.location.href = url;
             } catch {

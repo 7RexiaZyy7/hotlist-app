@@ -26,11 +26,38 @@ interface Toast {
   type: 'success' | 'error' | 'info' | 'warning';
 }
 
-interface AuthState {
-  isLoggedIn: boolean;
-  isLoadingAuth: boolean;
-  cozeUid: string;
-  accessToken: string;
+const SAVED_TOPICS_KEY = 'savedTopics';
+
+function loadSavedTopics(): HotItem[] {
+  try {
+    const raw = localStorage.getItem(SAVED_TOPICS_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+}
+
+function persistSavedTopics(items: HotItem[]) {
+  localStorage.setItem(SAVED_TOPICS_KEY, JSON.stringify(items));
+}
+
+function loadCreationStats() {
+  try {
+    const raw = localStorage.getItem('creationStats');
+    if (raw) {
+      const data = JSON.parse(raw);
+      // Reset if not today
+      const today = new Date().toDateString();
+      if (data.date === today) {
+        return data;
+      }
+    }
+  } catch {}
+  return { date: new Date().toDateString(), todayCopies: 0, todayAnalysis: 0 };
+}
+
+function persistCreationStats(stats: { date: string; todayCopies: number; todayAnalysis: number }) {
+  localStorage.setItem('creationStats', JSON.stringify(stats));
 }
 
 interface AppState {
@@ -82,6 +109,7 @@ interface AppState {
   setUserProfile: (profile: Partial<UserProfile>) => void;
 
   creationStats: {
+    date: string;
     todayCopies: number;
     todayAnalysis: number;
   };
@@ -94,6 +122,8 @@ interface AppState {
   toast: Toast | null;
   showToast: (message: string, type?: Toast['type']) => void;
 }
+
+const initialStats = loadCreationStats();
 
 export const useAppStore = create<AppState>()((set) => ({
   isConnected: true,
@@ -139,18 +169,29 @@ export const useAppStore = create<AppState>()((set) => ({
   setSelectedPlatform: (platform) => set({ selectedPlatform: platform }),
   setLoadingHotList: (loading) => set({ isLoadingHotList: loading }),
 
-  // 收藏话题
-  savedTopics: [],
+  // 收藏话题 - 持久化到 localStorage
+  savedTopics: loadSavedTopics(),
   toggleSaveTopic: (item) =>
     set((state) => {
       const exists = state.savedTopics.some((t) => t.title === item.title);
+      let newTopics: HotItem[];
       if (exists) {
-        return { savedTopics: state.savedTopics.filter((t) => t.title !== item.title) };
+        newTopics = state.savedTopics.filter((t) => t.title !== item.title);
+      } else {
+        newTopics = [...state.savedTopics, item];
       }
-      return { savedTopics: [...state.savedTopics, item] };
+      persistSavedTopics(newTopics);
+      return { savedTopics: newTopics };
     }),
-  isTopicSaved: (_title) => false,
-  clearSavedTopics: () => set({ savedTopics: [] }),
+  isTopicSaved: (title) => {
+    // 直接从 store 读取当前状态
+    const state = useAppStore.getState();
+    return state.savedTopics.some((t) => t.title === title);
+  },
+  clearSavedTopics: () => {
+    persistSavedTopics([]);
+    set({ savedTopics: [] });
+  },
 
   selectedTopic: '',
   selectedAngles: [],
@@ -167,24 +208,25 @@ export const useAppStore = create<AppState>()((set) => ({
   setUserProfile: (profile) =>
     set((state) => ({ userProfile: { ...state.userProfile, ...profile } })),
 
-  creationStats: {
-    todayCopies: 0,
-    todayAnalysis: 0,
-  },
+  creationStats: initialStats,
   incrementCopies: () =>
-    set((state) => ({
-      creationStats: {
+    set((state) => {
+      const newStats = {
         ...state.creationStats,
         todayCopies: state.creationStats.todayCopies + 1,
-      },
-    })),
+      };
+      persistCreationStats(newStats);
+      return { creationStats: newStats };
+    }),
   incrementAnalysis: () =>
-    set((state) => ({
-      creationStats: {
+    set((state) => {
+      const newStats = {
         ...state.creationStats,
         todayAnalysis: state.creationStats.todayAnalysis + 1,
-      },
-    })),
+      };
+      persistCreationStats(newStats);
+      return { creationStats: newStats };
+    }),
 
   activePage: 'radar',
   setActivePage: (page) => set({ activePage: page }),

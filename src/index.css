@@ -342,6 +342,15 @@
     background: #1c1c1f;
     border-color: #3a3a3e;
   }
+  .hot-card.compact {
+    gap: 10px;
+    padding: 8px 12px;
+    align-items: center;
+  }
+  .hot-card.compact:hover {
+    background: #1c1c1f;
+    border-color: #3a3a3e;
+  }
 
   /* ----- Rank badge ----- */
   .rank-badge {

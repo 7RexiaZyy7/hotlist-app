@@ -284,65 +284,85 @@ export function HotRadar() {
           <div className="space-y-2">
             {hotList.slice(0, showCount).map((item, index) => {
               const isSaved = savedTopics.some((t) => t.title === item.title);
+              const isHero = index < 3;
+              const isCompact = index >= 10;
               return (
-                <div key={index} className="hot-card group">
+                <div
+                  key={index}
+                  onClick={() => handleAnalyze(item)}
+                  className={clsx('hot-card group', isCompact && 'compact')}
+                >
                   {/* Rank */}
-                  <div className={clsx('rank-badge', index < 3 && 'top')}>
-                    {index + 1}
-                  </div>
+                  {isCompact ? (
+                    <span className="text-xs text-[#6b6b73] min-w-[18px] text-right shrink-0 tabular-nums">
+                      {index + 1}
+                    </span>
+                  ) : (
+                    <div className={clsx('rank-badge', isHero && 'top')}>
+                      {index + 1}
+                    </div>
+                  )}
 
                   {/* Content */}
                   <div className="flex-1 min-w-0">
-                    {/* Title + actions row */}
-                    <div className="flex items-start justify-between gap-2">
-                      <button
-                        onClick={() => handleAnalyze(item)}
-                        className="text-sm font-medium text-[#ededef] truncate hover:text-[#6366f1] transition-colors text-left flex-1 min-w-0"
-                      >
+                    {/* Title row */}
+                    <div className={clsx(
+                      'flex items-start justify-between gap-2',
+                      isCompact && 'items-center'
+                    )}>
+                      <span className={clsx(
+                        'truncate text-left flex-1 min-w-0',
+                        isCompact
+                          ? 'text-sm text-[#ededef]'
+                          : 'text-sm font-medium text-[#ededef] group-hover:text-[#6366f1] transition-colors'
+                      )}>
                         {item.title}
-                      </button>
-                      <div className="flex items-center gap-1 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity duration-120">
-                        {item.url && (
-                          <a
-                            href={item.url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            onClick={(e) => e.stopPropagation()}
-                            className="flex items-center gap-1 px-2 py-1 rounded-md text-xs text-[#6b6b73] hover:text-[#a1a1aa] hover:bg-[#252528] transition-colors"
-                            title="查看原文"
-                          >
-                            <ExternalLink className="w-3 h-3" />
-                            <span>查看</span>
-                          </a>
-                        )}
-                        <button
-                          onClick={() => handleAnalyze(item)}
-                          className="flex items-center gap-1 px-2 py-1 rounded-md text-xs text-[#6b6b73] hover:text-[#6366f1] hover:bg-[rgba(99,102,241,0.1)] transition-colors"
-                          title="分析话题"
-                        >
-                          <Sparkles className="w-3 h-3" />
-                          <span>分析</span>
-                        </button>
-                      </div>
+                      </span>
+
+                      {!isCompact && (
+                        <div className="flex items-center gap-1.5 shrink-0 ml-2">
+                          {item.url && (
+                            <a
+                              href={item.url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              onClick={(e) => e.stopPropagation()}
+                              className="flex items-center gap-1 px-2 py-1 rounded-md text-xs text-[#6b6b73] hover:text-[#a1a1aa] hover:bg-[#252528] transition-colors"
+                              title="查看原文"
+                            >
+                              <ExternalLink className="w-3 h-3" />
+                              <span>查看</span>
+                            </a>
+                          )}
+                        </div>
+                      )}
                     </div>
 
-                    {/* Metadata row */}
-                    <div className="flex items-center gap-3 mt-1.5">
-                      <div className="flex items-center gap-1 text-xs text-[#6b6b73]">
-                        <Flame className="w-3 h-3 text-[#6366f1]" />
-                        <span className={item.heatScore > 0 ? 'text-[#a1a1aa]' : ''}>
-                          {item.heatScore > 0 ? formatHeat(item.heatScore) : '-'}
-                        </span>
+                    {/* Metadata row (compact: only heat inline) */}
+                    {isCompact ? (
+                      <span className="text-xs text-[#6b6b73] ml-1">
+                        {item.heatScore > 0 ? formatHeat(item.heatScore) : '-'}
+                      </span>
+                    ) : (
+                      <div className="flex items-center gap-3 mt-1.5">
+                        <div className="flex items-center gap-1 text-xs text-[#6b6b73]">
+                          <Flame className="w-3 h-3 text-[#6366f1]" />
+                          <span className={item.heatScore > 0 ? 'text-[#a1a1aa]' : ''}>
+                            {item.heatScore > 0 ? formatHeat(item.heatScore) : '-'}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-1 text-xs text-[#6b6b73]">
+                          <PlatformIcon platform={item.platform} />
+                          <span className="text-[#a1a1aa]">
+                            {platforms.find((p) => p.id === item.platform)?.label || item.platform}
+                          </span>
+                        </div>
+                        <span className="text-xs text-[#6b6b73]">刚刚</span>
                       </div>
-                      <div className="flex items-center gap-1 text-xs text-[#6b6b73]">
-                        <PlatformIcon platform={item.platform} />
-                        <span className="text-[#a1a1aa]">{platforms.find((p) => p.id === item.platform)?.label || item.platform}</span>
-                      </div>
-                      <span className="text-xs text-[#6b6b73]">刚刚</span>
-                    </div>
+                    )}
 
-                    {/* Angles (top 3) */}
-                    {index < 3 && (
+                    {/* Angles (hero only) */}
+                    {isHero && (
                       <div className="flex gap-1.5 mt-2 flex-wrap">
                         {recommendAngles(item.title)
                           .slice(0, 3)
@@ -364,10 +384,10 @@ export function HotRadar() {
                       e.stopPropagation();
                       handleToggleSave(item);
                     }}
-                    className={clsx('save-btn mt-1', isSaved && 'saved')}
+                    className={clsx('save-btn', isSaved && 'saved', isCompact && '!w-6 !h-6')}
                     title={isSaved ? '取消收藏' : '收藏话题'}
                   >
-                    {isSaved ? <BookmarkCheck className="w-4 h-4" /> : <Bookmark className="w-4 h-4" />}
+                    {isSaved ? <BookmarkCheck className={isCompact ? 'w-3 h-3' : 'w-4 h-4'} /> : <Bookmark className={isCompact ? 'w-3 h-3' : 'w-4 h-4'} />}
                   </button>
                 </div>
               );

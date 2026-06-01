@@ -83,7 +83,7 @@ export function ContentSearch() {
       }
     } catch (e: any) {
       console.log('搜索失败:', e.message);
-      setResults(isVercel ? getMockData(kw, platform) : []);
+      setResults([]);
     }
     setIsLoading(false);
   };
@@ -348,7 +348,6 @@ export function ContentSearch() {
             <h4 className="text-body-sm font-medium text-text-primary mb-1">关于本工具</h4>
             <p className="text-caption text-text-secondary leading-relaxed">
               知乎通过开放平台 API 搜索，脉脉通过搜索引擎查找相关内容。搜到的结果可以直接跳到「话题勘探」进行 AI 深度分析，或到「文案创作」生成内容。
-              {isVercel && <span className="block mt-1 text-amber-600">提示：Vercel 上使用模拟数据，本地开发环境才会调用真实 API。</span>}
             </p>
           </div>
         </div>

@@ -1,7 +1,17 @@
 export const PROXY_BASE = '/api/proxy';
 const COZE_API_BASE = 'https://api.coze.cn';
 const BOT_ID = import.meta.env.VITE_COZE_BOT_ID || '7639197902187020297';
-const FALLBACK_PAT = 'pat_v9jyB55cV1xXHfIkouplLSqWFjh8bhmupHDtx5o7cg8oct2Fpyp7jwS2lBHOZU3h';
+
+// ─── Token 管理 ───
+
+function getPatToken(): string {
+  const token = import.meta.env.VITE_COZE_TOKEN;
+  if (!token || token.length < 20) {
+    console.error('Coze PAT token 未配置，请在 .env 中设置 VITE_COZE_TOKEN');
+    throw new Error('Coze API 未配置');
+  }
+  return token;
+}
 
 // ─── OAuth PKCE ───
 
@@ -53,14 +63,6 @@ export async function oauthLogout(): Promise<void> {
   await fetch(`${PROXY_BASE}?action=oauth_logout`, { method: 'POST' });
 }
 
-export async function getCozeToken(): Promise<string> {
-  if (!FALLBACK_PAT || FALLBACK_PAT.length < 20) {
-    console.error('getCozeToken: PAT token 无效或未配置');
-    throw new Error('Coze API 配置错误');
-  }
-  return FALLBACK_PAT;
-}
-
 // ─── API 调用 ───
 
 export async function callCozeChat(query: string): Promise<string> {
@@ -85,7 +87,7 @@ export async function callCozeChat(query: string): Promise<string> {
 }
 
 async function callDirect(body: Record<string, any>): Promise<string> {
-  const token = await getCozeToken();
+  const token = getPatToken();
   const headers = {
     'Content-Type': 'application/json',
     'Authorization': `Bearer ${token}`,
@@ -99,7 +101,7 @@ async function callDirect(body: Record<string, any>): Promise<string> {
 
   if (!chatResponse.ok) {
     const errorText = await chatResponse.text();
-    throw new Error(`Direct API Error: ${chatResponse.status} - ${errorText}`);
+    throw new Error(`Coze API 错误: ${chatResponse.status} - ${errorText}`);
   }
 
   const chatResult = await chatResponse.json();
@@ -111,7 +113,7 @@ async function callDirect(body: Record<string, any>): Promise<string> {
 
   if (!chatId || !conversationId) {
     console.error('callDirect: missing id or conversation_id, data=', JSON.stringify(data));
-    throw new Error(`Direct API 响应格式错误: ${JSON.stringify(data).slice(0, 200)}`);
+    throw new Error(`Coze API 响应格式错误: ${JSON.stringify(data).slice(0, 200)}`);
   }
 
   return pollForResult(chatId, conversationId);
@@ -125,7 +127,7 @@ async function pollForResult(chat_id: string, conversation_id: string): Promise<
     await new Promise(resolve => setTimeout(resolve, retryInterval));
 
     try {
-      const token = await getCozeToken();
+      const token = getPatToken();
       const headers = { 'Authorization': `Bearer ${token}` };
 
       const retrieveResponse = await fetch(
@@ -136,7 +138,7 @@ async function pollForResult(chat_id: string, conversation_id: string): Promise<
       if (!retrieveResponse.ok) {
         console.error('pollForResult: retrieve failed, status=%d', retrieveResponse.status);
         if (retrieveResponse.status === 401) {
-          console.error('pollForResult: 401 Unauthorized - 请检查 PAT token 是否有效');
+          console.error('pollForResult: 401 Unauthorized - 请检查 VITE_COZE_TOKEN 是否有效');
         }
         continue;
       }
@@ -195,7 +197,7 @@ export async function syncUserVariables(): Promise<boolean> {
   if (!userVariables) return false;
 
   try {
-    const token = await getCozeToken();
+    const token = getPatToken();
     const body = {
       bot_id: BOT_ID,
       user_id: userId,
@@ -284,19 +286,19 @@ ${analysis}`;
   query += `
 
 文案要求：
-- 开头3个字必须抓住注意力（反常识/扎心提问/悬念缺口/具体数据）
-- 禁止开头用"最近""今天""我觉得""很多人"
-- 只说1个核心观点，打透，不说正确的废话
+- 开头 3 个字必须抓住注意力（反常识/扎心提问/悬念缺口/具体数据）
+- 禁止开头用「最近」「今天」「我觉得」「很多人」
+- 只说 1 个核心观点，打透，不说正确的废话
 - 多用短句、口语化、有节奏感
-- 自然融入1-2个emoji，不堆砌
-- 结尾必须有互动钩子（提问/反转/悬念），禁止无效提问"你觉得呢"
-- 全文150-300字，不超过350字
+- 自然融入 1-2 个 emoji，不堆砌
+- 结尾必须有互动钩子（提问/反转/悬念），禁止无效提问「你觉得呢」
+- 全文 150-300 字，不超过 350 字
 
-去AI味要求：
-- 句式长短不一，避免AI的"完美感"
-- 加入口语化表达和语气词（"说真的""你猜怎么着"）
+去 AI 味要求：
+- 句式长短不一，避免 AI 的「完美感」
+- 加入口语化表达和语气词（「说真的」「你猜怎么着」）
 - 适当加入不完美的表达（省略号、破折号、口语省略）
-- 避免"首先...其次...最后..."的AI八股结构
+- 避免「首先...其次...最后...」的 AI 八股结构
 - 加入具体的个人经验或场景细节（可以虚构）
 
 直接输出文案，不要问问题，不要解释，不要走列表流程`;
@@ -307,9 +309,9 @@ export function buildTopicSearchQuery(keyword: string): string {
   return `请搜索关于"${keyword}"的最新热点话题和讨论，覆盖微博、抖音、小红书、知乎等平台。
 
 要求：
-1. 返回该话题下最热门的5-10个子话题或讨论角度
+1. 返回该话题下最热门的 5-10 个子话题或讨论角度
 2. 每个子话题标注来源平台和热度
-3. 优先返回最近24小时内的新讨论
+3. 优先返回最近 24 小时内的新讨论
 4. 剔除无意义内容（纯明星日常、广告等）
 
 直接输出话题列表，不要问问题`;
@@ -346,7 +348,7 @@ export function buildTopicAnalysisQuery(topic: string): string {
 2. 📊 各平台讨论差异
    用表格对比抖音、小红书、知乎、B站上该话题的不同讨论角度和主流观点
 
-3. 💡 建议切入角度（3-5个）
+3. 💡 建议切入角度（3-5 个）
    每个角度包含：
    - 角度类型（争议型/知识型/共鸣型/趣味型/实用型）
    - 建议标题（具体可直接使用的标题）
@@ -367,7 +369,7 @@ export function buildTopicAnalysisQuery(topic: string): string {
 }
 
 export function buildRewriteQuery(copy: string, style: string): string {
-  return `请用"${style}"风格改写以下文案，保留核心信息，直接输出改写结果不要询问其他信息。
+  return `请用「${style}」风格改写以下文案，保留核心信息，直接输出改写结果不要询问其他信息。
 
 原文案：
 ========================
@@ -377,7 +379,7 @@ ${copy}
 改写要求：
 - 保持核心信息和逻辑不变
 - 换一种表达方式和措辞
-- 适配${style}风格`;
+- 适配 ${style} 风格`;
 }
 
 export interface QuotaInfo {

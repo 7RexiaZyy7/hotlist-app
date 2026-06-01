@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAppStore } from '../store';
 import { Search, ArrowRight, Hash, Sparkles } from 'lucide-react';
 import { LoadingState, EmptyState } from '../components/LoadingState';
@@ -11,6 +11,7 @@ import {
 export function TopicExplorer() {
   const { 
     isConnected,
+    selectedTopic,
     setSelectedTopic,
     setActivePage,
     showToast,
@@ -20,6 +21,14 @@ export function TopicExplorer() {
   } = useAppStore();
   
   const [query, setQuery] = useState('');
+
+  // Sync from ContentSearch handoff
+  useEffect(() => {
+    if (selectedTopic) {
+      setQuery(selectedTopic);
+      setSelectedTopic(''); // consume so it doesn't re-trigger
+    }
+  }, []); // run once on mount
   const [isSearching, setIsSearching] = useState(false);
   const [results, setResults] = useState<any[]>([]);
   const [searched, setSearched] = useState(false);

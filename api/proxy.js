@@ -445,14 +445,15 @@ export default async function handler(req, res) {
     // ─── 知乎搜索（开放平台 API）───
     if (action === 'zhihu_search' && req.method === 'GET') {
       const keyword = req.query.keyword;
-      const count = Math.min(parseInt(req.query.count || '10'), 10);
+      const count = Math.min(parseInt(req.query.count || '10'), 20);
+      const offset = parseInt(req.query.offset || '0');
       if (!keyword) return res.status(400).json({ error: 'Missing keyword' });
 
       const ZHIHU_API_TOKEN = process.env.ZHIHU_API_TOKEN || '';
       if (!ZHIHU_API_TOKEN) return res.status(400).json({ error: 'ZHIHU_API_TOKEN 未配置，请在 Vercel 环境变量中设置' });
 
       const timestamp = Math.floor(Date.now() / 1000);
-      const zhihuUrl = `https://developer.zhihu.com/api/v1/content/zhihu_search?Query=${encodeURIComponent(keyword)}&Count=${count}`;
+      const zhihuUrl = `https://developer.zhihu.com/api/v1/content/zhihu_search?Query=${encodeURIComponent(keyword)}&Count=${count}${offset > 0 ? `&Offset=${offset}` : ''}`;
       const r = await fetch(zhihuUrl, {
         headers: {
           'Authorization': `Bearer ${ZHIHU_API_TOKEN}`,
@@ -462,6 +463,55 @@ export default async function handler(req, res) {
       });
       const data = await r.json();
       return res.status(r.status).json(data);
+    }
+
+    // ─── 脉脉搜索（通过 Bing 搜索引擎）───
+    if (action === 'maimai_search' && req.method === 'GET') {
+      const keyword = req.query.keyword;
+      const count = Math.min(parseInt(req.query.count || '10'), 10);
+      if (!keyword) return res.status(400).json({ error: 'Missing keyword' });
+
+      try {
+        const searchUrl = `https://www.bing.com/search?q=site:maimai.cn+${encodeURIComponent(keyword)}`;
+        const r = await fetch(searchUrl, {
+          headers: {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+          },
+        });
+        const html = await r.text();
+
+        const items: any[] = [];
+        const resultRegex = /<li[^>]*class="b_algo"[^>]*>[\s\S]*?<\/li>/gi;
+        let match;
+
+        while ((match = resultRegex.exec(html)) !== null && items.length < count) {
+          const li = match[0];
+          
+          const urlMatch = li.match(/<a[^>]*href="([^"]*)"[^>]*>/i);
+          const titleMatch = li.match(/<h2[^>]*>[\s\S]*?<\/h2>/i);
+          const snippetMatch = li.match(/<p[^>]*>[\s\S]*?<\/p>/i);
+
+          if (urlMatch && titleMatch) {
+            const url = urlMatch[1];
+            if (url.includes('maimai.cn')) {
+              const title = titleMatch[0].replace(/<[^>]+>/g, '').trim();
+              const snippet = snippetMatch ? snippetMatch[0].replace(/<[^>]+>/g, '').trim() : '';
+              
+              items.push({
+                title: title || '脉脉讨论',
+                url: url,
+                summary: snippet,
+                date: new Date().toISOString().split('T')[0],
+              });
+            }
+          }
+        }
+
+        return res.json({ items });
+      } catch (e) {
+        console.error('maimai search error:', e);
+        return res.json({ items: [] });
+      }
     }
 
     return res.status(404).json({ error: `Unknown action: ${action}` });

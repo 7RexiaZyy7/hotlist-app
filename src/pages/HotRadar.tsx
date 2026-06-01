@@ -1,7 +1,18 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useAppStore } from '../store';
 import { PROXY_BASE } from '../services/cozeApi';
-import { Flame, RefreshCw, TrendingUp, Clock, ExternalLink, Check, X, Send } from 'lucide-react';
+import {
+  Flame,
+  RefreshCw,
+  TrendingUp,
+  ExternalLink,
+  Bookmark,
+  BookmarkCheck,
+  X,
+  Send,
+  ChevronDown,
+  Sparkles,
+} from 'lucide-react';
 import { clsx } from 'clsx';
 import { LoadingState, EmptyState } from '../components/LoadingState';
 import { PlatformIcon } from '../components/PlatformIcon';
@@ -34,8 +45,50 @@ function recommendAngles(topic: string): string[] {
   return ['情感共鸣', '观点评论', '热点追踪'];
 }
 
+function formatHeat(score: number): string {
+  if (score >= 10000) return `${(score / 10000).toFixed(1)}万`;
+  if (score >= 1000) return `${(score / 1000).toFixed(1)}k`;
+  return String(score);
+}
+
+interface HotItem {
+  rank: number;
+  title: string;
+  platform: string;
+  heatScore: number;
+  url?: string;
+}
+
+function parseUapiHotList(data: any, platform: string): HotItem[] {
+  const items: HotItem[] = [];
+  if (!data) return items;
+  const list = data.list || data.data?.list || data.data || [];
+  if (!Array.isArray(list)) return items;
+  list.forEach((item: any, index: number) => {
+    items.push({
+      rank: parseInt(item.index) || index + 1,
+      title: item.title || item.name || '',
+      platform,
+      heatScore: parseInt(item.hot_value || item.hot || item.heat || item.count || 0) || 0,
+      url: item.url || undefined,
+    });
+  });
+  return items;
+}
+
 export function HotRadar() {
-  const { hotList, setHotList, isLoadingHotList, setLoadingHotList, setSelectedTopic, setSelectedAngles, setActivePage, showToast, savedTopics, toggleSaveTopic } = useAppStore();
+  const {
+    hotList,
+    setHotList,
+    isLoadingHotList,
+    setLoadingHotList,
+    setSelectedTopic,
+    setSelectedAngles,
+    setActivePage,
+    showToast,
+    savedTopics,
+    toggleSaveTopic,
+  } = useAppStore();
   const [selectedPlatform, setSelectedPlatform] = useState('douyin');
   const [error, setError] = useState<string | null>(null);
   const isLoadingRef = useRef(false);
@@ -43,47 +96,50 @@ export function HotRadar() {
   const [showGuide, setShowGuide] = useState(() => !localStorage.getItem('hotRadar_guideShown'));
   const [showCount, setShowCount] = useState(20);
 
-  const fetchHotList = useCallback(async (platform: string) => {
-    if (isLoadingRef.current) return;
-    isLoadingRef.current = true;
-    setLoadingHotList(true);
-    setError(null);
+  const fetchHotList = useCallback(
+    async (platform: string) => {
+      if (isLoadingRef.current) return;
+      isLoadingRef.current = true;
+      setLoadingHotList(true);
+      setError(null);
 
-    try {
-      const r = await fetch(`${PROXY_BASE}?action=hotboard&type=${platform}`);
-      const data = await r.json();
-      const items = parseUapiHotList(data, platform);
+      try {
+        const r = await fetch(`${PROXY_BASE}?action=hotboard&type=${platform}`);
+        const data = await r.json();
+        const items = parseUapiHotList(data, platform);
 
-      if (items.length === 0) {
-        setError('热榜数据格式异常，请稍后重试');
-      } else {
-        setHotList(items);
-        localStorage.setItem('hotList', JSON.stringify({ items, platform, timestamp: Date.now() }));
+        if (items.length === 0) {
+          setError('热榜数据格式异常，请稍后重试');
+        } else {
+          setHotList(items);
+          localStorage.setItem('hotList', JSON.stringify({ items, platform, timestamp: Date.now() }));
+        }
+      } catch (e: any) {
+        console.error('fetchHotList error:', e);
+        setError(e?.message || '获取热榜失败，请稍后重试');
+        const cached = localStorage.getItem('hotList');
+        if (cached) {
+          try {
+            const data = JSON.parse(cached);
+            setHotList(data.items);
+            showToast('网络异常，已加载缓存数据', 'warning');
+            setError(null);
+          } catch {}
+        }
+      } finally {
+        isLoadingRef.current = false;
+        setLoadingHotList(false);
       }
-    } catch (e: any) {
-      console.error('fetchHotList error:', e);
-      setError(e?.message || '获取热榜失败，请稍后重试');
-      const cached = localStorage.getItem('hotList');
-      if (cached) {
-        try {
-          const data = JSON.parse(cached);
-          setHotList(data.items);
-          showToast('网络异常，已加载缓存数据', 'warning');
-          setError(null);
-        } catch {}
-      }
-    } finally {
-      isLoadingRef.current = false;
-      setLoadingHotList(false);
-    }
-  }, [setHotList, setLoadingHotList, showToast]);
+    },
+    [setHotList, setLoadingHotList, showToast],
+  );
 
   useEffect(() => {
     const cached = localStorage.getItem('hotList');
     if (cached) {
       try {
         const data = JSON.parse(cached);
-        if (data.items && data.items.length > 0) {
+        if (data.items?.length > 0) {
           setHotList(data.items);
           setSelectedPlatform(data.platform || 'douyin');
         }
@@ -106,15 +162,15 @@ export function HotRadar() {
     fetchHotList(platformId);
   };
 
-  const handleToggleSave = (item: typeof hotList[0]) => {
+  const handleToggleSave = (item: HotItem) => {
     const isSaved = savedTopics.some((t) => t.title === item.title);
     toggleSaveTopic(item);
     if (!isSaved) {
-      showToast('已收藏！可在「收藏池」查看并提交分析', 'success');
+      showToast('已收藏！可前往收藏池提交分析', 'success');
     }
   };
 
-  const handleItemClick = (item: typeof hotList[0]) => {
+  const handleAnalyze = (item: HotItem) => {
     setSelectedTopic(item.title);
     const angles = recommendAngles(item.title);
     setSelectedAngles(angles);
@@ -122,169 +178,210 @@ export function HotRadar() {
   };
 
   return (
-    <div className="p-4 md:p-6 pb-24 md:pb-6 max-w-shell mx-auto">
-      <div className="mb-6">
-        <h2 className="text-display text-text-primary mb-1">热点雷达</h2>
-        <p className="text-body-sm text-text-secondary">实时追踪全网热点，发现爆款选题</p>
+    <div className="p-4 md:p-6 pb-24 md:pb-6 max-w-shell mx-auto min-h-screen">
+      {/* Header */}
+      <div className="mb-5">
+        <div className="flex items-center gap-2 mb-1">
+          <div className="w-2 h-2 rounded-full bg-[#6366f1]" />
+          <h2 className="text-[1.375rem] font-semibold text-[#ededef] tracking-tight">热点雷达</h2>
+        </div>
+        <p className="text-sm text-[#a1a1aa] ml-4">发现热点，创作爆款</p>
       </div>
 
-      <div className="flex gap-1 mb-6 overflow-x-auto scrollbar-hide">
-        {platforms.map((platform) => {
-          const isActive = selectedPlatform === platform.id;
-          return (
+      {/* Top bar: platform pills + actions */}
+      <div className="flex items-center gap-2 mb-5 overflow-x-auto scrollbar-hide">
+        <div className="flex gap-1.5 flex-1 min-w-0">
+          {platforms.map((platform) => {
+            const isActive = selectedPlatform === platform.id;
+            return (
+              <button
+                key={platform.id}
+                onClick={() => handlePlatformChange(platform.id)}
+                disabled={isLoadingHotList}
+                className={clsx('pill-tab', isActive && 'active')}
+              >
+                <PlatformIcon platform={platform.id} />
+                <span>{platform.label}</span>
+              </button>
+            );
+          })}
+        </div>
+
+        <div className="flex items-center gap-1.5 shrink-0">
+          {savedTopics.length > 0 && (
             <button
-              key={platform.id}
-              onClick={() => handlePlatformChange(platform.id)}
-              disabled={isLoadingHotList}
-              className={clsx(
-                'tab whitespace-nowrap',
-                isActive && 'active',
-                isLoadingHotList && 'opacity-60 cursor-not-allowed'
-              )}
+              onClick={() => setShowPoolModal(true)}
+              className="pill-tab"
             >
-              <PlatformIcon platform={platform.id} />
-              <span className="text-body-sm">{platform.label}</span>
+              <BookmarkCheck className="w-3.5 h-3.5" />
+              收藏池
+              <span className="ml-0.5 text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-[#6366f1] text-white">
+                {savedTopics.length}
+              </span>
             </button>
-          );
-        })}
+          )}
+          <button
+            onClick={handleRefresh}
+            disabled={isLoadingHotList}
+            className="pill-tab"
+          >
+            <RefreshCw className={clsx('w-3.5 h-3.5', isLoadingHotList && 'animate-spin')} />
+          </button>
+        </div>
       </div>
 
+      {/* Guide banner */}
       {showGuide && (
-        <div className="mb-4 p-3 rounded-lg bg-accent/5 border border-accent/20 flex items-center justify-between">
-          <span className="text-body-sm text-text-secondary">勾选感兴趣的话题 → 收藏池 → 批量分析 → 生成文案</span>
-          <button onClick={() => { setShowGuide(false); localStorage.setItem('hotRadar_guideShown', '1'); }} className="text-caption text-accent hover:text-accent-hover shrink-0">知道了</button>
+        <div className="guide-banner mb-5">
+          <div className="flex items-center gap-2 min-w-0">
+            <Sparkles className="w-4 h-4 text-[#6366f1] shrink-0" />
+            <span>勾选感兴趣的话题 → 收藏池 → 批量分析 → 生成文案</span>
+          </div>
+          <button
+            onClick={() => {
+              setShowGuide(false);
+              localStorage.setItem('hotRadar_guideShown', '1');
+            }}
+            className="text-xs text-[#6366f1] hover:text-[#818cf8] shrink-0 font-medium"
+          >
+            知道了
+          </button>
         </div>
       )}
 
+      {/* Content */}
       {isLoadingHotList ? (
-        <div className="flex-1 flex flex-col items-center justify-center py-16">
+        <div className="flex flex-col items-center justify-center py-20">
           <LoadingState />
         </div>
       ) : error ? (
         <EmptyState
-          icon={<RefreshCw className="w-8 h-8" />}
+          icon={<RefreshCw className="w-8 h-8 text-[#6366f1]" />}
           title="获取热榜失败"
           description={error}
           action={{ label: '重新加载', onClick: handleRefresh }}
         />
       ) : hotList.length === 0 ? (
         <EmptyState
-          icon={<Flame className="w-8 h-8" />}
+          icon={<Flame className="w-8 h-8 text-[#6366f1]" />}
           title="暂无热榜数据"
           description="当前平台暂无热榜数据，试试切换平台"
           action={{ label: '刷新热榜', onClick: handleRefresh }}
         />
       ) : (
-        <div className="space-y-3">
-          <div className="flex items-center justify-between mb-2">
+        <div>
+          {/* List header */}
+          <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">
-              <TrendingUp className="w-4 h-4 text-accent" />
-              <span className="text-body-sm text-text-secondary">实时热点 · {hotList.length}条</span>
-            </div>
-            <div className="flex items-center gap-2">
-              {savedTopics.length > 0 && (
-                <button
-                  onClick={() => setShowPoolModal(true)}
-                  className={clsx(
-                    'btn-ghost !py-1.5 !px-3 !text-body-sm',
-                    showPoolModal && 'bg-accent-subtle text-accent'
-                  )}
-                >
-                  收藏池 ({savedTopics.length})
-                </button>
-              )}
-              <button
-                onClick={handleRefresh}
-                disabled={isLoadingHotList}
-                className="btn-ghost !py-1.5 !px-3 !text-body-sm"
-              >
-                <RefreshCw className={clsx('w-3.5 h-3.5', isLoadingHotList && 'animate-spin')} />
-                刷新
-              </button>
+              <TrendingUp className="w-4 h-4 text-[#6366f1]" />
+              <span className="text-sm text-[#a1a1aa]">
+                实时热点 · <span className="text-[#ededef] font-medium">{hotList.length}</span> 条
+              </span>
             </div>
           </div>
 
-          <div className="grid gap-3">
+          {/* Hot list */}
+          <div className="space-y-2">
             {hotList.slice(0, showCount).map((item, index) => {
               const isSaved = savedTopics.some((t) => t.title === item.title);
               return (
-              <div
-                key={index}
-                className="interactive-row flex items-start gap-3"
-              >
-                <div className={clsx(
-                  'w-7 h-7 rounded-md flex items-center justify-center text-body-sm font-bold shrink-0 mt-0.5',
-                  index === 0 && 'bg-accent text-white',
-                  index >= 1 && 'bg-bg-elevated text-text-secondary'
-                )}>
-                  {index + 1}
-                </div>
+                <div key={index} className="hot-card group">
+                  {/* Rank */}
+                  <div className={clsx('rank-badge', index < 3 && 'top')}>
+                    {index + 1}
+                  </div>
 
-                <div className="flex-1 min-w-0 cursor-pointer" onClick={() => handleItemClick(item)}>
-                  <div className="flex items-start justify-between gap-2">
-                    <h3 className="text-body font-medium text-text-primary truncate">
-                      {item.title}
-                    </h3>
-                    {item.url ? (
-                      <a
-                        href={item.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        onClick={(e) => e.stopPropagation()}
-                        className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-bg-elevated text-text-secondary hover:text-text-primary hover:bg-bg-secondary transition-colors shrink-0"
-                        title="查看原文"
+                  {/* Content */}
+                  <div className="flex-1 min-w-0">
+                    {/* Title + actions row */}
+                    <div className="flex items-start justify-between gap-2">
+                      <button
+                        onClick={() => handleAnalyze(item)}
+                        className="text-sm font-medium text-[#ededef] truncate hover:text-[#6366f1] transition-colors text-left flex-1 min-w-0"
                       >
-                        <ExternalLink className="w-3 h-3" />
-                        <span className="text-caption">查看</span>
-                      </a>
-                    ) : null}
-                  </div>
-                  <div className="flex items-center gap-3 text-caption text-text-tertiary mt-0.5">
-                    <span className="flex items-center gap-1">
-                      <Flame className="w-3 h-3 text-accent" />
-                      {item.heatScore > 0 ? `${item.heatScore}` : '-'}
-                    </span>
-                    <PlatformIcon platform={item.platform} className="!w-3.5 !h-3.5" />
-                    <span className="flex items-center gap-1">
-                      <Clock className="w-3 h-3" />
-                      刚刚
-                    </span>
-                  </div>
-
-                  {index < 3 && (
-                    <div className="mt-2 flex gap-1.5 flex-wrap">
-                      {recommendAngles(item.title).slice(0, 3).map((angle, i) => (
-                        <span key={i} className="badge">{angle}</span>
-                      ))}
+                        {item.title}
+                      </button>
+                      <div className="flex items-center gap-1 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity duration-120">
+                        {item.url && (
+                          <a
+                            href={item.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            onClick={(e) => e.stopPropagation()}
+                            className="flex items-center gap-1 px-2 py-1 rounded-md text-xs text-[#6b6b73] hover:text-[#a1a1aa] hover:bg-[#252528] transition-colors"
+                            title="查看原文"
+                          >
+                            <ExternalLink className="w-3 h-3" />
+                            <span>查看</span>
+                          </a>
+                        )}
+                        <button
+                          onClick={() => handleAnalyze(item)}
+                          className="flex items-center gap-1 px-2 py-1 rounded-md text-xs text-[#6b6b73] hover:text-[#6366f1] hover:bg-[rgba(99,102,241,0.1)] transition-colors"
+                          title="分析话题"
+                        >
+                          <Sparkles className="w-3 h-3" />
+                          <span>分析</span>
+                        </button>
+                      </div>
                     </div>
-                  )}
-                </div>
 
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleToggleSave(item);
-                  }}
-                  className={clsx(
-                    'shrink-0 mt-1 w-7 h-7 rounded-md flex items-center justify-center transition-all duration-120',
-                    isSaved
-                      ? 'bg-accent text-white'
-                      : 'bg-bg-elevated text-text-tertiary hover:text-accent hover:bg-accent/10'
-                  )}
-                  title={isSaved ? '取消收藏' : '收藏话题'}
-                >
-                  <Check className="w-4 h-4" />
-                </button>
-              </div>
+                    {/* Metadata row */}
+                    <div className="flex items-center gap-3 mt-1.5">
+                      <div className="flex items-center gap-1 text-xs text-[#6b6b73]">
+                        <Flame className="w-3 h-3 text-[#6366f1]" />
+                        <span className={item.heatScore > 0 ? 'text-[#a1a1aa]' : ''}>
+                          {item.heatScore > 0 ? formatHeat(item.heatScore) : '-'}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-1 text-xs text-[#6b6b73]">
+                        <PlatformIcon platform={item.platform} />
+                        <span className="text-[#a1a1aa]">{platforms.find((p) => p.id === item.platform)?.label || item.platform}</span>
+                      </div>
+                      <span className="text-xs text-[#6b6b73]">刚刚</span>
+                    </div>
+
+                    {/* Angles (top 3) */}
+                    {index < 3 && (
+                      <div className="flex gap-1.5 mt-2 flex-wrap">
+                        {recommendAngles(item.title)
+                          .slice(0, 3)
+                          .map((angle, i) => (
+                            <span
+                              key={i}
+                              className="text-[11px] px-2 py-0.5 rounded-sm bg-[#1c1c1f] border border-[#2a2a2e] text-[#6b6b73]"
+                            >
+                              {angle}
+                            </span>
+                          ))}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Save button */}
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleToggleSave(item);
+                    }}
+                    className={clsx('save-btn mt-1', isSaved && 'saved')}
+                    title={isSaved ? '取消收藏' : '收藏话题'}
+                  >
+                    {isSaved ? <BookmarkCheck className="w-4 h-4" /> : <Bookmark className="w-4 h-4" />}
+                  </button>
+                </div>
               );
             })}
           </div>
+
+          {/* Load more */}
           {hotList.length > showCount && (
-            <div className="flex justify-center mt-4">
+            <div className="flex justify-center mt-5">
               <button
                 onClick={() => setShowCount((c) => c + 20)}
-                className="btn-ghost !py-2 !px-6 !text-body-sm"
+                className="flex items-center gap-2 px-6 py-2.5 rounded-lg border border-[#2a2a2e] text-sm text-[#a1a1aa] hover:bg-[#1c1c1f] hover:text-[#ededef] hover:border-[#3a3a3e] transition-all duration-120"
               >
+                <ChevronDown className="w-4 h-4" />
                 加载更多 ({hotList.length - showCount}条)
               </button>
             </div>
@@ -292,58 +389,62 @@ export function HotRadar() {
         </div>
       )}
 
+      {/* Collection pool modal */}
       {showPoolModal && savedTopics.length > 0 && (
-        <div className="fixed bottom-20 md:bottom-6 left-1/2 -translate-x-1/2 w-[calc(100%-2rem)] max-w-lg bg-bg-surface border border-border rounded-xl shadow-2xl p-4 z-50 animate-fadeIn">
-          <div className="flex items-center justify-between mb-3">
-            <h3 className="text-body font-semibold text-text-primary">收藏池 ({savedTopics.length})</h3>
-            <button onClick={() => setShowPoolModal(false)} className="p-1 rounded hover:bg-bg-elevated">
-              <X className="w-4 h-4 text-text-tertiary" />
+        <div className="modal-overlay" onClick={() => setShowPoolModal(false)}>
+          <div className="modal-card" onClick={(e) => e.stopPropagation()}>
+            {/* Modal header */}
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <Bookmark className="w-4 h-4 text-[#6366f1]" />
+                <h3 className="text-sm font-semibold text-[#ededef]">收藏池</h3>
+                <span className="text-xs text-[#6b6b73] ml-1">({savedTopics.length})</span>
+              </div>
+              <button
+                onClick={() => setShowPoolModal(false)}
+                className="w-7 h-7 rounded-lg flex items-center justify-center text-[#6b6b73] hover:text-[#ededef] hover:bg-[#1c1c1f] transition-all"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* List */}
+            <div className="space-y-1.5 max-h-56 overflow-y-auto mb-4">
+              {savedTopics.map((item, i) => (
+                <div
+                  key={i}
+                  className="flex items-center gap-2 px-3 py-2.5 rounded-lg bg-[#1c1c1f] border border-[#2a2a2e]"
+                >
+                  <span className="text-sm text-[#ededef] flex-1 truncate">{item.title}</span>
+                  <span className="text-xs text-[#6b6b73] shrink-0">
+                    {platforms.find((p) => p.id === item.platform)?.label || item.platform}
+                  </span>
+                  <button
+                    onClick={() => toggleSaveTopic(item)}
+                    className="w-6 h-6 rounded-md flex items-center justify-center text-[#6b6b73] hover:text-[#ef4444] hover:bg-[#252528] transition-all shrink-0"
+                    title="移除"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              ))}
+            </div>
+
+            {/* Submit */}
+            <button
+              onClick={() => {
+                if (savedTopics.length === 0) return;
+                showToast(`已选择 ${savedTopics.length} 个话题，即将开始分析`, 'info');
+                setActivePage('explore');
+              }}
+              className="btn-indigo w-full"
+            >
+              <Send className="w-4 h-4" />
+              提交分析 ({savedTopics.length})
             </button>
           </div>
-          <div className="space-y-2 max-h-48 overflow-y-auto mb-3">
-            {savedTopics.map((item, i) => (
-              <div key={i} className="flex items-center gap-2 px-3 py-2 rounded-lg bg-bg-elevated">
-                <span className="text-body-sm text-text-primary flex-1 truncate">{item.title}</span>
-                <span className="text-caption text-text-tertiary">{item.platform}</span>
-                <button
-                  onClick={() => toggleSaveTopic(item)}
-                  className="p-1 rounded hover:bg-bg-secondary text-text-tertiary hover:text-error"
-                >
-                  <X className="w-3.5 h-3.5" />
-                </button>
-              </div>
-            ))}
-          </div>
-          <button
-            onClick={() => {
-              if (savedTopics.length === 0) return;
-              showToast(`已选择 ${savedTopics.length} 个话题，即将开始分析`, 'info');
-              setActivePage('explore');
-            }}
-            className="w-full btn-primary flex items-center justify-center gap-2"
-          >
-            <Send className="w-4 h-4" />
-            提交分析 ({savedTopics.length})
-          </button>
         </div>
       )}
     </div>
   );
-}
-
-function parseUapiHotList(data: any, platform: string) {
-  const items: { rank: number; title: string; platform: string; heatScore: number; url?: string }[] = [];
-  if (!data) return items;
-  const list = data.list || data.data?.list || data.data || [];
-  if (!Array.isArray(list)) return items;
-  list.forEach((item: any, index: number) => {
-    items.push({
-      rank: parseInt(item.index) || index + 1,
-      title: item.title || item.name || '',
-      platform: platform,
-      heatScore: parseInt(item.hot_value || item.hot || item.heat || item.count || 0) || 0,
-      url: item.url || undefined,
-    });
-  });
-  return items;
 }

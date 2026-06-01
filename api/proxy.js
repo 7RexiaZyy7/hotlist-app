@@ -1,3 +1,21 @@
+// Load .env manually (no dotenv dep needed)
+try {
+  const { readFileSync } = await import('fs');
+  const { resolve, dirname } = await import('path');
+  const { fileURLToPath } = await import('url');
+  const envPath = resolve(dirname(fileURLToPath(import.meta.url)), '..', '.env');
+  const envContent = readFileSync(envPath, 'utf-8');
+  for (const line of envContent.split('\n')) {
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.startsWith('#')) continue;
+    const eqIdx = trimmed.indexOf('=');
+    if (eqIdx === -1) continue;
+    const key = trimmed.slice(0, eqIdx).trim();
+    const val = trimmed.slice(eqIdx + 1).trim();
+    if (key && !process.env[key]) process.env[key] = val;
+  }
+} catch {}
+
 const COZE_PAT_TOKEN = process.env.COZE_PAT_TOKEN || process.env.VITE_COZE_TOKEN || 'pat_v9jyB55cV1xXHfIkouplLSqWFjh8bhmupHDtx5o7cg8oct2Fpyp7jwS2lBHOZU3h';
 const COZE_CLIENT_ID = process.env.COZE_CLIENT_ID || '13649532017216334435107873770562.app.coze';
 const COZE_AUTHORIZE_URL = 'https://www.coze.cn/api/permission/oauth2/authorize';

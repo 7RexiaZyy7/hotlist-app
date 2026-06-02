@@ -148,64 +148,75 @@ export function ContentSearch() {
   const displayedSuggestions = showAllSuggestions ? SUGGESTIONS : SUGGESTIONS.slice(0, 3);
 
   return (
-    <div className="p-6 max-w-5xl mx-auto">
-      {/* Hero */}
-      <div className="mb-10 text-center">
-        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-accent/10 text-accent text-caption font-medium mb-4">
-          <Brain className="w-3.5 h-3.5" />
-          {platform === 'zhihu' ? '知乎深度搜索' : '脉脉话题搜索'}
-        </div>
-        <h1 className="text-3xl font-bold text-text-primary mb-3 leading-tight">
-          平台搜原始帖子
-        </h1>
-        <p className="text-body-md text-text-secondary max-w-xl mx-auto">
-          {platform === 'zhihu'
-            ? '直接从知乎开放接口搜帖子，拿到原始内容、点赞、评论数。适合找具体讨论素材。'
-            : '从搜索引擎抓取脉脉相关讨论，职场话题。'}
-          <span className="block mt-2 text-caption text-text-tertiary">
-            💡 想让 AI 跨平台分析「哪些平台在聊这个话题」？去「话题勘探」页
-          </span>
+    <div className="p-4 md:p-6 pb-24 md:pb-6 max-w-shell mx-auto min-h-screen">
+      {/* Header - 与其他页面统一：左对齐 h2 + 副标题 + 交叉链接 */}
+      <div className="mb-5">
+        <h2 className="text-display text-text-primary mb-1">内容搜索</h2>
+        <p className="text-body-sm text-text-secondary">
+          平台搜原始帖子：直接从 {platform === 'zhihu' ? '知乎开放接口' : '搜索引擎'} 搜讨论素材（标题/点赞/评论）。
+        </p>
+        <p className="text-caption text-text-tertiary mt-1">
+          想让 AI 跨平台分析「哪些平台在聊这个话题」？去「话题勘探」页
         </p>
       </div>
 
-      {/* Platform switch */}
-      <div className="flex justify-center mb-6">
-        <div className="inline-flex rounded-lg bg-bg-elevated p-1 border border-border">
-          <button
-            onClick={() => { setPlatform('zhihu'); if (hasSearched) doSearch(); }}
-            className={`px-4 py-2 rounded-md text-sm font-medium transition-all duration-120 ${
-              platform === 'zhihu'
-                ? 'bg-bg-surface text-accent shadow-sm'
-                : 'text-text-tertiary hover:text-text-secondary'
-            }`}
-          >
-            知乎
-          </button>
-          <button
-            onClick={() => { setPlatform('maimai'); if (hasSearched) doSearch(); }}
-            className={`px-4 py-2 rounded-md text-sm font-medium transition-all duration-120 ${
-              platform === 'maimai'
-                ? 'bg-bg-surface text-accent shadow-sm'
-                : 'text-text-tertiary hover:text-text-secondary'
-            }`}
-          >
-            脉脉
-          </button>
+      {/* Platform switch + search bar - 同一行 */}
+      <div className="card p-4 mb-5">
+        <div className="flex gap-2 flex-wrap sm:flex-nowrap">
+          <div className="inline-flex rounded-lg bg-bg-elevated p-1 border border-border shrink-0">
+            <button
+              onClick={() => { setPlatform('zhihu'); if (hasSearched) doSearch(); }}
+              className={`px-3 py-1.5 rounded-md text-caption font-medium transition-all duration-120 ${
+                platform === 'zhihu'
+                  ? 'bg-bg-surface text-accent'
+                  : 'text-text-tertiary hover:text-text-secondary'
+              }`}
+            >
+              知乎
+            </button>
+            <button
+              onClick={() => { setPlatform('maimai'); if (hasSearched) doSearch(); }}
+              className={`px-3 py-1.5 rounded-md text-caption font-medium transition-all duration-120 ${
+                platform === 'maimai'
+                  ? 'bg-bg-surface text-accent'
+                  : 'text-text-tertiary hover:text-text-secondary'
+              }`}
+            >
+              脉脉
+            </button>
+          </div>
+          <div className="relative flex-1 min-w-0">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-tertiary" />
+            <input
+              type="text"
+              value={keyword}
+              onChange={(e) => setKeyword(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && doSearch()}
+              placeholder={`输入关键词，搜索${platform === 'zhihu' ? '知乎' : '脉脉'}讨论...`}
+              className="input-field !rounded-md !pl-10 !pr-20"
+            />
+            <button
+              onClick={() => doSearch()}
+              disabled={isLoading}
+              className="absolute right-1.5 top-1/2 -translate-y-1/2 btn-primary !py-1 !px-3 !text-caption"
+            >
+              {isLoading ? '搜索中' : '搜索'}
+            </button>
+          </div>
         </div>
-      </div>
 
-      {/* Quick suggestions */}
-      <div className="mb-6">
-        <div className="flex items-center justify-center gap-2 flex-wrap">
+        {/* Quick suggestions + trending inline */}
+        <div className="mt-3 flex items-center gap-2 flex-wrap">
+          <span className="text-caption text-text-tertiary shrink-0">热门方向：</span>
           {displayedSuggestions.map((sub) => {
             const Icon = sub.icon;
             return (
               <button
                 key={sub.label}
                 onClick={() => doSearch(sub.label)}
-                className="flex items-center gap-1.5 px-4 py-2 rounded-full bg-bg-surface border border-border text-body-sm text-text-secondary hover:bg-accent hover:text-white hover:border-accent transition-all duration-120 active:scale-95"
+                className="flex items-center gap-1 px-2.5 py-1 rounded-md bg-bg-elevated border border-border text-caption text-text-secondary hover:text-text-primary hover:border-accent/40 transition-all duration-120"
               >
-                <Icon className="w-3.5 h-3.5" />
+                <Icon className="w-3 h-3" />
                 {sub.label}
               </button>
             );
@@ -213,53 +224,31 @@ export function ContentSearch() {
           {SUGGESTIONS.length > 3 && (
             <button
               onClick={() => setShowAllSuggestions(!showAllSuggestions)}
-              className="text-caption text-text-tertiary hover:text-accent px-2"
+              className="text-caption text-text-tertiary hover:text-accent px-1"
             >
-              {showAllSuggestions ? '收起' : `+${SUGGESTIONS.length - 3} 更多`}
+              {showAllSuggestions ? '收起' : `+${SUGGESTIONS.length - 3}`}
             </button>
           )}
         </div>
-      </div>
 
-      {/* Trending from HotRadar */}
-      {trendingTopics.length > 0 && (
-        <div className="mb-8">
-          <div className="flex items-center justify-center gap-2 mb-3">
-            <Flame className="w-3.5 h-3.5 text-orange-500" />
-            <span className="text-caption font-medium text-text-tertiary">实时热榜趋势</span>
-          </div>
-          <div className="flex items-center justify-center gap-2 flex-wrap">
+        {/* Trending from HotRadar - 复用统一色（去橙色） */}
+        {trendingTopics.length > 0 && (
+          <div className="mt-3 flex items-center gap-2 flex-wrap pt-3 border-t border-border">
+            <span className="text-caption text-text-tertiary flex items-center gap-1 shrink-0">
+              <Flame className="w-3 h-3 text-accent" />
+              实时热榜：
+            </span>
             {trendingTopics.map((topic) => (
               <button
                 key={topic}
                 onClick={() => doSearch(topic)}
-                className="px-3 py-1.5 rounded-full bg-orange-50/60 border border-orange-200/50 text-caption text-orange-700 hover:bg-orange-100 hover:border-orange-300 transition-all duration-120 active:scale-95"
+                className="px-2.5 py-1 rounded-md bg-accent-subtle border border-accent/20 text-caption text-accent hover:bg-accent hover:text-white hover:border-accent transition-all duration-120"
               >
                 {topic}
               </button>
             ))}
           </div>
-        </div>
-      )}
-
-      {/* Search bar */}
-      <div className="relative mb-8 max-w-2xl mx-auto">
-        <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-text-tertiary" />
-        <input
-          type="text"
-          value={keyword}
-          onChange={(e) => setKeyword(e.target.value)}
-          onKeyDown={(e) => e.key === 'Enter' && doSearch()}
-          placeholder={`输入关键词，搜索${platform === 'zhihu' ? '知乎' : '脉脉'}讨论...`}
-          className="w-full pl-11 pr-12 py-3 bg-bg-surface border border-border rounded-xl text-body-sm focus:outline-none focus:ring-2 focus:ring-accent/30 focus:border-accent transition-shadow"
-        />
-        <button
-          onClick={() => doSearch()}
-          disabled={isLoading}
-          className="absolute right-2 top-1/2 -translate-y-1/2 px-3 py-1.5 bg-accent text-white rounded-lg text-caption font-medium hover:bg-accent-hover transition-colors disabled:opacity-50"
-        >
-          {isLoading ? '搜索中' : '搜索'}
-        </button>
+        )}
       </div>
 
       {/* Results */}
@@ -302,7 +291,7 @@ export function ContentSearch() {
             {results.map((item) => (
               <div
                 key={item.id}
-                className="bg-bg-surface border border-border rounded-xl overflow-hidden hover:shadow-md transition-all duration-120"
+                className="card p-0 overflow-hidden hover:border-accent/40"
               >
                 <div className="p-5">
                   <div className="flex items-start justify-between gap-3 mb-2">
@@ -314,7 +303,7 @@ export function ContentSearch() {
                     <span className={`shrink-0 px-2 py-0.5 rounded text-caption font-medium ${
                       item.platform === 'zhihu'
                         ? 'bg-blue-50 text-blue-600'
-                        : 'bg-orange-50 text-orange-600'
+                        : 'bg-accent-subtle text-accent'
                     }`}>
                       {item.platform === 'zhihu' ? '知乎' : '脉脉'}
                     </span>
@@ -397,7 +386,7 @@ export function ContentSearch() {
                         store.setLastAnalysis(`来自${item.platform === 'zhihu' ? '知乎' : '脉脉'}搜索结果：${item.summary || item.title}`);
                         store.setActivePage('forge');
                       }}
-                      className="flex items-center gap-1 text-caption text-orange-600 hover:text-orange-700 transition-colors"
+                      className="flex items-center gap-1 text-caption text-accent hover:text-accent-hover transition-colors"
                     >
                       <PenSquare className="w-3 h-3" />
                       直接送 forge
@@ -414,7 +403,7 @@ export function ContentSearch() {
               <button
                 onClick={loadMore}
                 disabled={isLoadingMore}
-                className="px-6 py-2.5 rounded-xl bg-bg-surface border border-border text-body-sm text-text-secondary hover:bg-accent hover:text-white hover:border-accent transition-all duration-120 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
+                className="btn-ghost"
               >
                 {isLoadingMore ? (
                   <span className="flex items-center gap-2">
@@ -429,20 +418,18 @@ export function ContentSearch() {
           )}
         </div>
       ) : hasSearched ? (
-        <div className="flex flex-col items-center justify-center py-16 text-center">
-          <div className="w-14 h-14 rounded-full bg-bg-elevated flex items-center justify-center mb-4">
-            <Search className="w-6 h-6 text-text-tertiary" />
+        <div className="card p-8 text-center">
+          <div className="w-12 h-12 rounded-full bg-accent-subtle mx-auto mb-3 flex items-center justify-center">
+            <Search className="w-6 h-6 text-accent" />
           </div>
-          <h3 className="text-lg font-medium text-text-secondary mb-2">没有搜到结果</h3>
-          <p className="text-body-sm text-text-tertiary mb-6 max-w-sm">
-            试试换个关键词，或检查 API 配置状态
-          </p>
-          <div className="flex gap-2">
+          <h3 className="text-body font-semibold text-text-primary mb-1">没有搜到结果</h3>
+          <p className="text-body-sm text-text-secondary mb-4">试试换个关键词，或检查 API 配置状态</p>
+          <div className="flex gap-2 justify-center flex-wrap">
             {['AI 焦虑', '转行', '职业发展'].map(tag => (
               <button
                 key={tag}
                 onClick={() => doSearch(tag)}
-                className="px-3 py-1.5 rounded-full bg-bg-surface border border-border text-caption text-text-secondary hover:bg-accent hover:text-white hover:border-accent transition-all"
+                className="px-2.5 py-1 rounded-md bg-bg-elevated border border-border text-caption text-text-secondary hover:text-text-primary hover:border-accent/40 transition-all"
               >
                 {tag}
               </button>
@@ -450,35 +437,31 @@ export function ContentSearch() {
           </div>
         </div>
       ) : (
-        <div className="py-16">
-          <div className="max-w-2xl mx-auto">
-            <h2 className="text-lg font-semibold text-text-primary mb-4 text-center">
-              推荐搜索方向
-            </h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {[
-                { title: 'AI 会取代哪些行业？', desc: '看看热门平台上关于 AI 替代的讨论' },
-                { title: '35 岁遇上 AI 时代', desc: '中年职场人在 AI 浪潮中的困境与出路' },
-                { title: '热门转行方向', desc: 'AI 时代哪些行业值得投身' },
-                { title: 'AI 焦虑怎么破', desc: '高赞回答教你应对 AI 焦虑' },
-              ].map((suggestion) => (
-                <button
-                  key={suggestion.title}
-                  onClick={() => doSearch(suggestion.title)}
-                  className="group text-left p-4 rounded-xl bg-bg-surface border border-border hover:border-accent/30 hover:shadow-sm transition-all duration-120 active:scale-[0.98]"
-                >
-                  <h4 className="text-body-sm font-medium text-text-primary group-hover:text-accent transition-colors mb-1">
-                    {suggestion.title}
-                  </h4>
-                  <p className="text-caption text-text-tertiary">{suggestion.desc}</p>
-                </button>
-              ))}
-            </div>
+        <div>
+          <h3 className="text-body-sm font-medium text-text-secondary mb-3">推荐搜索方向</h3>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {[
+              { title: 'AI 会取代哪些行业？', desc: '看看热门平台上关于 AI 替代的讨论' },
+              { title: '35 岁遇上 AI 时代', desc: '中年职场人在 AI 浪潮中的困境与出路' },
+              { title: '热门转行方向', desc: 'AI 时代哪些行业值得投身' },
+              { title: 'AI 焦虑怎么破', desc: '高赞回答教你应对 AI 焦虑' },
+            ].map((suggestion) => (
+              <button
+                key={suggestion.title}
+                onClick={() => doSearch(suggestion.title)}
+                className="card p-4 text-left hover:border-accent/40 transition-all duration-120"
+              >
+                <h4 className="text-body-sm font-medium text-text-primary mb-1 group-hover:text-accent">
+                  {suggestion.title}
+                </h4>
+                <p className="text-caption text-text-tertiary">{suggestion.desc}</p>
+              </button>
+            ))}
           </div>
         </div>
       )}
 
-      <div className="mt-8 p-4 rounded-xl bg-bg-elevated border border-border">
+      <div className="mt-6 card p-4">
         <div className="flex items-start gap-3">
           <Brain className="w-4 h-4 text-accent shrink-0 mt-0.5" />
           <div>

@@ -32,7 +32,7 @@ const platformStyles = [
 ];
 
 export function ContentForge() {
-  const { selectedTopic, setSelectedTopic, selectedAngles, setSelectedAngles, lastAnalysis, setLastAnalysis, setGenerating, isGenerating, generatedCopies, setGeneratedCopies, setShowQuotaModal, showToast, userProfile, setActivePage } = useAppStore();
+  const { selectedTopic, setSelectedTopic, selectedAngles, setSelectedAngles, lastAnalysis, setLastAnalysis, setGenerating, isGenerating, generatedCopies, setGeneratedCopies, setShowQuotaModal, showToast, userProfile, setActivePage, checkAndIncrementQuota } = useAppStore();
   const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
   const [convertingPlatform, setConvertingPlatform] = useState<string | null>(null);
   const [convertedCopies, setConvertedCopies] = useState<Record<string, GeneratedCopy[]>>({});
@@ -82,40 +82,38 @@ export function ContentForge() {
       return;
     }
 
-    const quota = await checkUserQuota();
-    if (!quota.allowed) {
-      setShowQuotaModal(true);
-      return;
-    }
-
-    await incrementUserQuota();
+    // 原子操作：检查 + 消费 + 同步 store（避免双调用 race + UI 状态不同步）
+    const ok = await checkAndIncrementQuota();
+    if (!ok) return;
 
     setGenerating(true);
     setGeneratedCopies([]);
 
     try {
-      const userProfile = getUserVariables() || {};
-      const query = buildCopyGenerateQuery(selectedTopic, selectedAngles, userProfile, lastAnalysis);
+      const profileVars = getUserVariables() || {};
+      const query = buildCopyGenerateQuery(selectedTopic, selectedAngles, profileVars, lastAnalysis);
       const result = await callCozeChat(query);
 
       const parsed = parseGeneratedCopies(result);
-      if (parsed.length > 0) {
-        setGeneratedCopies(parsed);
-      } else {
-        setGeneratedCopies(selectedAngles.map(angle => ({ angle, content: result })));
+      if (parsed.length === 0) {
+        // 解析失败：不再造假数据，避免显示 N 段相同内容误导用户
+        console.warn('[ContentForge] parseGeneratedCopies 失败, 原始返回:', result.slice(0, 200));
+        showToast('AI 返回内容格式异常，请换个角度或话题再试', 'error');
+        return;
       }
 
+      setGeneratedCopies(parsed);
       setLastAnalysis('');
 
       saveHistory({
         topic: selectedTopic,
         angles: selectedAngles,
-        copies: parsed.length > 0 ? parsed : selectedAngles.map(a => ({ angle: a, content: result })),
+        copies: parsed,
         timestamp: Date.now(),
       });
       refreshHistory();
 
-      showToast(`已生成 ${selectedAngles.length} 种角度的文案`);
+      showToast(`已生成 ${parsed.length} 种角度的文案`);
       setTimeout(() => {
         resultsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
       }, 100);

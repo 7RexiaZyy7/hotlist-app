@@ -23,12 +23,18 @@ export function CreatorProfile() {
   const [syncing, setSyncing] = useState(false);
   const [syncDone, setSyncDone] = useState(false);
   const [customFormat, setCustomFormat] = useState('');
+  // 单独跟踪"其他"是否被选中，避免自定义输入框与"未填任何字段"状态混淆
+  const [isOtherSelected, setIsOtherSelected] = useState(false);
 
   useEffect(() => {
     const saved = localStorage.getItem(STORAGE_KEY);
     if (saved) {
       try {
-        setUserProfile(JSON.parse(saved));
+        const parsed = JSON.parse(saved);
+        setUserProfile(parsed);
+        // 同步"其他"状态：如果保存的 contentFormat 不在预设列表里，视为自定义
+        const isPreset = contentFormatOptions.some(o => o.id === parsed.contentFormat);
+        setIsOtherSelected(!isPreset && !!parsed.contentFormat);
       } catch {}
     }
   }, [setUserProfile]);
@@ -59,7 +65,7 @@ export function CreatorProfile() {
 
   const handleSync = async () => {
     if (!import.meta.env.PROD) {
-      showToast('本地开发模式无需同步', 'info');
+      showToast('本地开发模式仅本地保存，部署到 Vercel 后会自动同步到 Coze 云端', 'info');
       return;
     }
     setSyncing(true);
@@ -88,9 +94,11 @@ export function CreatorProfile() {
 
   const handleFormatSelect = (id: string) => {
     if (id === '其他') {
-      setCustomFormat('');
+      setIsOtherSelected(true);
+      setCustomFormat(userProfile.contentFormat && !contentFormatOptions.some(o => o.id === userProfile.contentFormat) ? userProfile.contentFormat : '');
       setUserProfile({ ...userProfile, contentFormat: '' });
     } else {
+      setIsOtherSelected(false);
       setCustomFormat('');
       setUserProfile({ ...userProfile, contentFormat: id });
     }
@@ -100,6 +108,8 @@ export function CreatorProfile() {
     setCustomFormat(value);
     if (value.trim()) {
       setUserProfile({ ...userProfile, contentFormat: value });
+    } else {
+      setUserProfile({ ...userProfile, contentFormat: '' });
     }
   };
 
@@ -277,7 +287,9 @@ export function CreatorProfile() {
                 </label>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-1">
                   {contentFormatOptions.map((pf) => {
-                    const isSelected = userProfile.contentFormat === pf.id;
+                    const isSelected = pf.id === '其他'
+                      ? isOtherSelected
+                      : userProfile.contentFormat === pf.id;
                     return (
                       <button
                         key={pf.id}
@@ -295,8 +307,7 @@ export function CreatorProfile() {
                     );
                   })}
                 </div>
-                {userProfile.contentFormat === '' && !contentFormatOptions.some(o => o.id === '其他' && customFormat) && customFormat === '' ? null : null}
-                {userProfile.contentFormat === '' && (
+                {isOtherSelected && (
                   <input
                     type="text"
                     value={customFormat}
@@ -322,16 +333,14 @@ export function CreatorProfile() {
               <RotateCcw className="w-4 h-4" />
               清除信息
             </button>
-            {import.meta.env.PROD && (
-              <button
-                onClick={handleSync}
-                disabled={syncing}
-                className="btn-ghost"
-              >
-                <Upload className={`w-4 h-4 ${syncing ? 'animate-spin' : ''}`} />
-                {syncing ? '同步中...' : syncDone ? '已同步' : '同步到云端'}
-              </button>
-            )}
+            <button
+              onClick={handleSync}
+              disabled={syncing}
+              className="btn-ghost"
+            >
+              <Upload className={`w-4 h-4 ${syncing ? 'animate-spin' : ''}`} />
+              {syncing ? '同步中...' : syncDone ? '已同步' : '同步到云端'}
+            </button>
             <button
               onClick={handleSave}
               className="btn-primary ml-auto"

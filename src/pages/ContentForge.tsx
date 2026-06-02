@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useMemo } from 'react';
 import { useAppStore } from '../store';
-import { callCozeChat, buildCopyGenerateQuery, checkUserQuota, incrementUserQuota, getUserVariables } from '../services/cozeApi';
+import { callCozeChat, buildCopyGenerateQuery, checkUserQuota, incrementUserQuota, getUserVariables, getUserProfileFromStorage, formatProfileForPrompt } from '../services/cozeApi';
 import { Sparkles, Copy, Check, RefreshCw, Wand2, FileText, Heart, BookOpen, MessageSquare, Flame, Rocket, Search, Smile, Book, Lightbulb, HelpCircle, GitCompare } from 'lucide-react';
 import { clsx } from 'clsx';
 import { LoadingState, EmptyState } from '../components/LoadingState';
@@ -142,7 +142,11 @@ export function ContentForge() {
         .map((c, i) => `【角度${i + 1}：${c.angle}】\n${c.content}`)
         .join('\n\n---\n\n');
       const platformLabels = platformStyles.map(p => p.label).join(' / ');
-      const query = `请将以下 ${generatedCopies.length} 段文案，同时转换为以下 4 个平台版本：${platformStyles.map(p => p.label).join('、')}。
+
+      const profileText = formatProfileForPrompt(getUserProfileFromStorage());
+      const profileSection = profileText ? `\n用户偏好（请在转换中保持统一的语气和风格）：\n${profileText}\n` : '';
+
+      const query = `请将以下 ${generatedCopies.length} 段文案，同时转换为以下 4 个平台版本：${platformStyles.map(p => p.label).join('、')}。${profileSection}
 
 要求每个平台版本按以下顺序输出，用「==平台名==」作为分隔：
 ==${platformStyles.map(p => p.label).join('==\n==') + '=='}

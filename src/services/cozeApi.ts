@@ -236,30 +236,47 @@ export function setUserId(uid: string): void {
   localStorage.setItem('coze_oauth_uid', uid);
 }
 
-export function getUserVariables(): Record<string, string> | undefined {
+export function getUserProfileFromStorage(): Record<string, string> | undefined {
   try {
     const raw = localStorage.getItem('creator_profile');
     if (!raw) return undefined;
     const profile = JSON.parse(raw);
-    const parts: string[] = [];
-    if (profile.niche || profile.audience) {
-      const core = [profile.niche && `赛道：${profile.niche}`, profile.audience && `受众：${profile.audience}`]
-        .filter(Boolean).join(' | ');
-      if (core) parts.push(core);
-    }
-    if (profile.nickname || profile.style || profile.contentFormat) {
-      const ext = [profile.nickname && `昵称：${profile.nickname}`, profile.style && `文风：${profile.style}`, profile.contentFormat && `形式：${profile.contentFormat}`]
-        .filter(Boolean).join(' | ');
-      if (ext) parts.push(ext);
-    }
-    if (parts.length === 0) return undefined;
-    return {
-      user_profile_core: parts[0] || '',
-      user_profile_text: parts.length > 1 ? parts[1] : '',
-    };
+    if (!profile || typeof profile !== 'object') return undefined;
+    return profile;
   } catch {
     return undefined;
   }
+}
+
+export function formatProfileForPrompt(profile: Record<string, string> | undefined): string {
+  if (!profile) return '';
+  const lines: string[] = [];
+  if (profile.niche) lines.push(`赛道：${profile.niche}`);
+  if (profile.audience) lines.push(`受众：${profile.audience}`);
+  if (profile.nickname) lines.push(`昵称：${profile.nickname}`);
+  if (profile.style) lines.push(`文风：${profile.style}`);
+  if (profile.contentFormat) lines.push(`体裁：${profile.contentFormat}`);
+  return lines.join('\n');
+}
+
+export function getUserVariables(): Record<string, string> | undefined {
+  const profile = getUserProfileFromStorage();
+  if (!profile) return undefined;
+
+  const coreParts: string[] = [];
+  if (profile.niche) coreParts.push(`赛道：${profile.niche}`);
+  if (profile.audience) coreParts.push(`受众：${profile.audience}`);
+
+  const extParts: string[] = [];
+  if (profile.nickname) extParts.push(`昵称：${profile.nickname}`);
+  if (profile.style) extParts.push(`文风：${profile.style}`);
+  if (profile.contentFormat) extParts.push(`体裁：${profile.contentFormat}`);
+
+  if (coreParts.length === 0 && extParts.length === 0) return undefined;
+  return {
+    user_profile_core: coreParts.join(' | '),
+    user_profile_text: extParts.join(' | '),
+  };
 }
 
 // ─── 查询构建 ───
@@ -276,10 +293,10 @@ export function buildCopyGenerateQuery(topic: string, angles: string[], userProf
 ${analysis}`;
   }
 
-  if (userProfile.niche) query += `\n赛道：${userProfile.niche}`;
-  if (userProfile.audience) query += `\n受众：${userProfile.audience}`;
-  if (userProfile.style) query += `\n文风：${userProfile.style}`;
-  if (userProfile.contentFormat) query += `\n体裁：${userProfile.contentFormat}`;
+  const profileText = formatProfileForPrompt(userProfile);
+  if (profileText) {
+    query += `\n\n用户偏好：\n${profileText}`;
+  }
 
   query += `
 

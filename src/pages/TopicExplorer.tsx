@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { useAppStore } from '../store';
 import { Search, ArrowRight, Hash, Sparkles, ChevronDown, ChevronUp, Flame } from 'lucide-react';
 import { LoadingState, EmptyState } from '../components/LoadingState';
+import { AnalysisRenderer } from '../components/AnalysisRenderer';
 import { 
   callCozeChat, 
   buildTopicSearchQuery,
@@ -217,21 +218,12 @@ export function TopicExplorer() {
         <div className="mb-6 space-y-4">
           <h3 className="text-body font-semibold text-text-primary">结构化分析结果</h3>
           {analysisResults.map((item, i) => (
-            <div key={i} className="card p-5">
-              <div className="flex items-center justify-between mb-3">
-                <h4 className="text-body font-medium text-text-primary">{item.topic}</h4>
-                <button
-                  onClick={() => { setLastAnalysis(item.analysis); handleSelectTopic(item.topic); }}
-                  className="btn-primary !py-1 !px-2 !text-caption flex items-center gap-1"
-                >
-                  <Sparkles className="w-3 h-3" />
-                  写文案
-                </button>
-              </div>
-              <div className="text-body-sm text-text-secondary whitespace-pre-wrap leading-relaxed">
-                {item.analysis}
-              </div>
-            </div>
+            <AnalysisRenderer
+              key={i}
+              topic={item.topic}
+              analysis={item.analysis}
+              onWriteCopy={() => { setLastAnalysis(item.analysis); handleSelectTopic(item.topic); }}
+            />
           ))}
         </div>
       )}

@@ -167,20 +167,18 @@ async function pollForResult(chat_id: string, conversation_id: string): Promise<
       const messages = messagesResult.data || messagesResult;
       if (!Array.isArray(messages)) continue;
 
-      const toolResponseMsg = messages.find((m: any) => m.type === 'tool_response');
-      if (toolResponseMsg?.content) {
-        return toolResponseMsg.content;
-      }
-
+      // 优先取干净的最终回复，避免被 tool_response 的原始 JSON 截胡
       const answerMsg = messages.find((m: any) => m.type === 'answer' || m.type === 'final');
-      if (answerMsg?.content) {
-        return answerMsg.content;
-      }
+      if (answerMsg?.content) return answerMsg.content;
 
-      const assistantMsg = messages.find((m: any) => m.role === 'assistant' && m.type !== 'function_call' && m.type !== 'verbose');
+      // 回退：取最后一个非工具类、非 verbose 的 assistant 消息
+      const assistantMsg = [...messages].reverse().find(
+        (m: any) => m.role === 'assistant'
+          && m.type !== 'function_call'
+          && m.type !== 'tool_response'
+          && m.type !== 'verbose'
+      );
       if (assistantMsg?.content) return assistantMsg.content;
-
-      if (messages.length > 0 && messages[0].content) return messages[0].content;
 
       return '';
     } catch (e) {

@@ -40,13 +40,18 @@ export function ContentForge() {
   const [loadingStep, setLoadingStep] = useState(0);
   const resultsRef = useRef<HTMLDivElement>(null);
 
-  const history = useMemo(() => {
+  const [history, setHistory] = useState<any[]>(() => {
     try {
       return JSON.parse(localStorage.getItem('copyHistory') || '[]');
     } catch {
       return [];
     }
-  }, []);  // Only loaded once; could be refreshed but this is acceptable for history
+  });
+  const refreshHistory = () => {
+    try {
+      setHistory(JSON.parse(localStorage.getItem('copyHistory') || '[]'));
+    } catch {}
+  };
 
   useEffect(() => {
     if (isGenerating) {
@@ -108,6 +113,7 @@ export function ContentForge() {
         copies: parsed.length > 0 ? parsed : selectedAngles.map(a => ({ angle: a, content: result })),
         timestamp: Date.now(),
       });
+      refreshHistory();
 
       showToast(`已生成 ${selectedAngles.length} 种角度的文案`);
       setTimeout(() => {
@@ -124,18 +130,51 @@ export function ContentForge() {
   const handleConvert = async (platform: string) => {
     if (!generatedCopies.length || convertingPlatform) return;
 
+    const quota = await checkUserQuota();
+    if (!quota.allowed) {
+      setShowQuotaModal(true);
+      return;
+    }
+
     setConvertingPlatform(platform);
     try {
-      const results: GeneratedCopy[] = [];
-      for (const copy of generatedCopies) {
-        const query = `请将以下文案转换为${platformStyles.find(p => p.id === platform)?.label || platform}风格：\n\n${copy.content}`;
-        const result = await callCozeChat(query);
-        results.push({ angle: copy.angle, content: result });
-      }
-      setConvertedCopies(prev => ({ ...prev, [platform]: results }));
-      showToast('转换完成');
+      await incrementUserQuota();
+
+      const copiesText = generatedCopies
+        .map((c, i) => `【角度${i + 1}：${c.angle}】\n${c.content}`)
+        .join('\n\n---\n\n');
+      const platformLabels = platformStyles.map(p => p.label).join(' / ');
+      const query = `请将以下 ${generatedCopies.length} 段文案，同时转换为以下 4 个平台版本：${platformStyles.map(p => p.label).join('、')}。
+
+要求每个平台版本按以下顺序输出，用「==平台名==」作为分隔：
+==${platformStyles.map(p => p.label).join('==\n==') + '=='}
+
+原文：
+${copiesText}
+
+输出格式（严格遵守）：
+==${platformStyles[0].label}==
+[${platformStyles[0].label}版本的角度1文案]
+[${platformStyles[0].label}版本的角度2文案]
+...
+==${platformStyles[1].label}==
+[${platformStyles[1].label}版本的角度1文案]
+...`;
+
+      const result = await callCozeChat(query);
+      const parsed = parseAllPlatformCopies(result, platformStyles, generatedCopies);
+
+      setConvertedCopies(prev => ({ ...prev, [platform]: parsed[platformStyles[0].label] || generatedCopies }));
+      setConvertedCopies(prev => {
+        const next = { ...prev };
+        platformStyles.forEach(p => {
+          if (parsed[p.label]) next[p.id] = parsed[p.label];
+        });
+        return next;
+      });
+      showToast(`已生成 ${platformLabels} 4 个平台版本`);
     } catch {
-      showToast('转换失败', 'error');
+      showToast('转换失败，请稍后重试', 'error');
     } finally {
       setConvertingPlatform(null);
     }
@@ -244,29 +283,58 @@ export function ContentForge() {
         />
       ) : (
         <div ref={resultsRef} className="space-y-4">
-          <div className="flex items-center justify-between mb-2">
+          <div className="flex items-center justify-between mb-2 flex-wrap gap-2">
             <h3 className="text-body font-semibold text-text-primary">生成结果</h3>
-            <div className="flex gap-1.5">
-              {platformStyles.map((platform) => (
-                <button
-                  key={platform.id}
-                  onClick={() => handleConvert(platform.id)}
-                  disabled={convertingPlatform !== null}
-                  className={clsx(
-                    'px-2.5 py-1 rounded-md text-caption font-medium transition-all duration-120',
-                    convertingPlatform === platform.id
-                      ? 'bg-accent-subtle text-accent'
-                      : convertedCopies[platform.id]
-                        ? 'bg-accent-subtle text-accent'
+            <button
+              onClick={() => handleConvert('all')}
+              disabled={convertingPlatform !== null}
+              className={clsx(
+                'flex items-center gap-1.5 px-3 py-1.5 rounded-md text-caption font-medium transition-all duration-120',
+                convertingPlatform
+                  ? 'bg-accent-subtle text-accent'
+                  : Object.keys(convertedCopies).length > 0
+                    ? 'bg-accent-subtle text-accent border border-accent'
+                    : 'bg-bg-surface border border-border text-text-secondary hover:text-text-primary'
+              )}
+              title="一次生成 4 个平台版本（仅消耗 1 次额度）"
+            >
+              <Wand2 className="w-3.5 h-3.5" />
+              {convertingPlatform ? '转换中...' : Object.keys(convertedCopies).length > 0 ? '已生成多平台版本 · 重新转换' : '一键转换为多平台版本'}
+            </button>
+          </div>
+
+          {/* 平台切换 tab：原版 + 已转换的平台 */}
+          {Object.keys(convertedCopies).length > 0 && (
+            <div className="flex gap-1.5 flex-wrap mb-2">
+              <button
+                onClick={() => setConvertingPlatform(null)}
+                className={clsx(
+                  'px-2.5 py-1 rounded-md text-caption font-medium transition-all duration-120',
+                  !convertingPlatform
+                    ? 'bg-accent-subtle text-accent border border-accent'
+                    : 'bg-bg-surface border border-border text-text-secondary hover:text-text-primary'
+                )}
+              >
+                原版
+              </button>
+              {platformStyles.map((p) => (
+                convertedCopies[p.id] && (
+                  <button
+                    key={p.id}
+                    onClick={() => setConvertingPlatform(p.id)}
+                    className={clsx(
+                      'px-2.5 py-1 rounded-md text-caption font-medium transition-all duration-120',
+                      convertingPlatform === p.id
+                        ? 'bg-accent-subtle text-accent border border-accent'
                         : 'bg-bg-surface border border-border text-text-secondary hover:text-text-primary'
-                  )}
-                  title={platform.description}
-                >
-                  {platform.label}
-                </button>
+                    )}
+                  >
+                    {p.label}
+                  </button>
+                )
               ))}
             </div>
-          </div>
+          )}
 
           <div className="grid gap-3">
             {currentCopies.map((copy, index) => (
@@ -378,4 +446,63 @@ function parseGeneratedCopies(text: string): GeneratedCopy[] {
   }
 
   return copies.length > 0 ? copies : [];
+}
+
+function parseAllPlatformCopies(
+  text: string,
+  platforms: { id: string; label: string }[],
+  fallbackAngles: { angle: string; content: string }[]
+): Record<string, GeneratedCopy[]> {
+  const result: Record<string, GeneratedCopy[]> = {};
+  const lines = text.split('\n');
+  let currentPlatform: string | null = null;
+  let currentAngleIndex = 0;
+  let currentContent = '';
+
+  const flush = () => {
+    if (currentPlatform && currentContent.trim()) {
+      const angle = fallbackAngles[currentAngleIndex]?.angle || `角度${currentAngleIndex + 1}`;
+      if (!result[currentPlatform]) result[currentPlatform] = [];
+      result[currentPlatform].push({ angle, content: currentContent.trim() });
+    }
+    currentContent = '';
+  };
+
+  for (const raw of lines) {
+    const line = raw.trim();
+    if (!line) continue;
+
+    // 匹配 ==小红书版== / 【小红书版】 / # 小红书版 # 等分隔符
+    const sep = line.match(/^==\s*(.+?)\s*==$/)
+      || line.match(/^【\s*(.+?)\s*】$/)
+      || line.match(/^#\s*(.+?)\s*#$/);
+    if (sep) {
+      flush();
+      const matched = platforms.find(p => sep[1].includes(p.label) || p.label.includes(sep[1]));
+      currentPlatform = matched?.label || sep[1].trim();
+      currentAngleIndex = 0;
+      continue;
+    }
+
+    // 数字开头的算新角度
+    const numMatch = line.match(/^\d+[\.\uff0e、]\s*(.+)/);
+    if (numMatch) {
+      flush();
+      currentContent = numMatch[1];
+      currentAngleIndex = result[currentPlatform || '']?.length || 0;
+      continue;
+    }
+
+    if (currentPlatform) {
+      if (currentContent) currentContent += '\n';
+      currentContent += raw;
+    }
+  }
+  flush();
+
+  // 如果没解析出任何平台，回退到原版
+  if (Object.keys(result).length === 0) {
+    platforms.forEach(p => { result[p.label] = fallbackAngles; });
+  }
+  return result;
 }

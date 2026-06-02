@@ -386,41 +386,64 @@ ${copiesText}
           )}
 
           <div className="grid gap-3">
-            {currentCopies.map((copy, index) => (
-              <div key={index} className="card p-4">
-                <div className="flex items-center justify-between mb-3">
-                  <span className="badge !text-accent !border-accent">{copy.angle}</span>
-                  <button
-                    onClick={() => handleCopy(copy.content, index)}
-                    className={clsx(
-                      'flex items-center gap-1 px-2.5 py-1 rounded-md text-caption transition-all duration-120',
-                      copiedIndex === index
-                        ? 'bg-accent-subtle text-accent'
-                        : 'bg-bg-elevated text-text-secondary hover:text-text-primary'
-                    )}
-                  >
-                    {copiedIndex === index ? (
-                      <>
-                        <Check className="w-3 h-3" />
-                        已复制
-                      </>
-                    ) : (
-                      <>
-                        <Copy className="w-3 h-3" />
-                        复制
-                      </>
-                    )}
-                  </button>
+            {currentCopies.map((copy, index) => {
+              const { title, body } = splitTitleBody(copy.content);
+              return (
+                <div key={index} className="card p-4">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-2">
+                      <span className="text-caption font-mono text-text-tertiary">#{index + 1}</span>
+                      <span className="inline-flex items-center px-2.5 py-1 rounded-md text-body-sm font-medium border border-accent text-accent bg-accent-subtle">
+                        {copy.angle}
+                      </span>
+                    </div>
+                    <button
+                      onClick={() => handleCopy(copy.content, index)}
+                      className={clsx(
+                        'flex items-center gap-1 px-2.5 py-1 rounded-md text-caption transition-all duration-120',
+                        copiedIndex === index
+                          ? 'bg-accent-subtle text-accent'
+                          : 'bg-bg-elevated text-text-secondary hover:text-text-primary'
+                      )}
+                    >
+                      {copiedIndex === index ? (
+                        <>
+                          <Check className="w-3 h-3" />
+                          已复制
+                        </>
+                      ) : (
+                        <>
+                          <Copy className="w-3 h-3" />
+                          复制
+                        </>
+                      )}
+                    </button>
+                  </div>
+                  {title && (
+                    <h3
+                      onClick={() => handleCopy(title, index)}
+                      className="text-heading-m text-text-primary leading-snug mb-2 cursor-pointer hover:text-accent transition-colors"
+                      title="点击复制标题"
+                    >
+                      {title}
+                    </h3>
+                  )}
+                  {body && (
+                    <p className="text-body text-text-secondary leading-relaxed whitespace-pre-wrap">
+                      {body}
+                    </p>
+                  )}
+                  {!body && !title && (
+                    <p className="text-body text-text-secondary leading-relaxed whitespace-pre-wrap">
+                      {copy.content}
+                    </p>
+                  )}
+                  <div className="mt-3 pt-3 border-t border-border text-caption text-text-tertiary">
+                    {copy.content.length} 字
+                  </div>
                 </div>
-                <p className="text-body text-text-primary leading-relaxed whitespace-pre-wrap">
-                  {copy.content}
-                </p>
-                <div className="mt-3 pt-3 border-t border-border flex items-center justify-between text-caption text-text-tertiary">
-                  <span>{copy.content.length} 字</span>
-                  <span>预计阅读 {Math.ceil(copy.content.length / 500)} 分钟</span>
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       )}
@@ -554,4 +577,30 @@ function parseAllPlatformCopies(
     platforms.forEach(p => { result[p.label] = fallbackAngles; });
   }
   return result;
+}
+
+function splitTitleBody(content: string): { title: string; body: string } {
+  const trimmed = content.trim();
+  if (!trimmed) return { title: '', body: '' };
+
+  const newlineIdx = trimmed.indexOf('\n');
+  if (newlineIdx > 0) {
+    const firstLine = trimmed.substring(0, newlineIdx).trim();
+    if (firstLine.length >= 4 && firstLine.length <= 50) {
+      return {
+        title: firstLine,
+        body: trimmed.substring(newlineIdx + 1).trim(),
+      };
+    }
+  }
+
+  const sentenceMatch = trimmed.match(/^([\s\S]{4,60}?[。！？])/);
+  if (sentenceMatch && sentenceMatch[1].length <= 50) {
+    return {
+      title: sentenceMatch[1].trim(),
+      body: trimmed.substring(sentenceMatch[0].length).trim(),
+    };
+  }
+
+  return { title: '', body: trimmed };
 }

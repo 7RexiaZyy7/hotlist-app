@@ -38,6 +38,7 @@ try {
   }
 } catch {}
 
+const KV_TIMEOUT = 3000;
 const QUOTA_ANON = 3;
 const QUOTA_FREE = 15;
 const QUOTA_PRO = 9999;
@@ -47,10 +48,17 @@ function getTodayKey() {
   return `quota:${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
 }
 
+function kvWithTimeout(promise, ms = KV_TIMEOUT) {
+  return Promise.race([
+    promise,
+    new Promise((_, reject) => setTimeout(() => reject(new Error('KV timeout')), ms)),
+  ]);
+}
+
 async function getUserTier(userId) {
   if (!kv) return 'free';
   try {
-    const tier = await kv.get(`tier:${userId}`);
+    const tier = await kvWithTimeout(kv.get(`tier:${userId}`));
     return tier || 'free';
   } catch {
     return 'free';
@@ -67,7 +75,7 @@ async function checkQuota(userId, isLoggedIn) {
 
   const key = `${getTodayKey()}:${userId}`;
   try {
-    const used = await kv.get(key) || 0;
+    const used = await kvWithTimeout(kv.get(key)) || 0;
     const remaining = Math.max(0, limit - used);
     return { allowed: used < limit, used, limit, tier, remaining };
   } catch {
@@ -79,9 +87,9 @@ async function incrementQuota(userId) {
   if (!kv) return;
   const key = `${getTodayKey()}:${userId}`;
   try {
-    const used = await kv.incr(key);
+    const used = await kvWithTimeout(kv.incr(key));
     if (used === 1) {
-      await kv.expire(key, 86400 * 2);
+      await kvWithTimeout(kv.expire(key, 86400 * 2));
     }
   } catch (e) {
     console.error('incrementQuota error:', e.message);
@@ -395,23 +403,49 @@ export default async function handler(req, res) {
     }
 
     if (action === 'quota' && req.method === 'GET') {
-      const userId = req.headers['x-user-id'] || 'anonymous';
-      const isLoggedIn = req.headers['x-logged-in'] === 'true';
-      const quota = await checkQuota(userId, isLoggedIn);
-      return res.status(200).json(quota);
+      try {
+        const userId = req.headers['x-user-id'] || 'anonymous';
+        const isLoggedIn = req.headers['x-logged-in'] === 'true';
+        const quota = await checkQuota(userId, isLoggedIn);
+        return res.status(200).json(quota);
+      } catch (err) {
+        console.error('Quota endpoint error:', err);
+        // Fallback to free quota if anything goes wrong
+        const isLoggedIn = req.headers['x-logged-in'] === 'true';
+        return res.status(200).json({
+          allowed: true,
+          used: 0,
+          limit: isLoggedIn ? 15 : 3,
+          tier: isLoggedIn ? 'free' : 'anon',
+          remaining: isLoggedIn ? 15 : 3,
+        });
+      }
     }
 
     if (action === 'increment' && req.method === 'POST') {
-      const userId = req.headers['x-user-id'] || 'anonymous';
-      const isLoggedIn = req.headers['x-logged-in'] === 'true';
-      const quota = await checkQuota(userId, isLoggedIn);
-      if (!quota.allowed) {
-        return res.status(429).json({ error: '配额已用完', ...quota });
+      try {
+        const userId = req.headers['x-user-id'] || 'anonymous';
+        const isLoggedIn = req.headers['x-logged-in'] === 'true';
+        const quota = await checkQuota(userId, isLoggedIn);
+        if (!quota.allowed) {
+          return res.status(429).json({ error: '配额已用完', ...quota });
+        }
+        await incrementQuota(userId);
+        quota.used += 1;
+        quota.remaining = Math.max(0, quota.remaining - 1);
+        return res.status(200).json(quota);
+      } catch (err) {
+        console.error('Increment endpoint error:', err);
+        // Fallback: allow the request even if quota tracking fails
+        const isLoggedIn = req.headers['x-logged-in'] === 'true';
+        return res.status(200).json({
+          allowed: true,
+          used: 0,
+          limit: isLoggedIn ? 15 : 3,
+          tier: isLoggedIn ? 'free' : 'anon',
+          remaining: isLoggedIn ? 15 : 3,
+        });
       }
-      await incrementQuota(userId);
-      quota.used += 1;
-      quota.remaining = Math.max(0, quota.remaining - 1);
-      return res.status(200).json(quota);
     }
 
     if (action === 'afdian_check' && req.method === 'POST') {
@@ -430,7 +464,7 @@ export default async function handler(req, res) {
       if (!userId) return res.json({ ok: false, error: 'Missing user_id' });
       if (!kv) return res.json({ ok: false, error: 'KV not available' });
 
-      await kv.set(`tier:${userId}`, tier, { ex: days * 86400 });
+      await kvWithTimeout(kv.set(`tier:${userId}`, tier, { ex: days * 86400 }));
       const currentTier = await getUserTier(userId);
       return res.json({ ok: true, user_id: userId, tier: currentTier, expires_in_days: days });
     }
@@ -480,7 +514,7 @@ export default async function handler(req, res) {
         });
         const html = await r.text();
 
-        const items: any[] = [];
+        const items = [];
         const resultRegex = /<li[^>]*class="b_algo"[^>]*>[\s\S]*?<\/li>/gi;
         let match;
 
@@ -576,7 +610,7 @@ async function syncAfdianOrder(cozeUserId) {
   if (!kv || !AFDIAN_USER_ID || !AFDIAN_TOKEN) return false;
 
   const cacheKey = `afdian_sync:${cozeUserId}`;
-  const lastSync = await kv.get(cacheKey);
+  const lastSync = await kvWithTimeout(kv.get(cacheKey));
   if (lastSync && Date.now() - Number(lastSync) < 60000) return false;
 
   try {
@@ -610,11 +644,11 @@ async function syncAfdianOrder(cozeUserId) {
       const possibleIds = [customId, remark].filter(Boolean);
 
       if (possibleIds.some(id => id === cozeUserId || id.includes(cozeUserId))) {
-        const currentTier = await kv.get(`tier:${cozeUserId}`);
+        const currentTier = await kvWithTimeout(kv.get(`tier:${cozeUserId}`));
         if (currentTier !== 'pro') {
           const month = order.month || 1;
           const expireDays = month * 31;
-          await kv.set(`tier:${cozeUserId}`, 'pro', { ex: expireDays * 86400 });
+          await kvWithTimeout(kv.set(`tier:${cozeUserId}`, 'pro', { ex: expireDays * 86400 }));
           console.log(`Afdian sync: upgraded ${cozeUserId} to pro, expires in ${expireDays} days`);
           upgraded = true;
         }
@@ -622,7 +656,7 @@ async function syncAfdianOrder(cozeUserId) {
       }
     }
 
-    await kv.set(cacheKey, String(Date.now()), { ex: 120 });
+    await kvWithTimeout(kv.set(cacheKey, String(Date.now()), { ex: 120 }));
     return upgraded;
   } catch (e) {
     console.error('syncAfdianOrder error:', e.message);
@@ -638,7 +672,7 @@ async function handleTophubScrape(type, target, res) {
 
   if (kv) {
     try {
-      const cached = await kv.get(cacheKey);
+      const cached = await kvWithTimeout(kv.get(cacheKey));
       if (cached && Array.isArray(cached) && cached.length > 0) {
         return res.json({
           type,
@@ -671,7 +705,7 @@ async function handleTophubScrape(type, target, res) {
     midnight.setHours(0, 0, 0, 0);
     const ttl = Math.floor((midnight.getTime() - now) / 1000);
     if (ttl > 0) {
-      await kv.set(cacheKey, list, { ex: ttl });
+      await kvWithTimeout(kv.set(cacheKey, list, { ex: ttl }));
     }
   }
 

@@ -119,6 +119,10 @@ interface AppState {
   activePage: string;
   setActivePage: (page: string) => void;
 
+  // HotRadar 引导卡（可折叠，用户可从 Settings 重新显示）
+  showHotRadarGuide: boolean;
+  setShowHotRadarGuide: (show: boolean) => void;
+
   toast: Toast | null;
   showToast: (message: string, type?: Toast['type']) => void;
 }
@@ -230,6 +234,17 @@ export const useAppStore = create<AppState>()((set) => ({
 
   activePage: 'radar',
   setActivePage: (page) => set({ activePage: page }),
+
+  // HotRadar 引导卡：未折叠过才显示
+  showHotRadarGuide: !localStorage.getItem('hotRadar_guideCollapsed'),
+  setShowHotRadarGuide: (show) => {
+    if (show) {
+      localStorage.removeItem('hotRadar_guideCollapsed');
+    } else {
+      localStorage.setItem('hotRadar_guideCollapsed', '1');
+    }
+    set({ showHotRadarGuide: show });
+  },
 
   toast: null,
   showToast: (message, type = 'success') => {

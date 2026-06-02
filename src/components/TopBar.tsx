@@ -15,6 +15,7 @@ export function TopBar() {
   const setQuota = useAppStore((s) => s.setQuota);
   const setShowQuotaModal = useAppStore((s) => s.setShowQuotaModal);
   const setActivePage = useAppStore((s) => s.setActivePage);
+  const setShowHotRadarGuide = useAppStore((s) => s.setShowHotRadarGuide);
   const [showSettings, setShowSettings] = useState(false);
   const [loggingIn, setLoggingIn] = useState(false);
   const settingsRef = useRef<HTMLDivElement>(null);
@@ -130,10 +131,10 @@ export function TopBar() {
           {showSettings && (
             <div className="absolute right-0 mt-1 w-48 bg-bg-surface border border-border rounded-lg p-1 z-40 animate-fadeIn shadow-lg">
               <button
-                onClick={() => { setShowSettings(false); setActivePage('profile'); }}
+                onClick={() => { setShowSettings(false); setShowHotRadarGuide(true); }}
                 className="w-full px-3 py-2 rounded-md text-left text-body-sm text-text-secondary hover:bg-bg-elevated transition-colors"
               >
-                创作者档案
+                重新显示引导
               </button>
               <button
                 onClick={() => { setShowSettings(false); setShowQuotaModal(true); }}

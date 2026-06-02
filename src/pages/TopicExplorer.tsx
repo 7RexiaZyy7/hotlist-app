@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useAppStore } from '../store';
-import { Search, ArrowRight, Hash, Sparkles } from 'lucide-react';
+import { Search, ArrowRight, Hash, Sparkles, ChevronDown, ChevronUp, Flame } from 'lucide-react';
 import { LoadingState, EmptyState } from '../components/LoadingState';
 import { 
   callCozeChat, 
@@ -18,9 +18,24 @@ export function TopicExplorer() {
     savedTopics,
     clearSavedTopics,
     setLastAnalysis,
+    hotList,
   } = useAppStore();
   
   const [query, setQuery] = useState('');
+
+  // 推荐探索方向（复用热榜趋势）
+  const trendingTopics = useMemo(() => {
+    if (!hotList.length) return [];
+    const seen = new Set<string>();
+    return hotList
+      .filter((item) => {
+        if (seen.has(item.title)) return false;
+        seen.add(item.title);
+        return true;
+      })
+      .slice(0, 8)
+      .map((item) => item.title);
+  }, [hotList]);
 
   // Sync from ContentSearch handoff
   useEffect(() => {
@@ -33,6 +48,9 @@ export function TopicExplorer() {
   const [results, setResults] = useState<any[]>([]);
   const [searched, setSearched] = useState(false);
   const [loadingStep, setLoadingStep] = useState(0);
+
+  // 收藏池折叠状态
+  const [savedCollapsed, setSavedCollapsed] = useState(false);
 
   // 结构化分析相关
   const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -151,7 +169,12 @@ export function TopicExplorer() {
     <div className="p-4 md:p-6 pb-24 md:pb-6 max-w-shell mx-auto">
       <div className="mb-6">
         <h2 className="text-display text-text-primary mb-1">话题勘探</h2>
-        <p className="text-body-sm text-text-secondary">探索各平台热门话题，发现创作灵感</p>
+        <p className="text-body-sm text-text-secondary">
+          AI 帮你跨平台分析「哪些平台在聊这个话题」，输出创作角度建议。
+        </p>
+        <p className="text-caption text-text-tertiary mt-1">
+          💡 想直接搜知乎/脉脉的原始帖子？去「内容搜索」页
+        </p>
       </div>
 
       {/* 收藏池提示 */}

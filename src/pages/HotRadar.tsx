@@ -88,12 +88,13 @@ export function HotRadar() {
     showToast,
     savedTopics,
     toggleSaveTopic,
+    showHotRadarGuide,
+    setShowHotRadarGuide,
   } = useAppStore();
   const [selectedPlatform, setSelectedPlatform] = useState('douyin');
   const [error, setError] = useState<string | null>(null);
   const isLoadingRef = useRef(false);
   const [showPoolModal, setShowPoolModal] = useState(false);
-  const [showGuide, setShowGuide] = useState(() => !localStorage.getItem('hotRadar_guideShown'));
   const [showCount, setShowCount] = useState(20);
 
   const fetchHotList = useCallback(
@@ -230,22 +231,36 @@ export function HotRadar() {
         </div>
       </div>
 
-      {/* Guide banner */}
-      {showGuide && (
-        <div className="guide-banner mb-5">
-          <div className="flex items-center gap-2 min-w-0">
-            <Sparkles className="w-4 h-4 text-[#6366f1] shrink-0" />
-            <span>勾选感兴趣的话题 → 收藏池 → 批量分析 → 生成文案</span>
+      {/* 3 步工作流引导卡（可折叠，可从 TopBar Settings 重新显示） */}
+      {showHotRadarGuide && (
+        <div className="card p-4 mb-5 border-l-2 border-l-[#6366f1]">
+          <div className="flex items-start justify-between gap-3 mb-3">
+            <div className="flex items-center gap-2">
+              <Sparkles className="w-4 h-4 text-[#6366f1] shrink-0" />
+              <span className="text-body-sm font-medium text-text-primary">3 步找到爆款选题</span>
+            </div>
+            <button
+              onClick={() => setShowHotRadarGuide(false)}
+              className="text-caption text-text-tertiary hover:text-text-primary shrink-0"
+              title="收起引导（可从右上角设置重新显示）"
+            >
+              收起
+            </button>
           </div>
-          <button
-            onClick={() => {
-              setShowGuide(false);
-              localStorage.setItem('hotRadar_guideShown', '1');
-            }}
-            className="text-xs text-[#6366f1] hover:text-[#818cf8] shrink-0 font-medium"
-          >
-            知道了
-          </button>
+          <ol className="space-y-2 text-body-sm text-text-secondary">
+            <li className="flex items-start gap-2">
+              <span className="shrink-0 w-5 h-5 rounded-full bg-accent-subtle text-accent text-caption font-semibold flex items-center justify-center">1</span>
+              <span>浏览热榜 / 切换平台，找到感兴趣的话题</span>
+            </li>
+            <li className="flex items-start gap-2">
+              <span className="shrink-0 w-5 h-5 rounded-full bg-accent-subtle text-accent text-caption font-semibold flex items-center justify-center">2</span>
+              <span>点击话题旁的 <Bookmark className="w-3.5 h-3.5 inline -mt-0.5 text-accent" /> 收藏到「收藏池」（可攒多个一起分析）</span>
+            </li>
+            <li className="flex items-start gap-2">
+              <span className="shrink-0 w-5 h-5 rounded-full bg-accent-subtle text-accent text-caption font-semibold flex items-center justify-center">3</span>
+              <span>到「文案工坊」选角度，一键生成多平台爆款文案</span>
+            </li>
+          </ol>
         </div>
       )}
 

@@ -156,12 +156,15 @@ export function ContentSearch() {
           {platform === 'zhihu' ? '知乎深度搜索' : '脉脉话题搜索'}
         </div>
         <h1 className="text-3xl font-bold text-text-primary mb-3 leading-tight">
-          搜索你感兴趣的话题
+          平台搜原始帖子
         </h1>
         <p className="text-body-md text-text-secondary max-w-xl mx-auto">
-          {platform === 'zhihu' 
-            ? '搜索知乎上的真实讨论，发现热门观点和深度内容'
-            : '通过搜索引擎查找脉脉上的相关讨论，职场话题'}
+          {platform === 'zhihu'
+            ? '直接从知乎开放接口搜帖子，拿到原始内容、点赞、评论数。适合找具体讨论素材。'
+            : '从搜索引擎抓取脉脉相关讨论，职场话题。'}
+          <span className="block mt-2 text-caption text-text-tertiary">
+            💡 想让 AI 跨平台分析「哪些平台在聊这个话题」？去「话题勘探」页
+          </span>
         </p>
       </div>
 

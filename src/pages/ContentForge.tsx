@@ -11,17 +11,17 @@ interface GeneratedCopy {
 }
 
 const angles = [
-  { id: 'emotional', label: '情感共鸣', icon: Heart },
-  { id: 'knowledge', label: '知识科普', icon: BookOpen },
-  { id: 'opinion', label: '观点评论', icon: MessageSquare },
-  { id: 'trend', label: '热点追踪', icon: Flame },
-  { id: 'future', label: '未来趋势', icon: Rocket },
-  { id: 'analysis', label: '深度分析', icon: Search },
-  { id: 'funny', label: '趣味解读', icon: Smile },
-  { id: 'story', label: '故事叙述', icon: Book },
-  { id: 'suggestion', label: '实用建议', icon: Lightbulb },
-  { id: 'question', label: '提问互动', icon: HelpCircle },
-  { id: 'comparison', label: '对比分析', icon: GitCompare },
+  { id: 'emotional', label: '情感共鸣', icon: Heart, desc: '触发情绪共鸣，更易转发和评论' },
+  { id: 'knowledge', label: '知识科普', icon: BookOpen, desc: '干货拆解 + 通俗解释，建立信任' },
+  { id: 'opinion', label: '观点评论', icon: MessageSquare, desc: '鲜明立场 + 论据，引发站队讨论' },
+  { id: 'trend', label: '热点追踪', icon: Flame, desc: '借势当前热点，吃流量' },
+  { id: 'future', label: '未来趋势', icon: Rocket, desc: '前瞻视角，吸引关注趋势的用户' },
+  { id: 'analysis', label: '深度分析', icon: Search, desc: '多角度拆解，凸显专业感' },
+  { id: 'funny', label: '趣味解读', icon: Smile, desc: '段子/梗/反讽，病毒传播潜力高' },
+  { id: 'story', label: '故事叙述', icon: Book, desc: '真实故事/经历，最强代入感' },
+  { id: 'suggestion', label: '实用建议', icon: Lightbulb, desc: '可操作的清单/方法论，收藏率高' },
+  { id: 'question', label: '提问互动', icon: HelpCircle, desc: '结尾设问，引导评论' },
+  { id: 'comparison', label: '对比分析', icon: GitCompare, desc: 'A vs B 对比，结构清晰易读' },
 ];
 
 const platformStyles = [
@@ -32,7 +32,7 @@ const platformStyles = [
 ];
 
 export function ContentForge() {
-  const { selectedTopic, setSelectedTopic, selectedAngles, setSelectedAngles, lastAnalysis, setLastAnalysis, setGenerating, isGenerating, generatedCopies, setGeneratedCopies, setShowQuotaModal, showToast } = useAppStore();
+  const { selectedTopic, setSelectedTopic, selectedAngles, setSelectedAngles, lastAnalysis, setLastAnalysis, setGenerating, isGenerating, generatedCopies, setGeneratedCopies, setShowQuotaModal, showToast, userProfile, setActivePage } = useAppStore();
   const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
   const [convertingPlatform, setConvertingPlatform] = useState<string | null>(null);
   const [convertedCopies, setConvertedCopies] = useState<Record<string, GeneratedCopy[]>>({});
@@ -242,6 +242,30 @@ ${copiesText}
             )}
           </button>
         </div>
+        {/* 档案状态提示 */}
+        {userProfile?.niche || userProfile?.audience || userProfile?.style ? (
+          <div className="mt-3 flex items-center gap-1.5 text-caption text-text-tertiary">
+            <Sparkles className="w-3.5 h-3.5 text-accent" />
+            <span>生成时将使用你的「创作者档案」让文案更贴近你</span>
+            <button
+              onClick={() => setActivePage('profile')}
+              className="text-accent hover:text-accent-hover ml-1"
+            >
+              编辑
+            </button>
+          </div>
+        ) : (
+          <div className="mt-3 flex items-center gap-1.5 text-caption text-text-tertiary">
+            <Sparkles className="w-3.5 h-3.5 text-text-tertiary" />
+            <span>没填「创作者档案」？</span>
+            <button
+              onClick={() => setActivePage('profile')}
+              className="text-accent hover:text-accent-hover"
+            >
+              花 30 秒填一下，AI 文案会对你口味的 2 倍
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Angle selection */}
@@ -257,6 +281,7 @@ ${copiesText}
               <button
                 key={angle.id}
                 onClick={() => handleAngleToggle(angle.label)}
+                title={angle.desc}
                 className={clsx(
                   'flex items-center gap-1.5 px-3 py-1.5 rounded-md text-body-sm font-medium transition-all duration-120',
                   selectedAngles.includes(angle.label)
@@ -275,12 +300,34 @@ ${copiesText}
       {isGenerating ? (
         <LoadingState steps={['正在分析热点话题...', '正在构思创作角度...', '正在生成爆款文案...', '正在优化内容质量...']} />
       ) : generatedCopies.length === 0 ? (
-        <EmptyState
-          icon={<FileText className="w-10 h-10" />}
-          title="还没有生成文案"
-          description="输入话题并选择创作角度，AI 帮你生成爆款文案"
-          action={{ label: '开始创作', onClick: () => document.querySelector('input')?.focus() }}
-        />
+        <div className="card p-8 text-center">
+          <div className="w-12 h-12 rounded-full bg-accent-subtle mx-auto mb-3 flex items-center justify-center">
+            <Sparkles className="w-6 h-6 text-accent" />
+          </div>
+          <h3 className="text-body font-semibold text-text-primary mb-1">选个话题开始创作</h3>
+          <p className="text-body-sm text-text-secondary mb-6">从下面 3 个热门方向选一个，AI 立刻生成爆款文案</p>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 max-w-3xl mx-auto">
+            {[
+              { topic: '35岁职场危机', angle: 'emotional', label: '35 岁危机', desc: '情感共鸣', emoji: '😰' },
+              { topic: 'AI 替代人工', angle: 'future', label: 'AI 替代人工', desc: '未来趋势', emoji: '🤖' },
+              { topic: '2026 新兴职业', angle: 'knowledge', label: '新兴职业', desc: '知识科普', emoji: '💼' },
+            ].map((ex) => (
+              <button
+                key={ex.topic}
+                onClick={() => {
+                  setSelectedTopic(ex.topic);
+                  setSelectedAngles([ex.angle]);
+                  setTimeout(() => handleGenerate(), 50);
+                }}
+                className="card p-4 text-left hover:border-accent transition-all duration-120 group"
+              >
+                <div className="text-2xl mb-2">{ex.emoji}</div>
+                <div className="text-body-sm font-medium text-text-primary mb-1 group-hover:text-accent">{ex.label}</div>
+                <div className="text-caption text-text-tertiary">{ex.desc}</div>
+              </button>
+            ))}
+          </div>
+        </div>
       ) : (
         <div ref={resultsRef} className="space-y-4">
           <div className="flex items-center justify-between mb-2 flex-wrap gap-2">

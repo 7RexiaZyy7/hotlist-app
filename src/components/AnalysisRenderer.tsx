@@ -61,6 +61,41 @@ export function parseAnalysis(text: string): ParsedAnalysis {
     }
   }
 
+  if (!hasAnalysisContent(result)) {
+    return heuristicParse(text);
+  }
+
+  return result;
+}
+
+function heuristicParse(fullText: string): ParsedAnalysis {
+  const result: ParsedAnalysis = { whyHot: [], platformDiff: [], angles: [], risks: [], suggestions: [] };
+  const lines = fullText.split('\n');
+
+  for (const raw of lines) {
+    const line = raw.trim();
+    if (!line) continue;
+
+    if (/^\d+[.\uff0e、]\s*【/.test(line)) {
+      const parsed = parseAngles(line);
+      if (parsed.length > 0) result.angles.push(...parsed);
+      continue;
+    }
+
+    if (line.startsWith('|') && line.endsWith('|')) {
+      const cells = line.split('|').map(c => c.trim()).filter(c => c !== '');
+      if (cells.length >= 3 && !/^[\s-:|]+$/.test(cells.join(''))) {
+        result.platformDiff.push({ platform: cells[0], angles: cells[1], comments: cells[2] });
+      }
+      continue;
+    }
+
+    const kvMatch = line.match(/^[-*]\s*(.+?)[：:]\s*(.+)$/);
+    if (kvMatch) {
+      result.whyHot.push({ label: kvMatch[1].trim(), value: kvMatch[2].trim() });
+    }
+  }
+
   return result;
 }
 

@@ -130,7 +130,11 @@ export function TopicExplorer() {
 
   // 分析收藏池的话题
   const handleAnalyzeSaved = async () => {
-    if (savedTopics.length === 0) return;
+    console.log('handleAnalyzeSaved 被调用, savedTopics:', savedTopics);
+    if (savedTopics.length === 0) {
+      showToast('请先收藏话题', 'warning');
+      return;
+    }
     if (!isConnected) {
       showToast('API 代理未连接', 'error');
       return;
@@ -144,18 +148,25 @@ export function TopicExplorer() {
       let completed = 0;
       
       for (const topic of savedTopics) {
+        console.log('正在分析话题:', topic.title);
         const allowed = await checkAndIncrementQuota();
-        if (!allowed) break;
+        if (!allowed) {
+          console.log('配额检查失败');
+          break;
+        }
 
         const query = buildTopicAnalysisQuery(topic.title);
+        console.log('发送查询:', query.slice(0, 100) + '...');
         const analysis = await callCozeChat(query);
+        console.log('收到分析结果:', analysis.slice(0, 100) + '...');
         setAnalysisResults(prev => [...prev, { topic: topic.title, analysis }]);
         completed++;
       }
       
       showToast(`${completed} 个话题分析完成`);
     } catch (error) {
-      showToast('分析失败，请稍后重试', 'error');
+      console.error('分析过程出错:', error);
+      showToast(`分析失败: ${error instanceof Error ? error.message : '请稍后重试'}`, 'error');
     } finally {
       setIsAnalyzing(false);
     }

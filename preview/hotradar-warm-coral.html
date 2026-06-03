@@ -1,0 +1,752 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>热点工坊 · HotRadar 配色预览</title>
+<style>
+/* ==================== 全局重置 ==================== */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+a{color:inherit;text-decoration:none}
+ul,ol{list-style:none}
+
+/* ==================== 调色板 ==================== */
+:root {
+  /* 暖墨底 */
+  --bg-base: #1a1715;
+  --bg-surface: #211d1a;
+  --bg-elevated: #2a2522;
+  --bg-soft: #332e2a;
+  /* 描边 */
+  --border: #3a342f;
+  --border-soft: #2e2924;
+  /* 文字 */
+  --text-primary: #f5f0e8;
+  --text-secondary: #a8a098;
+  --text-tertiary: #6b6560;
+  /* 珊瑚玫瑰 主色 */
+  --accent: #fb7185;
+  --accent-hover: #fda4af;
+  --accent-soft: rgba(251,113,133,0.12);
+  --accent-border: rgba(251,113,133,0.30);
+  /* 暖琥珀 副色 */
+  --amber: #fbbf24;
+  --amber-soft: rgba(251,191,36,0.12);
+  /* 功能色 */
+  --success: #84cc16;
+  --error: #f87171;
+  /* 排版 */
+  --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", "Hiragino Sans GB", sans-serif;
+  --font-mono: "SF Mono", "Cascadia Code", "Consolas", "JetBrains Mono", monospace;
+  --font-serif: "Georgia", "Times New Roman", "Songti SC", "STSong", serif;
+}
+
+body {
+  font-family: var(--font-sans);
+  font-size: 14px;
+  line-height: 1.55;
+  background: var(--bg-base);
+  color: var(--text-primary);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ==================== 布局 ==================== */
+.app { display: flex; min-height: 100vh; }
+
+/* ============ Sidebar ============ */
+.sidebar {
+  width: 240px;
+  flex-shrink: 0;
+  background: var(--bg-base);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+}
+.sidebar-head {
+  height: 56px;
+  padding: 0 20px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border-bottom: 1px solid var(--border);
+}
+.logo-box {
+  width: 28px; height: 28px;
+  border-radius: 6px;
+  background: var(--accent);
+  display: flex; align-items: center; justify-content: center;
+}
+.logo-box svg { width: 16px; height: 16px; color: var(--bg-base); }
+.brand-title { font-size: 13px; font-weight: 600; color: var(--text-primary); line-height: 1.2; }
+.brand-sub { font-size: 10px; color: var(--text-tertiary); line-height: 1.2; margin-top: 2px; }
+
+.nav { flex: 1; padding: 16px 12px; display: flex; flex-direction: column; gap: 2px; }
+.nav-item {
+  width: 100%;
+  display: flex; align-items: center; gap: 12px;
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-size: 13px; font-weight: 500;
+  color: var(--text-secondary);
+  transition: all 120ms ease;
+}
+.nav-item:hover { background: var(--bg-elevated); color: var(--text-primary); }
+.nav-item.active { background: var(--accent-soft); color: var(--accent); border: 1px solid var(--accent-border); padding: 7px 11px; }
+.nav-item svg { width: 16px; height: 16px; flex-shrink: 0; }
+
+.saved-mini {
+  margin: 12px;
+  padding: 12px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--bg-surface);
+}
+.saved-mini-head {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 6px;
+}
+.saved-mini-label { font-size: 11px; color: var(--text-tertiary); font-weight: 500; }
+.saved-mini-count { font-size: 11px; font-family: var(--font-mono); color: var(--accent); }
+.saved-mini-text { font-size: 11px; color: var(--text-secondary); line-height: 1.5; }
+
+.sidebar-foot {
+  padding: 12px 20px;
+  border-top: 1px solid var(--border);
+}
+.sidebar-foot p { font-size: 11px; color: var(--text-tertiary); }
+
+/* ============ Main ============ */
+.main { flex: 1; min-width: 0; background: var(--bg-base); position: relative; }
+
+/* TopBar */
+.topbar {
+  height: 56px;
+  padding: 0 32px;
+  display: flex; align-items: center; justify-content: space-between;
+  border-bottom: 1px solid var(--border);
+  background: rgba(26,23,21,0.85);
+  position: sticky; top: 0; z-index: 10;
+  backdrop-filter: blur(12px);
+}
+.topbar-left { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--text-tertiary); }
+.pulse-dot {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: var(--accent);
+  animation: pulse 2s ease-in-out infinite;
+}
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+.topbar-time { font-family: var(--font-mono); }
+.topbar-sep { color: var(--text-tertiary); }
+.topbar-right { display: flex; align-items: center; gap: 4px; }
+.icon-btn {
+  width: 32px; height: 32px;
+  border-radius: 6px;
+  display: flex; align-items: center; justify-content: center;
+  color: var(--text-tertiary);
+  transition: all 120ms ease;
+}
+.icon-btn:hover { color: var(--text-primary); background: var(--bg-elevated); }
+.icon-btn svg { width: 16px; height: 16px; }
+.avatar {
+  width: 32px; height: 32px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--accent), var(--amber));
+  color: var(--bg-base);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 12px; font-weight: 600;
+  margin-left: 8px;
+}
+
+/* Content */
+.content { padding: 24px 32px 64px; max-width: 1100px; margin: 0 auto; }
+
+/* Page header */
+.page-header { margin-bottom: 24px; }
+.page-title-row { display: flex; align-items: baseline; gap: 12px; margin-bottom: 6px; }
+.page-title {
+  font-family: var(--font-serif);
+  font-weight: 400;
+  font-size: 40px;
+  line-height: 1;
+  letter-spacing: -0.02em;
+  color: var(--text-primary);
+}
+.page-title-en { color: var(--text-tertiary); font-size: 14px; font-style: italic; }
+.page-sub { font-size: 13px; color: var(--text-secondary); }
+
+/* Guide card */
+.guide {
+  margin-bottom: 32px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--bg-surface);
+  overflow: hidden;
+}
+.guide-head {
+  padding: 10px 20px;
+  display: flex; align-items: center; justify-content: space-between;
+  border-bottom: 1px solid var(--border-soft);
+}
+.guide-head-left { display: flex; align-items: center; gap: 8px; }
+.guide-head-left svg { width: 14px; height: 14px; color: var(--accent); }
+.guide-head-title { font-size: 12px; font-weight: 500; color: var(--text-primary); letter-spacing: 0.02em; }
+.guide-head-btn { font-size: 11px; color: var(--text-tertiary); }
+.guide-head-btn:hover { color: var(--text-secondary); }
+.guide-steps { display: grid; grid-template-columns: repeat(3, 1fr); }
+.guide-step {
+  padding: 16px;
+  display: flex; align-items: flex-start; gap: 12px;
+  border-right: 1px solid var(--border-soft);
+}
+.guide-step:last-child { border-right: 0; }
+.step-num {
+  flex-shrink: 0;
+  width: 24px; height: 24px;
+  border-radius: 50%;
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-size: 11px; font-family: var(--font-mono); font-weight: 600;
+  display: flex; align-items: center; justify-content: center;
+  border: 1px solid var(--accent-border);
+}
+.step-title { font-size: 12px; font-weight: 500; color: var(--text-primary); margin-bottom: 2px; }
+.step-desc { font-size: 11px; color: var(--text-tertiary); line-height: 1.5; }
+.step-desc svg { width: 10px; height: 10px; display: inline-block; vertical-align: -1px; color: var(--amber); }
+
+/* Platform tabs */
+.tabs-row {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 16px;
+}
+.tabs {
+  display: inline-flex;
+  padding: 4px;
+  border-radius: 8px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  gap: 2px;
+}
+.tab {
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 12px; font-weight: 500;
+  color: var(--text-tertiary);
+  display: flex; align-items: center; gap: 6px;
+  transition: all 120ms ease;
+}
+.tab:hover { color: var(--text-primary); }
+.tab.active { background: var(--bg-elevated); color: var(--accent); }
+.tab-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); }
+.tab-actions { display: flex; align-items: center; gap: 8px; }
+.btn-ghost-sm {
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  color: var(--text-secondary);
+  border: 1px solid var(--border);
+  display: flex; align-items: center; gap: 6px;
+  transition: all 120ms ease;
+}
+.btn-ghost-sm:hover { color: var(--text-primary); border-color: var(--text-tertiary); }
+.btn-ghost-sm svg { width: 12px; height: 12px; }
+
+/* Hairline */
+.hairline {
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--border) 20%, var(--border) 80%, transparent);
+  margin-bottom: 16px;
+}
+.hairline.my-6 { margin: 24px 0; }
+
+/* Section meta */
+.section-meta {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 12px;
+}
+.section-meta-left { display: flex; align-items: center; gap: 8px; }
+.section-meta-label { font-size: 11px; color: var(--text-tertiary); letter-spacing: 0.08em; text-transform: uppercase; }
+.section-meta-sep { color: var(--text-tertiary); }
+.section-meta-sub { font-size: 12px; color: var(--text-tertiary); }
+.legend { display: flex; align-items: center; gap: 12px; font-size: 11px; color: var(--text-tertiary); }
+.legend-item { display: flex; align-items: center; gap: 6px; }
+.legend-dot { width: 6px; height: 6px; border-radius: 50%; }
+.legend-dot.accent { background: var(--accent); }
+.legend-dot.amber { background: var(--amber); }
+
+/* Hot list */
+.hot-list { display: flex; flex-direction: column; gap: 6px; margin-bottom: 24px; }
+.hot-card {
+  display: flex; align-items: center; gap: 16px;
+  padding: 12px 16px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--bg-surface);
+  transition: all 160ms ease;
+}
+.hot-card:hover { background: var(--bg-elevated); border-color: #4a443e; transform: translateY(-1px); }
+.rank {
+  flex-shrink: 0;
+  width: 28px; height: 28px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-family: var(--font-mono);
+  font-weight: 600;
+  display: flex; align-items: center; justify-content: center;
+}
+.rank-1 { background: linear-gradient(135deg, var(--accent), var(--amber)); color: var(--bg-base); }
+.rank-2 { background: linear-gradient(135deg, var(--accent-hover), #fb923c); color: var(--bg-base); }
+.rank-3 { background: linear-gradient(135deg, #fdba74, #facc15); color: var(--bg-base); }
+.rank-other { background: var(--bg-elevated); color: var(--text-secondary); }
+
+.hot-body { flex: 1; min-width: 0; }
+.hot-meta { display: flex; align-items: center; gap: 8px; margin-bottom: 2px; }
+.platform-tag {
+  font-size: 10px; font-family: var(--font-mono);
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: var(--bg-elevated);
+  color: var(--text-tertiary);
+}
+.trend {
+  font-size: 11px;
+  display: flex; align-items: center; gap: 2px;
+}
+.trend.up-amber { color: var(--amber); }
+.trend.up-success { color: var(--success); }
+.trend.flat { color: var(--text-tertiary); }
+.trend svg { width: 12px; height: 12px; }
+.hot-title {
+  font-size: 13px;
+  color: var(--text-primary);
+  font-weight: 500;
+  line-height: 1.4;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  transition: color 120ms ease;
+}
+.hot-card:hover .hot-title { color: var(--accent); }
+
+.hot-right { flex-shrink: 0; display: flex; align-items: center; gap: 12px; }
+.heat { font-family: var(--font-mono); font-size: 12px; color: var(--text-secondary); }
+.save-btn {
+  width: 28px; height: 28px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--bg-elevated);
+  display: flex; align-items: center; justify-content: center;
+  color: var(--text-tertiary);
+  transition: all 160ms ease;
+}
+.save-btn svg { width: 14px; height: 14px; transition: all 160ms ease; }
+.save-btn:hover { background: var(--amber-soft); border-color: rgba(251,191,36,0.3); }
+.save-btn:hover svg { color: var(--amber); transform: scale(1.1); }
+.save-btn.saved { background: var(--accent-soft); border-color: var(--accent-border); color: var(--accent); }
+.save-btn.saved svg { fill: currentColor; }
+
+.load-more {
+  width: 100%;
+  padding: 10px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  font-size: 12px;
+  color: var(--text-secondary);
+  transition: all 120ms ease;
+  margin-top: 16px;
+}
+.load-more:hover { color: var(--text-primary); background: var(--bg-elevated); }
+
+/* Color tokens */
+.tokens-head { display: flex; align-items: baseline; gap: 8px; margin-bottom: 12px; }
+.tokens-title { font-size: 13px; font-weight: 500; color: var(--text-primary); }
+.tokens-sub { font-size: 11px; color: var(--text-tertiary); font-style: italic; }
+.tokens-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.token {
+  padding: 12px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--bg-surface);
+}
+.token-swatch {
+  width: 100%; height: 32px;
+  border-radius: 4px;
+  margin-bottom: 8px;
+  border: 1px solid var(--border);
+}
+.token-name { display: flex; justify-content: space-between; font-size: 10px; font-family: var(--font-mono); }
+.token-name-key { color: var(--text-secondary); }
+.token-name-val { color: var(--text-tertiary); }
+
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- ============ Sidebar ============ -->
+  <aside class="sidebar">
+    <div class="sidebar-head">
+      <div class="logo-box">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg>
+      </div>
+      <div>
+        <div class="brand-title">热点工坊</div>
+        <div class="brand-sub">爆款文案生成器</div>
+      </div>
+    </div>
+
+    <nav class="nav">
+      <button class="nav-item active">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg>
+        热点雷达
+      </button>
+      <button class="nav-item">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+        内容搜索
+      </button>
+      <button class="nav-item">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"/></svg>
+        话题勘探
+      </button>
+      <button class="nav-item">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3-1.9 5.8a2 2 0 0 1-1.287 1.288L3 12l5.8 1.9a2 2 0 0 1 1.288 1.287L12 21l1.9-5.8a2 2 0 0 1 1.287-1.288L21 12l-5.8-1.9a2 2 0 0 1-1.288-1.287Z"/></svg>
+        文案创作
+      </button>
+      <button class="nav-item">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="10" r="3"/><path d="M7 20.662V19a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v1.662"/></svg>
+        创作者档案
+      </button>
+    </nav>
+
+    <div class="saved-mini">
+      <div class="saved-mini-head">
+        <span class="saved-mini-label">收藏池</span>
+        <span class="saved-mini-count">3</span>
+      </div>
+      <p class="saved-mini-text">攒几个话题一起分析，更省事</p>
+    </div>
+
+    <div class="sidebar-foot">
+      <p>Powered by Coze</p>
+    </div>
+  </aside>
+
+
+  <!-- ============ Main ============ -->
+  <main class="main">
+
+    <!-- TopBar -->
+    <header class="topbar">
+      <div class="topbar-left">
+        <span class="pulse-dot"></span>
+        <span class="topbar-time">2026.06.02 · 14:23</span>
+        <span class="topbar-sep">·</span>
+        <span>热点已更新</span>
+      </div>
+      <div class="topbar-right">
+        <button class="icon-btn" aria-label="帮助">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+        </button>
+        <button class="icon-btn" aria-label="设置">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
+        </button>
+        <div class="avatar">Z</div>
+      </div>
+    </header>
+
+    <div class="content">
+
+      <!-- Page header -->
+      <div class="page-header">
+        <div class="page-title-row">
+          <h1 class="page-title">热点雷达</h1>
+          <span class="page-title-en">Real-time trends</span>
+        </div>
+        <p class="page-sub">发现热点，创作爆款 · 跨平台实时同步</p>
+      </div>
+
+      <!-- 3-step workflow guide -->
+      <div class="guide">
+        <div class="guide-head">
+          <div class="guide-head-left">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3-1.9 5.8a2 2 0 0 1-1.287 1.288L3 12l5.8 1.9a2 2 0 0 1 1.288 1.287L12 21l1.9-5.8a2 2 0 0 1 1.287-1.288L21 12l-5.8-1.9a2 2 0 0 1-1.288-1.287Z"/></svg>
+            <span class="guide-head-title">3 步找到爆款选题</span>
+          </div>
+          <button class="guide-head-btn">收起</button>
+        </div>
+        <div class="guide-steps">
+          <div class="guide-step">
+            <span class="step-num">01</span>
+            <div>
+              <div class="step-title">浏览热榜</div>
+              <div class="step-desc">切换平台，找到感兴趣的话题</div>
+            </div>
+          </div>
+          <div class="guide-step">
+            <span class="step-num">02</span>
+            <div>
+              <div class="step-title">收藏到池</div>
+              <div class="step-desc">点 <svg viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z"/></svg> 攒多个一起分析</div>
+            </div>
+          </div>
+          <div class="guide-step">
+            <span class="step-num">03</span>
+            <div>
+              <div class="step-title">生成文案</div>
+              <div class="step-desc">到「文案创作」一键生成多平台</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Platform tabs + actions -->
+      <div class="tabs-row">
+        <div class="tabs">
+          <button class="tab active"><span class="tab-dot"></span>抖音</button>
+          <button class="tab">微博</button>
+          <button class="tab">知乎</button>
+          <button class="tab">B站</button>
+          <button class="tab">小红书</button>
+        </div>
+        <div class="tab-actions">
+          <button class="btn-ghost-sm">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></svg>
+            刷新
+          </button>
+          <button class="btn-ghost-sm">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
+            筛选
+          </button>
+        </div>
+      </div>
+
+      <div class="hairline"></div>
+
+      <!-- Hot list -->
+      <div class="section-meta">
+        <div class="section-meta-left">
+          <span class="section-meta-label">Top 20</span>
+          <span class="section-meta-sep">·</span>
+          <span class="section-meta-sub">最近 2 小时</span>
+        </div>
+        <div class="legend">
+          <div class="legend-item"><span class="legend-dot accent"></span>热度</div>
+          <div class="legend-item"><span class="legend-dot amber"></span>上升</div>
+        </div>
+      </div>
+
+      <div class="hot-list">
+
+        <div class="hot-card">
+          <div class="rank rank-1">01</div>
+          <div class="hot-body">
+            <div class="hot-meta">
+              <span class="platform-tag">抖音</span>
+              <span class="trend up-amber">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>
+                1.2k
+              </span>
+            </div>
+            <div class="hot-title">35 岁被裁后，我用 AI 重新找到了工作</div>
+          </div>
+          <div class="hot-right">
+            <span class="heat">2.4M</span>
+            <button class="save-btn" aria-label="收藏">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z"/></svg>
+            </button>
+          </div>
+        </div>
+
+        <div class="hot-card">
+          <div class="rank rank-2">02</div>
+          <div class="hot-body">
+            <div class="hot-meta">
+              <span class="platform-tag">抖音</span>
+              <span class="trend up-amber">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>
+                856
+              </span>
+            </div>
+            <div class="hot-title">小红书爆款笔记拆解：3 个公式让你 7 天涨粉 1 万</div>
+          </div>
+          <div class="hot-right">
+            <span class="heat">1.8M</span>
+            <button class="save-btn" aria-label="收藏">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z"/></svg>
+            </button>
+          </div>
+        </div>
+
+        <div class="hot-card">
+          <div class="rank rank-3">03</div>
+          <div class="hot-body">
+            <div class="hot-meta">
+              <span class="platform-tag">抖音</span>
+              <span class="trend up-amber">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>
+                642
+              </span>
+            </div>
+            <div class="hot-title">B站 UP 主转型做 AI 教学，月入 50 万的真实复盘</div>
+          </div>
+          <div class="hot-right">
+            <span class="heat">1.3M</span>
+            <button class="save-btn saved" aria-label="已收藏">
+              <svg viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z"/></svg>
+            </button>
+          </div>
+        </div>
+
+        <div class="hot-card">
+          <div class="rank rank-other">04</div>
+          <div class="hot-body">
+            <div class="hot-meta">
+              <span class="platform-tag">抖音</span>
+              <span class="trend up-success">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>
+                412
+              </span>
+            </div>
+            <div class="hot-title">公众号还能做吗？2026 年最新数据告诉你真相</div>
+          </div>
+          <div class="hot-right">
+            <span class="heat">987k</span>
+            <button class="save-btn" aria-label="收藏">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z"/></svg>
+            </button>
+          </div>
+        </div>
+
+        <div class="hot-card">
+          <div class="rank rank-other">05</div>
+          <div class="hot-body">
+            <div class="hot-meta">
+              <span class="platform-tag">抖音</span>
+              <span class="trend flat">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                持平
+              </span>
+            </div>
+            <div class="hot-title">00 后做小红书 3 个月踩过的 10 个坑</div>
+          </div>
+          <div class="hot-right">
+            <span class="heat">756k</span>
+            <button class="save-btn" aria-label="收藏">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z"/></svg>
+            </button>
+          </div>
+        </div>
+
+        <div class="hot-card">
+          <div class="rank rank-other">06</div>
+          <div class="hot-body">
+            <div class="hot-meta">
+              <span class="platform-tag">抖音</span>
+              <span class="trend up-success">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>
+                234
+              </span>
+            </div>
+            <div class="hot-title">从大厂裸辞做自由职业，我这一年到底挣了多少</div>
+          </div>
+          <div class="hot-right">
+            <span class="heat">623k</span>
+            <button class="save-btn" aria-label="收藏">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z"/></svg>
+            </button>
+          </div>
+        </div>
+
+        <div class="hot-card">
+          <div class="rank rank-other">07</div>
+          <div class="hot-body">
+            <div class="hot-meta">
+              <span class="platform-tag">抖音</span>
+              <span class="trend up-amber">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>
+                567
+              </span>
+            </div>
+            <div class="hot-title">我用 AI 写了 100 篇公众号文章，告诉你哪些类型最容易爆</div>
+          </div>
+          <div class="hot-right">
+            <span class="heat">512k</span>
+            <button class="save-btn" aria-label="收藏">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z"/></svg>
+            </button>
+          </div>
+        </div>
+
+        <div class="hot-card">
+          <div class="rank rank-other">08</div>
+          <div class="hot-body">
+            <div class="hot-meta">
+              <span class="platform-tag">抖音</span>
+              <span class="trend up-success">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>
+                189
+              </span>
+            </div>
+            <div class="hot-title">视频号中年人生意：为什么 40+ 用户才是真金主</div>
+          </div>
+          <div class="hot-right">
+            <span class="heat">445k</span>
+            <button class="save-btn" aria-label="收藏">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z"/></svg>
+            </button>
+          </div>
+        </div>
+
+      </div>
+
+      <button class="load-more">加载更多</button>
+
+      <div class="hairline my-6"></div>
+
+      <!-- Color tokens -->
+      <div class="tokens-head">
+        <h3 class="tokens-title">配色 Token</h3>
+        <span class="tokens-sub">design tokens</span>
+      </div>
+
+      <div class="tokens-grid">
+        <div class="token">
+          <div class="token-swatch" style="background:#1a1715"></div>
+          <div class="token-name"><span class="token-name-key">bg-base</span><span class="token-name-val">#1a1715</span></div>
+        </div>
+        <div class="token">
+          <div class="token-swatch" style="background:#211d1a"></div>
+          <div class="token-name"><span class="token-name-key">bg-surface</span><span class="token-name-val">#211d1a</span></div>
+        </div>
+        <div class="token">
+          <div class="token-swatch" style="background:#2a2522"></div>
+          <div class="token-name"><span class="token-name-key">bg-elevated</span><span class="token-name-val">#2a2522</span></div>
+        </div>
+        <div class="token">
+          <div class="token-swatch" style="background:#3a342f"></div>
+          <div class="token-name"><span class="token-name-key">border</span><span class="token-name-val">#3a342f</span></div>
+        </div>
+        <div class="token">
+          <div class="token-swatch" style="background:#fb7185"></div>
+          <div class="token-name"><span class="token-name-key">accent</span><span class="token-name-val">#fb7185</span></div>
+        </div>
+        <div class="token">
+          <div class="token-swatch" style="background:#fda4af"></div>
+          <div class="token-name"><span class="token-name-key">accent-hover</span><span class="token-name-val">#fda4af</span></div>
+        </div>
+        <div class="token">
+          <div class="token-swatch" style="background:#fbbf24"></div>
+          <div class="token-name"><span class="token-name-key">amber</span><span class="token-name-val">#fbbf24</span></div>
+        </div>
+        <div class="token">
+          <div class="token-swatch" style="background:#f5f0e8"></div>
+          <div class="token-name"><span class="token-name-key">text-primary</span><span class="token-name-val">#f5f0e8</span></div>
+        </div>
+      </div>
+
+    </div>
+  </main>
+</div>
+</body>
+</html>

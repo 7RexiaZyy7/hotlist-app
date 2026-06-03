@@ -41,7 +41,7 @@ export function parseAnalysis(text: string): ParsedAnalysis {
   };
 
   const cleaned = text.replace(/^#\s*话题[：:].*$/m, '').trim();
-  const sections = cleaned.split(/^##\s+/m).filter(s => s.trim());
+  const sections = cleaned.split(/^#{2,3}\s+/m).filter(s => s.trim());
 
   for (const section of sections) {
     const newlineIdx = section.indexOf('\n');
@@ -50,13 +50,15 @@ export function parseAnalysis(text: string): ParsedAnalysis {
 
     if (header.includes('为什么火')) {
       result.whyHot = parseKeyValueList(body);
-    } else if (header.includes('各平台讨论差异')) {
+    } else if (header.includes('各平台讨论')) {
       result.platformDiff = parseMarkdownTable(body);
     } else if (header.includes('建议切入角度')) {
       result.angles = parseAngles(body);
+    } else if (header.includes('竞品参考')) {
+      result.whyHot.push(...parseKeyValueList(body));
     } else if (header.includes('风险提示')) {
       result.risks = parseKeyValueList(body);
-    } else if (header.includes('创作建议')) {
+    } else if (header.includes('创作建议') || header.includes('创作')) {
       result.suggestions = parseKeyValueList(body);
     }
   }

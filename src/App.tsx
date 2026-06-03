@@ -11,7 +11,7 @@ import { HitAnalyzer } from './pages/HitAnalyzer';
 import { CreatorProfile } from './pages/CreatorProfile';
 import { useAppStore } from './store';
 import { getOAuthStatus, setUserId } from './services/cozeApi';
-import { Check, AlertCircle, Info, Loader2, AlertTriangle, Flame, Search as SearchIcon, Sparkles, Globe, Send, X } from 'lucide-react';
+import { Check, AlertCircle, Info, Loader2, AlertTriangle, Flame, Search as SearchIcon, Sparkles, Globe, X } from 'lucide-react';
 import { clsx } from 'clsx';
 import QuotaModal from './components/QuotaModal';
 
@@ -20,7 +20,6 @@ const mobileNavItems = [
   { id: 'search', label: '搜索', icon: Globe },
   { id: 'explore', label: '话题', icon: SearchIcon },
   { id: 'forge', label: '文案', icon: Sparkles },
-  { id: 'publish', label: '发布', icon: Send },
 ];
 
 function Toast() {

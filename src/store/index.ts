@@ -125,6 +125,9 @@ interface AppState {
 
   toast: Toast | null;
   showToast: (message: string, type?: Toast['type']) => void;
+
+  mobileSearchQuery: string;
+  setMobileSearchQuery: (q: string) => void;
 }
 
 const initialStats = loadCreationStats();
@@ -232,8 +235,18 @@ export const useAppStore = create<AppState>()((set) => ({
       return { creationStats: newStats };
     }),
 
-  activePage: 'radar',
-  setActivePage: (page) => set({ activePage: page }),
+  activePage: (() => {
+    const pageParam = new URLSearchParams(window.location.search).get('page');
+    if (pageParam) return pageParam;
+    const pathMap: Record<string, string> = { '/workshop': 'forge', '/search': 'search', '/explore': 'explore', '/publish': 'publish', '/analyze': 'analyze', '/profile': 'profile' };
+    return pathMap[window.location.pathname] || 'radar';
+  })(),
+  setActivePage: (page) => {
+    set({ activePage: page });
+    const url = new URL(window.location.href);
+    url.searchParams.set('page', page);
+    window.history.pushState({ page }, '', url.toString());
+  },
 
   // HotRadar 引导卡：未折叠过才显示
   showHotRadarGuide: !localStorage.getItem('hotRadar_guideCollapsed'),
@@ -251,4 +264,7 @@ export const useAppStore = create<AppState>()((set) => ({
     set({ toast: { message, type } });
     setTimeout(() => set({ toast: null }), 3000);
   },
+
+  mobileSearchQuery: '',
+  setMobileSearchQuery: (q) => set({ mobileSearchQuery: q }),
 }));

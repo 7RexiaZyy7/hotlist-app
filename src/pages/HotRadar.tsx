@@ -65,9 +65,11 @@ function parseUapiHotList(data: any, platform: string): HotItem[] {
   const list = data.list || data.data?.list || data.data || [];
   if (!Array.isArray(list)) return items;
   list.forEach((item: any, index: number) => {
+    const title = (item.title || item.name || '').trim();
+    if (!title || title.length < 3 || /[a-z]{3,}[0-9]{2,}/.test(title)) return;
     items.push({
       rank: parseInt(item.index) || index + 1,
-      title: item.title || item.name || '',
+      title,
       platform,
       heatScore: parseInt(item.hot_value || item.hot || item.heat || item.count || 0) || 0,
       url: item.url || undefined,
@@ -334,23 +336,26 @@ export function HotRadar() {
                         {item.title}
                       </span>
 
-                      {!isCompact && (
-                        <div className="flex items-center gap-1.5 shrink-0 ml-2">
-                          {item.url && (
-                            <a
-                              href={item.url}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              onClick={(e) => e.stopPropagation()}
-                              className="flex items-center gap-1 px-2 py-1 rounded-md text-xs text-[#6b6b73] hover:text-[#a1a1aa] hover:bg-[#252528] transition-colors"
-                              title="查看原文"
-                            >
-                              <ExternalLink className="w-3 h-3" />
-                              <span>查看</span>
-                            </a>
-                          )}
-                        </div>
-                      )}
+                      <div className="flex items-center gap-1.5 shrink-0 ml-2">
+                        {item.url && (
+                          <a
+                            href={item.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            onClick={(e) => e.stopPropagation()}
+                            className={clsx(
+                              'flex items-center gap-1 px-2 py-1 rounded-md text-xs transition-colors',
+                              isCompact
+                                ? 'text-[#6b6b73] hover:text-[#a1a1aa] hover:bg-[#252528]'
+                                : 'text-[#6b6b73] hover:text-[#a1a1aa] hover:bg-[#252528]'
+                            )}
+                            title="查看原文"
+                          >
+                            <ExternalLink className="w-3 h-3" />
+                            <span>查看</span>
+                          </a>
+                        )}
+                      </div>
                     </div>
 
                     {/* Metadata row (compact: only heat inline) */}
@@ -376,8 +381,8 @@ export function HotRadar() {
                       </div>
                     )}
 
-                    {/* Angles (hero only) */}
-                    {isHero && (
+                    {/* Angles (all non-compact) */}
+                    {!isCompact && (
                       <div className="flex gap-1.5 mt-2 flex-wrap">
                         {recommendAngles(item.title)
                           .slice(0, 3)

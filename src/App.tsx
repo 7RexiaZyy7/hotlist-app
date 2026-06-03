@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { Sidebar } from './components/Sidebar';
 import { TopBar } from './components/TopBar';
 import { HotRadar } from './pages/HotRadar';
@@ -11,14 +11,14 @@ import { HitAnalyzer } from './pages/HitAnalyzer';
 import { CreatorProfile } from './pages/CreatorProfile';
 import { useAppStore } from './store';
 import { getOAuthStatus, setUserId } from './services/cozeApi';
-import { Check, AlertCircle, Info, Loader2, AlertTriangle, Flame, Search, Sparkles, Globe, Send } from 'lucide-react';
+import { Check, AlertCircle, Info, Loader2, AlertTriangle, Flame, Search as SearchIcon, Sparkles, Globe, Send, X } from 'lucide-react';
 import { clsx } from 'clsx';
 import QuotaModal from './components/QuotaModal';
 
 const mobileNavItems = [
   { id: 'radar', label: '热榜', icon: Flame },
   { id: 'search', label: '搜索', icon: Globe },
-  { id: 'explore', label: '话题', icon: Search },
+  { id: 'explore', label: '话题', icon: SearchIcon },
   { id: 'forge', label: '文案', icon: Sparkles },
   { id: 'publish', label: '发布', icon: Send },
 ];
@@ -44,8 +44,27 @@ function Toast() {
   );
 }
 
+const PATH_PAGE_MAP: Record<string, string> = {
+  '/workshop': 'forge',
+  '/search': 'search',
+  '/explore': 'explore',
+  '/publish': 'publish',
+  '/analyze': 'analyze',
+  '/profile': 'profile',
+};
+
 function App() {
   const { activePage, isLoggedIn, isLoadingAuth, setAuth, clearAuth, setLoadingAuth, quota, showQuotaModal, setShowQuotaModal } = useAppStore();
+  const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
+  const [mobileSearchQuery, setMobileSearchQuery] = useState('');
+  const mobileSearchRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    const mapped = PATH_PAGE_MAP[window.location.pathname];
+    if (mapped && mapped !== activePage) {
+      useAppStore.getState().setActivePage(mapped);
+    }
+  }, []);
 
   useEffect(() => {
     const pageTitleMap: Record<string, string> = {
@@ -59,6 +78,15 @@ function App() {
     };
     document.title = pageTitleMap[activePage] || '热点工坊';
   }, [activePage]);
+
+  useEffect(() => {
+    const handlePopState = () => {
+      const page = new URLSearchParams(window.location.search).get('page') || 'radar';
+      useAppStore.getState().setActivePage(page);
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
 
   useEffect(() => {
     let mounted = true;
@@ -130,6 +158,48 @@ function App() {
         </main>
       </div>
 
+      {/* Mobile search overlay */}
+      {mobileSearchOpen && (
+        <div className="fixed bottom-12 left-0 right-0 md:hidden bg-bg-surface border-t border-border p-3 z-40">
+          <div className="relative flex items-center gap-2">
+            <input
+              ref={mobileSearchRef}
+              type="text"
+              value={mobileSearchQuery}
+              onChange={(e) => setMobileSearchQuery(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && mobileSearchQuery.trim()) {
+                  useAppStore.getState().setMobileSearchQuery(mobileSearchQuery);
+                  useAppStore.getState().setActivePage('search');
+                  setMobileSearchOpen(false);
+                }
+              }}
+              placeholder="搜索话题..."
+              className="input-field flex-1 !rounded-md !pl-3"
+              autoFocus
+            />
+            <button
+              onClick={() => {
+                if (mobileSearchQuery.trim()) {
+                  useAppStore.getState().setMobileSearchQuery(mobileSearchQuery);
+                  useAppStore.getState().setActivePage('search');
+                  setMobileSearchOpen(false);
+                }
+              }}
+              className="btn-primary !py-2 !px-3 !text-caption shrink-0"
+            >
+              <SearchIcon className="w-4 h-4" />
+            </button>
+            <button
+              onClick={() => { setMobileSearchOpen(false); setMobileSearchQuery(''); }}
+              className="p-1.5 text-text-tertiary hover:text-text-primary"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+      )}
+
       <nav className="fixed bottom-0 left-0 right-0 md:hidden bg-bg-surface border-t border-border flex items-center justify-around px-2 py-1 z-40">
         {mobileNavItems.map((item) => {
           const Icon = item.icon;
@@ -137,10 +207,19 @@ function App() {
           return (
             <button
               key={item.id}
-              onClick={() => useAppStore.getState().setActivePage(item.id)}
+              onClick={() => {
+                if (item.id === 'search') {
+                  setMobileSearchOpen(!mobileSearchOpen);
+                  if (!mobileSearchOpen) setTimeout(() => mobileSearchRef.current?.focus(), 100);
+                } else {
+                  setMobileSearchOpen(false);
+                  setMobileSearchQuery('');
+                  useAppStore.getState().setActivePage(item.id);
+                }
+              }}
               className={clsx(
                 'flex flex-col items-center gap-0.5 py-1.5 px-3 rounded-md transition-all duration-120',
-                isActive
+                isActive || (item.id === 'search' && mobileSearchOpen)
                   ? 'text-accent'
                   : 'text-text-tertiary'
               )}

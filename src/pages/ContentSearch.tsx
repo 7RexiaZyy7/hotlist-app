@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { Search, ExternalLink, MessageSquare, ThumbsUp, Sparkles, TrendingUp, ShieldAlert, Lightbulb, Brain, RefreshCw, Clock, User, Flame, PenSquare } from 'lucide-react';
 import { useAppStore } from '../store';
 
@@ -27,11 +27,13 @@ interface SearchItem {
 }
 
 export function ContentSearch() {
+  const initialQuery = useAppStore((s) => s.mobileSearchQuery);
+  const clearMobileQuery = useAppStore((s) => s.setMobileSearchQuery);
   const [platform, setPlatform] = useState<Platform>('zhihu');
-  const [keyword, setKeyword] = useState('');
+  const [keyword, setKeyword] = useState(initialQuery || '');
   const [results, setResults] = useState<SearchItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [hasSearched, setHasSearched] = useState(false);
+  const [hasSearched, setHasSearched] = useState(!!initialQuery);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [showAllSuggestions, setShowAllSuggestions] = useState(false);
   const [offset, setOffset] = useState(0);
@@ -51,6 +53,13 @@ export function ContentSearch() {
       .slice(0, 8)
       .map((item) => item.title);
   }, [hotList]);
+
+  useEffect(() => {
+    if (initialQuery) {
+      clearMobileQuery('');
+      doSearch(initialQuery);
+    }
+  }, []);
 
   const doSearch = async (searchKeyword?: string) => {
     const kw = searchKeyword || keyword;

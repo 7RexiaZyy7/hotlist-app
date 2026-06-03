@@ -5,12 +5,13 @@ import { HotRadar } from './pages/HotRadar';
 import { TopicExplorer } from './pages/TopicExplorer';
 import { ContentForge } from './pages/ContentForge';
 import { ContentSearch } from './pages/ContentSearch';
+import { ContentPublish } from './pages/ContentPublish';
 import { AuthCallback } from './pages/AuthCallback';
 import { HitAnalyzer } from './pages/HitAnalyzer';
 import { CreatorProfile } from './pages/CreatorProfile';
 import { useAppStore } from './store';
 import { getOAuthStatus, setUserId } from './services/cozeApi';
-import { Check, AlertCircle, Info, Loader2, AlertTriangle, Flame, Search, Sparkles, Globe } from 'lucide-react';
+import { Check, AlertCircle, Info, Loader2, AlertTriangle, Flame, Search, Sparkles, Globe, Send } from 'lucide-react';
 import { clsx } from 'clsx';
 import QuotaModal from './components/QuotaModal';
 
@@ -19,6 +20,7 @@ const mobileNavItems = [
   { id: 'search', label: '搜索', icon: Globe },
   { id: 'explore', label: '话题', icon: Search },
   { id: 'forge', label: '文案', icon: Sparkles },
+  { id: 'publish', label: '发布', icon: Send },
 ];
 
 function Toast() {
@@ -51,6 +53,7 @@ function App() {
       search: '内容搜索 - 热点工坊',
       explore: '话题勘探 - 热点工坊',
       forge: '文案工坊 - 热点工坊',
+      publish: '一键发布 - 热点工坊',
       analyze: '文案拆解 - 热点工坊',
       profile: '创作者档案 - 热点工坊',
     };
@@ -107,6 +110,7 @@ function App() {
       case 'search': return <ContentSearch />;
       case 'explore': return <TopicExplorer />;
       case 'forge': return <ContentForge />;
+      case 'publish': return <ContentPublish />;
       case 'analyze': return <HitAnalyzer />;
       case 'profile': return <CreatorProfile />;
       default: return <HotRadar />;

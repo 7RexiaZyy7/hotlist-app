@@ -62,6 +62,105 @@ export function ContentForge() {
     } catch {}
   };
 
+  // ─── Inspiration panel state ───
+  const [inspirationSuggestions, setInspirationSuggestions] = useState<string[]>([]);
+  const [isInspirationLoading, setIsInspirationLoading] = useState(false);
+  const [inspirationError, setInspirationError] = useState<string | null>(null);
+  const [generationHint, setGenerationHint] = useState('');
+  const inspirationCacheRef = useRef<Record<string, string[]>>({});
+
+  const [savedCopies, setSavedCopies] = useState<{ content: string; angle: string; topic: string; timestamp: number }[]>(() => {
+    try {
+      return JSON.parse(localStorage.getItem('savedCopies') || '[]');
+    } catch { return []; }
+  });
+
+  const saveCopyToStorage = (content: string, angle: string) => {
+    setSavedCopies(prev => {
+      const existing = prev.find(c => c.content === content);
+      if (existing) return prev;
+      const updated = [...prev, { content, angle, topic: selectedTopic, timestamp: Date.now() }].slice(0, 50);
+      localStorage.setItem('savedCopies', JSON.stringify(updated));
+      return updated;
+    });
+  };
+
+  const unsaveCopy = (content: string) => {
+    setSavedCopies(prev => {
+      const updated = prev.filter(c => c.content !== content);
+      localStorage.setItem('savedCopies', JSON.stringify(updated));
+      return updated;
+    });
+  };
+
+  const isCopySaved = (content: string) => savedCopies.some(c => c.content === content);
+
+  const getInspirationCacheKey = () => {
+    const sorted = [...selectedAngles].sort();
+    return `${selectedTopic}||${sorted.join(',')}`;
+  };
+
+  const handleGetInspiration = async () => {
+    if (!selectedTopic.trim() || selectedAngles.length === 0) {
+      showToast('请先输入话题并选择角度', 'warning');
+      return;
+    }
+
+    const cacheKey = getInspirationCacheKey();
+    if (inspirationCacheRef.current[cacheKey]) {
+      setInspirationSuggestions(inspirationCacheRef.current[cacheKey]);
+      setInspirationError(null);
+      return;
+    }
+
+    const ok = await checkAndIncrementQuota();
+    if (!ok) return;
+
+    setIsInspirationLoading(true);
+    setInspirationError(null);
+    try {
+      const query = buildInspirationPrompt(selectedTopic, selectedAngles);
+      const result = await callCozeChat(query);
+      const parsed = result.split('\n').filter(l => l.trim() && l.includes('【') && l.includes('】'));
+      if (parsed.length === 0) {
+        setInspirationError('AI 未返回有效建议，请重试');
+      } else {
+        inspirationCacheRef.current[cacheKey] = parsed;
+        setInspirationSuggestions(parsed);
+      }
+    } catch {
+      setInspirationError('获取灵感失败，请稍后重试');
+    } finally {
+      setIsInspirationLoading(false);
+    }
+  };
+
+  const parseSuggestionAngle = (suggestion: string): string => {
+    const m = suggestion.match(/【(.+?)】/);
+    return m ? m[1] : '';
+  };
+
+  const applySuggestion = (suggestion: string) => {
+    const clean = suggestion.replace(/【.+?】/g, '').trim();
+    setGenerationHint(clean);
+    showToast('已采纳灵感方向');
+  };
+
+  const clearGenerationHint = () => setGenerationHint('');
+
+  // Reset inspiration cache when topic or angles change
+  const prevCacheKeyRef = useRef('');
+  const cacheKey = getInspirationCacheKey();
+  if (cacheKey !== prevCacheKeyRef.current) {
+    prevCacheKeyRef.current = cacheKey;
+    if (inspirationCacheRef.current[cacheKey]) {
+      setInspirationSuggestions(inspirationCacheRef.current[cacheKey]);
+    } else {
+      setInspirationSuggestions([]);
+    }
+    setGenerationHint('');
+  }
+
   useEffect(() => {
     if (isGenerating) {
       const interval = setInterval(() => {
@@ -114,7 +213,8 @@ export function ContentForge() {
         showToast('改写完成');
       } else {
         const profileVars = getUserVariables() || {};
-        const query = buildCopyGenerateQuery(selectedTopic, selectedAngles, profileVars, lastAnalysis);
+        const hintPrefix = generationHint ? `【灵感方向】${generationHint}\n\n请围绕这个方向进行创作。\n\n` : '';
+        const query = hintPrefix + buildCopyGenerateQuery(selectedTopic, selectedAngles, profileVars, lastAnalysis);
         const result = await callCozeChat(query);
 
         const parsed = parseGeneratedCopies(result);
@@ -359,6 +459,123 @@ ${copiesText}
         </div>
       )}
 
+      {/* Inspiration panel (create mode only) */}
+      {forgeMode === 'create' && selectedTopic.trim() && selectedAngles.length > 0 && (
+        <div className="mb-4">
+          <div className="flex items-center gap-2 mb-2">
+            <button
+              onClick={handleGetInspiration}
+              disabled={isInspirationLoading}
+              className={clsx(
+                'flex items-center gap-1.5 px-3 py-1.5 rounded-md text-body-sm font-medium transition-all',
+                inspirationSuggestions.length > 0
+                  ? 'bg-accent-subtle text-accent border border-accent'
+                  : 'bg-bg-surface border border-border text-text-secondary hover:text-text-primary'
+              )}
+            >
+              {isInspirationLoading ? (
+                <><RefreshCw className="w-3.5 h-3.5 animate-spin" />获取中...</>
+              ) : (
+                <><Lightbulb className="w-3.5 h-3.5" />灵感启发</>
+              )}
+            </button>
+            {inspirationSuggestions.length > 0 && (
+              <>
+                <span className="text-caption text-text-tertiary">{inspirationSuggestions.length} 条建议</span>
+                <button
+                  onClick={clearGenerationHint}
+                  className="ml-auto text-caption text-text-tertiary hover:text-text-secondary transition-colors"
+                >
+                  {generationHint ? '清除灵感方向' : ''}
+                </button>
+              </>
+            )}
+          </div>
+
+          {inspirationError && (
+            <div className="text-caption text-red mb-2">{inspirationError}</div>
+          )}
+
+          {inspirationSuggestions.length > 0 && (
+            <div className="space-y-1.5">
+              {inspirationSuggestions.map((s, i) => {
+                const angle = parseSuggestionAngle(s);
+                const clean = s.replace(/【.+?】/g, '').trim();
+                const isActive = generationHint === clean;
+                return (
+                  <div
+                    key={i}
+                    className={clsx(
+                      'flex items-start gap-2 p-2.5 rounded-md border transition-all cursor-pointer',
+                      isActive
+                        ? 'bg-accent-subtle border-accent'
+                        : 'bg-bg-surface border-border hover:bg-bg-elevated'
+                    )}
+                    onClick={() => applySuggestion(s)}
+                  >
+                    <Lightbulb className={clsx('w-3.5 h-3.5 mt-0.5 shrink-0', isActive ? 'text-accent' : 'text-text-tertiary')} />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-body-sm text-text-primary leading-relaxed">{clean}</p>
+                      {angle && (
+                        <span className="inline-block mt-1 text-caption text-accent">{angle}</span>
+                      )}
+                    </div>
+                    {angle && (
+                      <button
+                        onClick={(e) => { e.stopPropagation(); setGenerationHint(clean); showToast('已设为此角度'); }}
+                        className="shrink-0 px-2 py-0.5 rounded text-caption bg-bg-elevated text-text-tertiary hover:text-accent hover:bg-accent-subtle transition-all"
+                        title="使用此角度"
+                      >
+                        使用此角度
+                      </button>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          {/* Saved copies section */}
+          {savedCopies.length > 0 && (
+            <div className="mt-4">
+              <div className="flex items-center gap-2 mb-2">
+                <Star className="w-3.5 h-3.5 text-yellow" />
+                <span className="text-body-sm font-medium text-text-secondary">收藏的文案方向</span>
+                <span className="text-caption text-text-tertiary">{savedCopies.length}/50</span>
+              </div>
+              <div className="grid gap-1.5">
+                {savedCopies.slice(0, 5).map((item, i) => (
+                  <div
+                    key={i}
+                    className="flex items-start gap-2 p-2.5 rounded-md border border-border bg-bg-surface"
+                  >
+                    <div className="flex-1 min-w-0">
+                      <p className="text-body-sm text-text-secondary leading-relaxed line-clamp-2">{item.content}</p>
+                      <div className="flex items-center gap-2 mt-1">
+                        <span className="text-caption text-accent">{item.angle}</span>
+                        <span className="text-caption text-text-tertiary">{item.topic}</span>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => unsaveCopy(item.content)}
+                      className="shrink-0 p-1 rounded text-text-tertiary hover:text-red transition-colors"
+                      title="取消收藏"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+              {savedCopies.length > 5 && (
+                <button className="mt-2 text-caption text-accent hover:text-accent-hover transition-colors flex items-center gap-1">
+                  查看全部 <ChevronDown className="w-3 h-3" />
+                </button>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+
       {isGenerating ? (
         <LoadingState steps={
           forgeMode === 'deconstruct'
@@ -571,6 +788,16 @@ ${copiesText}
                           复制
                         </>
                       )}
+                    </button>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); isCopySaved(copy.content) ? unsaveCopy(copy.content) : saveCopyToStorage(copy.content, copy.angle); }}
+                      className={clsx(
+                        'flex items-center gap-1 px-2 py-1 rounded-md text-caption transition-all duration-120',
+                        isCopySaved(copy.content) ? 'text-yellow bg-yellow-subtle' : 'bg-bg-elevated text-text-secondary hover:text-text-primary'
+                      )}
+                      title={isCopySaved(copy.content) ? '取消收藏' : '收藏此文案'}
+                    >
+                      <Star className={clsx('w-3 h-3', isCopySaved(copy.content) && 'fill-current')} />
                     </button>
                   </div>
                   {title && (

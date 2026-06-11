@@ -9,10 +9,9 @@ import { ContentPublish } from './pages/ContentPublish';
 import { AuthCallback } from './pages/AuthCallback';
 import { HitAnalyzer } from './pages/HitAnalyzer';
 import { CreatorProfile } from './pages/CreatorProfile';
-import { AssetLibraryPage } from './pages/AssetLibraryPage';
 import { useAppStore } from './store';
 import { getOAuthStatus, setUserId } from './services/cozeApi';
-import { Check, AlertCircle, Info, Loader2, AlertTriangle, Flame, Search as SearchIcon, Sparkles, Globe, Box, X } from 'lucide-react';
+import { Check, AlertCircle, Info, Loader2, AlertTriangle, Flame, Search as SearchIcon, Sparkles, Globe, X } from 'lucide-react';
 import { clsx } from 'clsx';
 import QuotaModal from './components/QuotaModal';
 
@@ -21,7 +20,6 @@ const mobileNavItems = [
   { id: 'search', label: '搜索', icon: Globe },
   { id: 'explore', label: '话题', icon: SearchIcon },
   { id: 'forge', label: '文案', icon: Sparkles },
-  { id: 'assets', label: '素材', icon: Box },
 ];
 
 function Toast() {
@@ -141,7 +139,6 @@ function App() {
       case 'forge': return <ContentForge />;
       case 'publish': return <ContentPublish />;
       case 'analyze': return <HitAnalyzer />;
-      case 'assets': return <AssetLibraryPage />;
       case 'profile': return <CreatorProfile />;
       default: return <HotRadar />;
     }

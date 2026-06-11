@@ -1,9 +1,8 @@
 import { useState, useRef, useEffect, useMemo } from 'react';
 import { useAppStore } from '../store';
-import { callCozeChat, buildCopyGenerateQuery, buildDeconstructQuery, buildRewriteQuery, checkUserQuota, incrementUserQuota, getUserVariables, getUserProfileFromStorage, formatProfileForPrompt } from '../services/cozeApi';
+import { callCozeChat, buildCopyGenerateQuery, buildDeconstructQuery, buildRewriteQuery, buildInspirationPrompt, checkUserQuota, incrementUserQuota, getUserVariables, getUserProfileFromStorage, formatProfileForPrompt } from '../services/cozeApi';
 import { loadAnalysisHistory } from '../store';
-import { Sparkles, Copy, Check, RefreshCw, Wand2, FileText, Heart, BookOpen, MessageSquare, Flame, Rocket, Search, Smile, Book, Lightbulb, HelpCircle, GitCompare, Box, Columns3, X } from 'lucide-react';
-import { AssetLibrary } from '../components/AssetLibrary';
+import { Sparkles, Copy, Check, RefreshCw, Wand2, Heart, BookOpen, MessageSquare, Flame, Rocket, Search, Smile, Book, Lightbulb, HelpCircle, GitCompare, Columns3, X, Star, ChevronDown } from 'lucide-react';
 import { clsx } from 'clsx';
 import { LoadingState, EmptyState } from '../components/LoadingState';
 
@@ -46,7 +45,6 @@ export function ContentForge() {
   const [showComparison, setShowComparison] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
   const [showAnalysisHistory, setShowAnalysisHistory] = useState(false);
-  const [showAssetLibrary, setShowAssetLibrary] = useState(false);
   const [loadingStep, setLoadingStep] = useState(0);
   const [analysisHistory] = useState(() => loadAnalysisHistory());
   const resultsRef = useRef<HTMLDivElement>(null);
@@ -275,9 +273,6 @@ ${copiesText}
               className="input-field flex-1"
               onKeyDown={(e) => e.key === 'Enter' && handleGenerate()}
             />
-            <button onClick={() => setShowAssetLibrary(true)} className="btn-ghost shrink-0" title="素材库">
-              <Box className="w-4 h-4" />
-            </button>
             <button onClick={handleGenerate} disabled={isGenerating} className={clsx('btn-primary', isGenerating && 'opacity-40 cursor-not-allowed')}>
               {isGenerating ? <><RefreshCw className="w-4 h-4 animate-spin" />生成中...</> : <><Sparkles className="w-4 h-4" />生成文案</>}
             </button>
@@ -650,8 +645,6 @@ ${copiesText}
           </div>
         </div>
       )}
-
-      <AssetLibrary isOpen={showAssetLibrary} onClose={() => setShowAssetLibrary(false)} showToast={showToast} />
 
       {/* Copy history */}
       {history.length > 0 && (

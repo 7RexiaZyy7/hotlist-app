@@ -927,7 +927,10 @@ ${copiesText}
                   onClick={() => {
                     setSelectedTopic(item.topic);
                     setLastAnalysis(item.analysis);
-                    showToast('已加载分析上下文');
+                    setDeconstructResult(item.analysis);
+                    setForgeMode('deconstruct');
+                    setShowAnalysisHistory(false);
+                    showToast('已加载分析报告');
                   }}
                   className="interactive-row"
                 >

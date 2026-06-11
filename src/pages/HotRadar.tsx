@@ -126,6 +126,7 @@ export function HotRadar() {
   const [showCount, setShowCount] = useState(20);
   const [selectedNiche, setSelectedNiche] = useState<string | null>(null);
   const [inlineAnalysis, setInlineAnalysis] = useState<{topic: string; analysis: string; isLoading: boolean} | null>(null);
+  const analysisCacheRef = useRef<Map<string, string>>(new Map());
   const filteredList = selectedNiche
     ? hotList.filter(item => detectNiche(item.title)?.label === selectedNiche)
     : hotList;
@@ -194,6 +195,7 @@ export function HotRadar() {
     setShowCount(20);
     setSelectedPlatform(platformId);
     setInlineAnalysis(null);
+    analysisCacheRef.current.clear();
     fetchHotList(platformId);
   };
 
@@ -218,8 +220,15 @@ export function HotRadar() {
       showToast('API 代理未连接', 'error');
       return;
     }
+    // Toggle off if already open
     if (inlineAnalysis?.topic === item.title && !inlineAnalysis.isLoading) {
       setInlineAnalysis(null);
+      return;
+    }
+    // Restore from cache if available
+    const cached = analysisCacheRef.current.get(item.title);
+    if (cached) {
+      setInlineAnalysis({ topic: item.title, analysis: cached, isLoading: false });
       return;
     }
     setInlineAnalysis({ topic: item.title, analysis: '', isLoading: true });
@@ -229,6 +238,7 @@ export function HotRadar() {
       if (!allowed) { setInlineAnalysis(null); return; }
       const query = buildTopicAnalysisQuery(item.title);
       const result = await callCozeChat(query);
+      analysisCacheRef.current.set(item.title, result);
       setInlineAnalysis({ topic: item.title, analysis: result, isLoading: false });
       useAppStore.getState().addAnalysisHistory(item.title, result);
       showToast(`「${item.title}」分析完成`);
@@ -490,8 +500,8 @@ export function HotRadar() {
                           </div>
                           {!isCompact && detectNiche(item.title) && (
                             <span
-                              className="text-[10px] px-1.5 py-0.5 rounded-sm font-medium"
-                              style={{ backgroundColor: detectNiche(item.title)!.color + '20', color: detectNiche(item.title)!.color }}
+                              className="text-[11px] px-2 py-0.5 rounded-sm font-medium border"
+                              style={{ backgroundColor: detectNiche(item.title)!.color + '18', color: detectNiche(item.title)!.color, borderColor: detectNiche(item.title)!.color + '40' }}
                             >
                               {detectNiche(item.title)!.label}
                             </span>

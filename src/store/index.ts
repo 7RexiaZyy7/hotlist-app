@@ -27,6 +27,7 @@ interface Toast {
 }
 
 const SAVED_TOPICS_KEY = 'savedTopics';
+const ANALYSIS_HISTORY_KEY = 'analysisHistory';
 
 function loadSavedTopics(): HotItem[] {
   try {
@@ -39,6 +40,18 @@ function loadSavedTopics(): HotItem[] {
 
 function persistSavedTopics(items: HotItem[]) {
   localStorage.setItem(SAVED_TOPICS_KEY, JSON.stringify(items));
+}
+
+export function loadAnalysisHistory(): Array<{topic: string; analysis: string; timestamp: number}> {
+  try {
+    return JSON.parse(localStorage.getItem(ANALYSIS_HISTORY_KEY) || '[]');
+  } catch {
+    return [];
+  }
+}
+
+export function persistAnalysisHistory(items: Array<{topic: string; analysis: string; timestamp: number}>) {
+  localStorage.setItem(ANALYSIS_HISTORY_KEY, JSON.stringify(items));
 }
 
 function loadCreationStats() {
@@ -98,6 +111,8 @@ interface AppState {
   selectedAngles: string[];
   lastAnalysis: string;
   setLastAnalysis: (analysis: string) => void;
+  analysisHistory: Array<{topic: string; analysis: string; timestamp: number}>;
+  addAnalysisHistory: (topic: string, analysis: string) => void;
   generatedCopies: GeneratedCopy[];
   isGenerating: boolean;
   setSelectedTopic: (topic: string) => void;
@@ -131,6 +146,7 @@ interface AppState {
 }
 
 const initialStats = loadCreationStats();
+const initialAnalysisHistory = loadAnalysisHistory();
 
 export const useAppStore = create<AppState>()((set) => ({
   isConnected: true,
@@ -204,6 +220,13 @@ export const useAppStore = create<AppState>()((set) => ({
   selectedAngles: [],
   lastAnalysis: '',
   setLastAnalysis: (analysis) => set({ lastAnalysis: analysis }),
+  analysisHistory: initialAnalysisHistory,
+  addAnalysisHistory: (topic, analysis) =>
+    set((state) => {
+      const updated = [{ topic, analysis, timestamp: Date.now() }, ...state.analysisHistory].slice(0, 20);
+      persistAnalysisHistory(updated);
+      return { analysisHistory: updated, lastAnalysis: analysis };
+    }),
   generatedCopies: [],
   isGenerating: false,
   setSelectedTopic: (topic) => set({ selectedTopic: topic }),

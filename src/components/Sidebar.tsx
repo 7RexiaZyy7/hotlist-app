@@ -1,5 +1,5 @@
 import { useAppStore } from '../store';
-import { Flame, Search, Sparkles, Globe, UserCircle2 } from 'lucide-react';
+import { Flame, Search, Sparkles, Globe, UserCircle2, Box } from 'lucide-react';
 import { clsx } from 'clsx';
 
 const navItems = [
@@ -7,6 +7,7 @@ const navItems = [
   { id: 'search', label: '内容搜索', icon: Globe },
   { id: 'explore', label: '话题勘探', icon: Search },
   { id: 'forge', label: '文案创作', icon: Sparkles },
+  { id: 'assets', label: '素材库', icon: Box },
   { id: 'profile', label: '创作者档案', icon: UserCircle2 },
 ];
 

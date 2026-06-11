@@ -1,7 +1,9 @@
 import { useState, useRef, useEffect, useMemo } from 'react';
 import { useAppStore } from '../store';
-import { callCozeChat, buildCopyGenerateQuery, checkUserQuota, incrementUserQuota, getUserVariables, getUserProfileFromStorage, formatProfileForPrompt } from '../services/cozeApi';
-import { Sparkles, Copy, Check, RefreshCw, Wand2, FileText, Heart, BookOpen, MessageSquare, Flame, Rocket, Search, Smile, Book, Lightbulb, HelpCircle, GitCompare } from 'lucide-react';
+import { callCozeChat, buildCopyGenerateQuery, buildDeconstructQuery, buildRewriteQuery, checkUserQuota, incrementUserQuota, getUserVariables, getUserProfileFromStorage, formatProfileForPrompt } from '../services/cozeApi';
+import { loadAnalysisHistory } from '../store';
+import { Sparkles, Copy, Check, RefreshCw, Wand2, FileText, Heart, BookOpen, MessageSquare, Flame, Rocket, Search, Smile, Book, Lightbulb, HelpCircle, GitCompare, Box, Columns3, X } from 'lucide-react';
+import { AssetLibrary } from '../components/AssetLibrary';
 import { clsx } from 'clsx';
 import { LoadingState, EmptyState } from '../components/LoadingState';
 
@@ -33,11 +35,20 @@ const platformStyles = [
 
 export function ContentForge() {
   const { selectedTopic, setSelectedTopic, selectedAngles, setSelectedAngles, lastAnalysis, setLastAnalysis, setGenerating, isGenerating, generatedCopies, setGeneratedCopies, setShowQuotaModal, showToast, userProfile, setActivePage, checkAndIncrementQuota } = useAppStore();
+  type ForgeMode = 'create' | 'deconstruct' | 'rewrite';
+  const [forgeMode, setForgeMode] = useState<ForgeMode>('create');
+  const [rewriteSource, setRewriteSource] = useState('');
+  const [deconstructResult, setDeconstructResult] = useState<string | null>(null);
   const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
   const [convertingPlatform, setConvertingPlatform] = useState<string | null>(null);
   const [convertedCopies, setConvertedCopies] = useState<Record<string, GeneratedCopy[]>>({});
+  const [selectedForCompare, setSelectedForCompare] = useState<Set<number>>(new Set());
+  const [showComparison, setShowComparison] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
+  const [showAnalysisHistory, setShowAnalysisHistory] = useState(false);
+  const [showAssetLibrary, setShowAssetLibrary] = useState(false);
   const [loadingStep, setLoadingStep] = useState(0);
+  const [analysisHistory] = useState(() => loadAnalysisHistory());
   const resultsRef = useRef<HTMLDivElement>(null);
 
   const [history, setHistory] = useState<any[]>(() => {
@@ -73,50 +84,62 @@ export function ContentForge() {
   };
 
   const handleGenerate = async () => {
-    if (!selectedTopic.trim()) {
-      showToast('请输入话题关键词', 'warning');
-      return;
-    }
-    if (selectedAngles.length === 0) {
-      showToast('请至少选择一个创作角度', 'warning');
-      return;
+    if (forgeMode === 'create') {
+      if (!selectedTopic.trim()) { showToast('请输入话题关键词', 'warning'); return; }
+      if (selectedAngles.length === 0) { showToast('请至少选择一个创作角度', 'warning'); return; }
+    } else if (forgeMode === 'deconstruct') {
+      if (!selectedTopic.trim()) { showToast('请输入要拆解的话题或文案', 'warning'); return; }
+    } else if (forgeMode === 'rewrite') {
+      if (!rewriteSource.trim()) { showToast('请粘贴要改写的文案', 'warning'); return; }
     }
 
-    // 原子操作：检查 + 消费 + 同步 store（避免双调用 race + UI 状态不同步）
     const ok = await checkAndIncrementQuota();
     if (!ok) return;
 
     setGenerating(true);
     setGeneratedCopies([]);
+    setDeconstructResult(null);
 
     try {
-      const profileVars = getUserVariables() || {};
-      const query = buildCopyGenerateQuery(selectedTopic, selectedAngles, profileVars, lastAnalysis);
-      const result = await callCozeChat(query);
+      if (forgeMode === 'deconstruct') {
+        const query = buildDeconstructQuery(selectedTopic);
+        const result = await callCozeChat(query);
+        setDeconstructResult(result);
+        useAppStore.getState().addAnalysisHistory(selectedTopic.slice(0, 30), result);
+        showToast('拆解完成');
+      } else if (forgeMode === 'rewrite') {
+        const style = selectedTopic.trim() || '保持原风格';
+        const query = buildRewriteQuery(rewriteSource, style);
+        const result = await callCozeChat(query);
+        const parsed = [{ angle: `改写版·${style}`, content: result }];
+        setGeneratedCopies(parsed);
+        showToast('改写完成');
+      } else {
+        const profileVars = getUserVariables() || {};
+        const query = buildCopyGenerateQuery(selectedTopic, selectedAngles, profileVars, lastAnalysis);
+        const result = await callCozeChat(query);
 
-      const parsed = parseGeneratedCopies(result);
-      if (parsed.length === 0) {
-        // 解析失败：不再造假数据，避免显示 N 段相同内容误导用户
-        console.warn('[ContentForge] parseGeneratedCopies 失败, 原始返回:', result.slice(0, 200));
-        showToast('AI 返回内容格式异常，请换个角度或话题再试', 'error');
-        return;
+        const parsed = parseGeneratedCopies(result);
+        if (parsed.length === 0) {
+          console.warn('[ContentForge] parseGeneratedCopies 失败, 原始返回:', result.slice(0, 200));
+          showToast('AI 返回内容格式异常，请换个角度或话题再试', 'error');
+          return;
+        }
+
+        setGeneratedCopies(parsed);
+        setLastAnalysis('');
+
+        saveHistory({
+          topic: selectedTopic,
+          angles: selectedAngles,
+          copies: parsed,
+          timestamp: Date.now(),
+        });
+        refreshHistory();
+
+        showToast(`已生成 ${parsed.length} 种角度的文案`);
       }
-
-      setGeneratedCopies(parsed);
-      setLastAnalysis('');
-
-      saveHistory({
-        topic: selectedTopic,
-        angles: selectedAngles,
-        copies: parsed,
-        timestamp: Date.now(),
-      });
-      refreshHistory();
-
-      showToast(`已生成 ${parsed.length} 种角度的文案`);
-      setTimeout(() => {
-        resultsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      }, 100);
+      setTimeout(() => resultsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
     } catch (e) {
       console.error('generate error:', e);
       showToast('生成失败，请稍后重试', 'error');
@@ -210,134 +233,235 @@ ${copiesText}
     <div className="p-4 md:p-6 pb-24 md:pb-6 max-w-shell mx-auto">
       <div className="mb-6">
         <h2 className="text-display text-text-primary mb-1">文案工坊</h2>
-        <p className="text-body-sm text-text-secondary">输入话题，AI 帮你生成爆款文案</p>
+        <p className="text-body-sm text-text-secondary">
+          {forgeMode === 'create' && '输入话题，AI 帮你生成爆款文案'}
+          {forgeMode === 'deconstruct' && '输入话题或文案，AI 深度拆解其创作逻辑'}
+          {forgeMode === 'rewrite' && '输入现有文案，AI 用你的风格重新改写'}
+        </p>
       </div>
 
-      {/* Search input */}
-      <div className="card p-4 mb-6">
-        <div className="flex gap-2">
-          <input
-            type="text"
-            value={selectedTopic}
-            onChange={(e) => setSelectedTopic(e.target.value)}
-            placeholder="输入热点话题或关键词..."
-            className="input-field flex-1"
-          />
+      {/* Mode tabs */}
+      <div className="flex gap-1.5 mb-4">
+        {([
+          { id: 'create' as ForgeMode, label: '创作', desc: '生成原创文案' },
+          { id: 'deconstruct' as ForgeMode, label: '拆解', desc: '深度分析创作逻辑' },
+          { id: 'rewrite' as ForgeMode, label: '洗稿', desc: '改写现有文案' },
+        ]).map(mode => (
           <button
-            onClick={handleGenerate}
-            disabled={isGenerating}
+            key={mode.id}
+            onClick={() => { setForgeMode(mode.id); setGeneratedCopies([]); setDeconstructResult(null); setRewriteSource(''); }}
             className={clsx(
-              'btn-primary',
-              isGenerating && 'opacity-40 cursor-not-allowed'
+              'flex items-center gap-1.5 px-3 py-1.5 rounded-md text-body-sm font-medium transition-all',
+              forgeMode === mode.id
+                ? 'bg-accent-subtle text-accent border border-accent'
+                : 'bg-bg-surface border border-border text-text-secondary hover:text-text-primary'
             )}
+            title={mode.desc}
           >
-            {isGenerating ? (
-              <>
-                <RefreshCw className="w-4 h-4 animate-spin" />
-                生成中...
-              </>
-            ) : (
-              <>
-                <Sparkles className="w-4 h-4" />
-                生成文案
-              </>
-            )}
+            {mode.label}
           </button>
-        </div>
-        {/* 档案状态提示 */}
-        {userProfile?.niche || userProfile?.audience || userProfile?.style ? (
+        ))}
+      </div>
+
+      {/* Input section */}
+      <div className="card p-4 mb-6">
+        {forgeMode === 'create' ? (
+          <div className="flex gap-2">
+            <input
+              type="text"
+              value={selectedTopic}
+              onChange={(e) => setSelectedTopic(e.target.value)}
+              placeholder="输入热点话题或关键词..."
+              className="input-field flex-1"
+              onKeyDown={(e) => e.key === 'Enter' && handleGenerate()}
+            />
+            <button onClick={() => setShowAssetLibrary(true)} className="btn-ghost shrink-0" title="素材库">
+              <Box className="w-4 h-4" />
+            </button>
+            <button onClick={handleGenerate} disabled={isGenerating} className={clsx('btn-primary', isGenerating && 'opacity-40 cursor-not-allowed')}>
+              {isGenerating ? <><RefreshCw className="w-4 h-4 animate-spin" />生成中...</> : <><Sparkles className="w-4 h-4" />生成文案</>}
+            </button>
+          </div>
+        ) : forgeMode === 'rewrite' ? (
+          <div className="space-y-3">
+            <textarea
+              value={rewriteSource}
+              onChange={(e) => setRewriteSource(e.target.value)}
+              placeholder="粘贴要改写的原始文案..."
+              className="input-field w-full min-h-[120px] resize-y"
+            />
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={selectedTopic}
+                onChange={(e) => setSelectedTopic(e.target.value)}
+                placeholder="改写方向提示（可选，如：更口语化、更专业）"
+                className="input-field flex-1"
+              />
+              <button onClick={handleGenerate} disabled={isGenerating || !rewriteSource.trim()} className={clsx('btn-primary', (isGenerating || !rewriteSource.trim()) && 'opacity-40 cursor-not-allowed')}>
+                {isGenerating ? <><RefreshCw className="w-4 h-4 animate-spin" />改写中...</> : <><Sparkles className="w-4 h-4" />开始改写</>}
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            <textarea
+              value={selectedTopic}
+              onChange={(e) => setSelectedTopic(e.target.value)}
+              placeholder="输入要拆解的话题或文案（可粘贴长文本）..."
+              className="input-field w-full min-h-[120px] resize-y"
+            />
+            <div className="flex justify-end">
+              <button onClick={handleGenerate} disabled={isGenerating || !selectedTopic.trim()} className={clsx('btn-primary', (isGenerating || !selectedTopic.trim()) && 'opacity-40 cursor-not-allowed')}>
+                {isGenerating ? <><RefreshCw className="w-4 h-4 animate-spin" />拆解中...</> : <><Sparkles className="w-4 h-4" />开始拆解</>}
+              </button>
+            </div>
+          </div>
+        )}
+        {forgeMode === 'create' && (userProfile?.niche || userProfile?.audience || userProfile?.style ? (
           <div className="mt-3 flex items-center gap-1.5 text-caption text-text-tertiary">
             <Sparkles className="w-3.5 h-3.5 text-accent" />
             <span>生成时将使用你的「创作者档案」让文案更贴近你</span>
-            <button
-              onClick={() => setActivePage('profile')}
-              className="text-accent hover:text-accent-hover ml-1"
-            >
-              编辑
-            </button>
+            <button onClick={() => setActivePage('profile')} className="text-accent hover:text-accent-hover ml-1">编辑</button>
           </div>
         ) : (
           <div className="mt-3 flex items-center gap-1.5 text-caption text-text-tertiary">
             <Sparkles className="w-3.5 h-3.5 text-text-tertiary" />
             <span>没填「创作者档案」？</span>
-            <button
-              onClick={() => setActivePage('profile')}
-              className="text-accent hover:text-accent-hover"
-            >
-              花 30 秒填一下，AI 文案会对你口味的 2 倍
-            </button>
+            <button onClick={() => setActivePage('profile')} className="text-accent hover:text-accent-hover">花 30 秒填一下，AI 文案会对你口味的 2 倍</button>
           </div>
-        )}
+        ))}
       </div>
 
-      {/* Angle selection */}
-      <div className="mb-6">
-        <div className="flex items-center justify-between mb-3">
-          <h3 className="text-body-sm font-medium text-text-secondary">选择创作角度</h3>
-          <span className="text-caption text-text-tertiary">已选 {selectedAngles.length}/5</span>
+      {/* Angle selection (only for create mode) */}
+      {forgeMode === 'create' && (
+        <div className="mb-6">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-body-sm font-medium text-text-secondary">选择创作角度</h3>
+            <span className="text-caption text-text-tertiary">已选 {selectedAngles.length}/5</span>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {angles.map((angle) => {
+              const Icon = angle.icon;
+              return (
+                <button
+                  key={angle.id}
+                  onClick={() => handleAngleToggle(angle.label)}
+                  title={angle.desc}
+                  className={clsx(
+                    'flex items-center gap-1.5 px-3 py-1.5 rounded-md text-body-sm font-medium transition-all duration-120',
+                    selectedAngles.includes(angle.label)
+                      ? 'bg-accent-subtle text-accent border border-accent'
+                      : 'bg-bg-surface border border-border text-text-secondary hover:text-text-primary hover:bg-bg-elevated'
+                  )}
+                >
+                  <Icon className="w-3.5 h-3.5" />
+                  <span>{angle.label}</span>
+                </button>
+              );
+            })}
+          </div>
         </div>
-        <div className="flex flex-wrap gap-2">
-          {angles.map((angle) => {
-            const Icon = angle.icon;
-            return (
-              <button
-                key={angle.id}
-                onClick={() => handleAngleToggle(angle.label)}
-                title={angle.desc}
-                className={clsx(
-                  'flex items-center gap-1.5 px-3 py-1.5 rounded-md text-body-sm font-medium transition-all duration-120',
-                  selectedAngles.includes(angle.label)
-                    ? 'bg-accent-subtle text-accent border border-accent'
-                    : 'bg-bg-surface border border-border text-text-secondary hover:text-text-primary hover:bg-bg-elevated'
-                )}
-              >
-                <Icon className="w-3.5 h-3.5" />
-                <span>{angle.label}</span>
-              </button>
-            );
-          })}
-        </div>
-      </div>
+      )}
 
       {isGenerating ? (
-        <LoadingState steps={['正在分析热点话题...', '正在构思创作角度...', '正在生成爆款文案...', '正在优化内容质量...']} />
+        <LoadingState steps={
+          forgeMode === 'deconstruct'
+            ? ['正在读取输入...', '正在深度分析...', '正在生成拆解报告...']
+            : forgeMode === 'rewrite'
+              ? ['正在理解原文...', '正在风格转换...', '正在生成改写版...']
+              : ['正在分析热点话题...', '正在构思创作角度...', '正在生成爆款文案...', '正在优化内容质量...']
+        } />
+      ) : forgeMode === 'deconstruct' && deconstructResult ? (
+        <div ref={resultsRef} className="card p-5">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-body font-semibold text-text-primary flex items-center gap-2">
+              <Sparkles className="w-4 h-4 text-accent" />
+              拆解报告
+            </h3>
+            <div className="flex gap-2">
+              <button
+                onClick={() => navigator.clipboard.writeText(deconstructResult).then(() => showToast('已复制'))}
+                className="flex items-center gap-1 px-2.5 py-1 rounded-md text-caption bg-bg-elevated text-text-secondary hover:text-text-primary transition-all"
+              >
+                <Copy className="w-3 h-3" />
+                复制
+              </button>
+              <button
+                onClick={() => { setSelectedTopic(selectedTopic); setSelectedAngles(['深度分析']); setLastAnalysis(deconstructResult); setActivePage('forge'); }}
+                className="flex items-center gap-1 px-2.5 py-1 rounded-md text-caption bg-accent-subtle text-accent border border-accent"
+              >
+                <Sparkles className="w-3 h-3" />
+                基于此创作
+              </button>
+            </div>
+          </div>
+          <div className="text-body-sm text-text-secondary leading-relaxed whitespace-pre-wrap">{deconstructResult}</div>
+        </div>
       ) : generatedCopies.length === 0 ? (
         <div className="card p-8 text-center">
           <div className="w-12 h-12 rounded-full bg-accent-subtle mx-auto mb-3 flex items-center justify-center">
             <Sparkles className="w-6 h-6 text-accent" />
           </div>
-          <h3 className="text-body font-semibold text-text-primary mb-1">选个话题开始创作</h3>
-          <p className="text-body-sm text-text-secondary mb-6">从下面 3 个热门方向选一个，AI 立刻生成爆款文案</p>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 max-w-3xl mx-auto">
-            {[
-              { topic: '35岁职场危机', angle: 'emotional', label: '35 岁危机', desc: '情感共鸣', emoji: '😰' },
-              { topic: 'AI 替代人工', angle: 'future', label: 'AI 替代人工', desc: '未来趋势', emoji: '🤖' },
-              { topic: '2026 新兴职业', angle: 'knowledge', label: '新兴职业', desc: '知识科普', emoji: '💼' },
-            ].map((ex) => (
-              <button
-                key={ex.topic}
-                onClick={() => {
-                  setSelectedTopic(ex.topic);
-                  setSelectedAngles([ex.angle]);
-                  setTimeout(() => handleGenerate(), 50);
-                }}
-                className="card p-4 text-left hover:border-accent transition-all duration-120 group"
-              >
-                <div className="text-2xl mb-2">{ex.emoji}</div>
-                <div className="text-body-sm font-medium text-text-primary mb-1 group-hover:text-accent">{ex.label}</div>
-                <div className="text-caption text-text-tertiary">{ex.desc}</div>
-              </button>
-            ))}
-          </div>
+          {forgeMode === 'create' ? (
+            <>
+              <h3 className="text-body font-semibold text-text-primary mb-1">选个话题开始创作</h3>
+              <p className="text-body-sm text-text-secondary mb-6">从下面 3 个热门方向选一个，AI 立刻生成爆款文案</p>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3 max-w-3xl mx-auto">
+                {[
+                  { topic: '35岁职场危机', angle: 'emotional', label: '35 岁危机', desc: '情感共鸣', emoji: '😰' },
+                  { topic: 'AI 替代人工', angle: 'future', label: 'AI 替代人工', desc: '未来趋势', emoji: '🤖' },
+                  { topic: '2026 新兴职业', angle: 'knowledge', label: '新兴职业', desc: '知识科普', emoji: '💼' },
+                ].map((ex) => (
+                  <button
+                    key={ex.topic}
+                    onClick={() => {
+                      setSelectedTopic(ex.topic);
+                      setSelectedAngles([ex.angle]);
+                      setTimeout(() => handleGenerate(), 50);
+                    }}
+                    className="card p-4 text-left hover:border-accent transition-all duration-120 group"
+                  >
+                    <div className="text-2xl mb-2">{ex.emoji}</div>
+                    <div className="text-body-sm font-medium text-text-primary mb-1 group-hover:text-accent">{ex.label}</div>
+                    <div className="text-caption text-text-tertiary">{ex.desc}</div>
+                  </button>
+                ))}
+              </div>
+            </>
+          ) : forgeMode === 'deconstruct' ? (
+            <>
+              <h3 className="text-body font-semibold text-text-primary mb-1">输入要拆解的内容</h3>
+              <p className="text-body-sm text-text-secondary">粘贴你的文案或输入话题，AI 会分析其创作逻辑和可复用的模型</p>
+            </>
+          ) : (
+            <>
+              <h3 className="text-body font-semibold text-text-primary mb-1">粘贴要改写的文案</h3>
+              <p className="text-body-sm text-text-secondary">输入现有文案，AI 会用你的风格重新表达</p>
+            </>
+          )}
         </div>
       ) : (
         <div ref={resultsRef} className="space-y-4">
           <div className="flex items-center justify-between mb-2 flex-wrap gap-2">
             <h3 className="text-body font-semibold text-text-primary">生成结果</h3>
-            <button
-              onClick={() => handleConvert('all')}
-              disabled={convertingPlatform !== null}
-              className={clsx(
+            <div className="flex items-center gap-1.5">
+              {/* 一键复制全部 */}
+              <button
+                onClick={() => {
+                  const text = currentCopies.map((c, i) => `【${c.angle}】\n${c.content}`).join('\n\n---\n\n');
+                  navigator.clipboard.writeText(text).then(() => showToast('已复制全部文案'));
+                }}
+                className="flex items-center gap-1 px-2.5 py-1.5 rounded-md text-caption font-medium bg-bg-surface border border-border text-text-secondary hover:text-text-primary transition-all"
+                title="一键复制所有结果"
+              >
+                <Copy className="w-3 h-3" />
+                一键复制
+              </button>
+              <button
+                onClick={() => handleConvert('all')}
+                disabled={convertingPlatform !== null}
+                className={clsx(
                 'flex items-center gap-1.5 px-3 py-1.5 rounded-md text-caption font-medium transition-all duration-120',
                 convertingPlatform
                   ? 'bg-accent-subtle text-accent'
@@ -350,6 +474,7 @@ ${copiesText}
               <Wand2 className="w-3.5 h-3.5" />
               {convertingPlatform ? '转换中...' : Object.keys(convertedCopies).length > 0 ? '已生成多平台版本 · 重新转换' : '一键转换为多平台版本'}
             </button>
+          </div>
           </div>
 
           {/* 平台切换 tab：原版 + 已转换的平台 */}
@@ -385,13 +510,47 @@ ${copiesText}
             </div>
           )}
 
+          {/* Compare button */}
+          {selectedForCompare.size >= 2 && !showComparison && (
+            <div className="flex justify-end mb-2">
+              <button
+                onClick={() => setShowComparison(true)}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-caption font-medium bg-accent-subtle text-accent border border-accent"
+              >
+                <Columns3 className="w-3.5 h-3.5" />
+                对比 {selectedForCompare.size} 个版本
+              </button>
+            </div>
+          )}
+
           <div className="grid gap-3">
             {currentCopies.map((copy, index) => {
               const { title, body } = splitTitleBody(copy.content);
+              const isSelected = selectedForCompare.has(index);
               return (
-                <div key={index} className="card p-4">
+                <div key={index} className={clsx('card p-4 relative', isSelected && 'ring-2 ring-accent')}>
                   <div className="flex items-center justify-between mb-3">
                     <div className="flex items-center gap-2">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSelectedForCompare(prev => {
+                            const next = new Set(prev);
+                            if (next.has(index)) next.delete(index); else next.add(index);
+                            return next;
+                          });
+                          setShowComparison(false);
+                        }}
+                        className={clsx(
+                          'w-5 h-5 rounded border flex items-center justify-center transition-all shrink-0',
+                          isSelected
+                            ? 'bg-accent border-accent text-white'
+                            : 'border-border hover:border-accent'
+                        )}
+                        title={isSelected ? '取消选择' : '选择对比'}
+                      >
+                        {isSelected && <Check className="w-3 h-3" />}
+                      </button>
                       <span className="text-caption font-mono text-text-tertiary">#{index + 1}</span>
                       <span className="inline-flex items-center px-2.5 py-1 rounded-md text-body-sm font-medium border border-accent text-accent bg-accent-subtle">
                         {copy.angle}
@@ -448,6 +607,53 @@ ${copiesText}
         </div>
       )}
 
+      {/* Comparison view */}
+      {showComparison && selectedForCompare.size >= 2 && (
+        <div className="modal-overlay" onClick={() => setShowComparison(false)}>
+          <div className="modal-card max-w-4xl max-h-[80vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-body font-semibold text-text-primary flex items-center gap-2">
+                <Columns3 className="w-4 h-4 text-accent" />
+                多版本对比
+              </h3>
+              <button onClick={() => setShowComparison(false)} className="w-7 h-7 rounded-lg flex items-center justify-center text-text-tertiary hover:text-text-primary hover:bg-bg-elevated">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            <div className="grid gap-4" style={{ gridTemplateColumns: `repeat(${Math.min(selectedForCompare.size, 3)}, 1fr)` }}>
+              {[...selectedForCompare].sort().map((idx) => {
+                const copy = (convertingPlatform ? (convertedCopies[convertingPlatform] || generatedCopies) : generatedCopies)[idx];
+                if (!copy) return null;
+                const { title, body } = splitTitleBody(copy.content);
+                return (
+                  <div key={idx} className="bg-bg-surface border border-border rounded-lg p-4">
+                    <div className="flex items-center gap-2 mb-3">
+                      <span className="text-caption font-mono text-text-tertiary">#{idx + 1}</span>
+                      <span className="text-[11px] px-2 py-0.5 rounded-sm bg-accent-subtle text-accent font-medium">{copy.angle}</span>
+                    </div>
+                    {title && <h4 className="text-body-sm font-medium text-text-primary mb-2">{title}</h4>}
+                    <p className="text-body-sm text-text-secondary leading-relaxed whitespace-pre-wrap">{body || copy.content}</p>
+                    <div className="mt-3 pt-2 border-t border-border text-caption text-text-tertiary flex items-center justify-between">
+                      <span>{(body || copy.content).length} 字</span>
+                      <button
+                        onClick={() => handleCopy(copy.content, idx)}
+                        className="flex items-center gap-1 text-accent hover:text-accent-hover"
+                      >
+                        <Copy className="w-3 h-3" />
+                        复制
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
+
+      <AssetLibrary isOpen={showAssetLibrary} onClose={() => setShowAssetLibrary(false)} showToast={showToast} />
+
+      {/* Copy history */}
       {history.length > 0 && (
         <div className="mt-6">
           <button
@@ -470,6 +676,44 @@ ${copiesText}
                   <div className="flex items-center justify-between">
                     <span className="text-body-sm font-medium text-text-primary truncate">{item.topic}</span>
                     <span className="text-caption text-text-tertiary shrink-0 ml-2">{item.angles.join('、')}</span>
+                  </div>
+                  <div className="text-caption text-text-tertiary mt-0.5">
+                    {new Date(item.timestamp).toLocaleString()}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Analysis history */}
+      {analysisHistory.length > 0 && (
+        <div className="mt-3">
+          <button
+            onClick={() => setShowAnalysisHistory(!showAnalysisHistory)}
+            className="btn-ghost"
+          >
+            <Sparkles className="w-4 h-4" />
+            <span>最近分析</span>
+            <span className="text-caption bg-bg-elevated px-2 py-0.5 rounded-full ml-1">{analysisHistory.length}</span>
+          </button>
+
+          {showAnalysisHistory && (
+            <div className="mt-3 space-y-1.5">
+              {analysisHistory.map((item, index) => (
+                <div
+                  key={index}
+                  onClick={() => {
+                    setSelectedTopic(item.topic);
+                    setLastAnalysis(item.analysis);
+                    showToast('已加载分析上下文');
+                  }}
+                  className="interactive-row"
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="text-body-sm font-medium text-text-primary truncate">{item.topic}</span>
+                    <span className="text-caption text-text-tertiary shrink-0 ml-2">分析结果</span>
                   </div>
                   <div className="text-caption text-text-tertiary mt-0.5">
                     {new Date(item.timestamp).toLocaleString()}

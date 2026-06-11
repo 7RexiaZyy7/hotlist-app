@@ -384,6 +384,36 @@ export function buildTopicAnalysisQuery(topic: string): string {
 直接输出分析报告，不要问问题，不要加额外说明`;
 }
 
+export function buildDeconstructQuery(input: string): string {
+  return `请对以下话题或文案进行深度拆解分析，按结构化的 Markdown 格式输出：
+
+# 拆解报告
+
+### 1. 核心痛点/需求
+分析这个话题/内容满足了用户的什么深层需求，击中了什么情绪。
+
+### 2. 传播逻辑
+- 为什么这个话题能火
+- 什么人群在传播
+- 传播的关键节点
+
+### 3. 内容结构拆解
+逐段分析内容的框架、节奏、信息密度。
+
+### 4. 可复用的创作模型
+提炼 2-3 个可以直接套用的写作模板/公式。
+
+### 5. 优化建议
+指出内容中可以改进的地方，以及如何做得更好。
+
+拆解对象：
+================
+${input}
+================
+
+直接输出拆解报告，不要问问题。`;
+}
+
 export function buildRewriteQuery(copy: string, style: string): string {
   return `请用「${style}」风格改写以下文案，保留核心信息，直接输出改写结果不要询问其他信息。
 
@@ -396,6 +426,24 @@ ${copy}
 - 保持核心信息和逻辑不变
 - 换一种表达方式和措辞
 - 适配 ${style} 风格`;
+}
+
+// ─── 抖音文案提取 ───
+
+export interface DyTextResponse {
+  taskId?: string;
+  status?: string;
+  text?: string;
+  error?: string;
+}
+
+export async function transcribeDouyin(input: string, language = 'zh-CN'): Promise<DyTextResponse> {
+  const r = await fetch(`${PROXY_BASE}?action=dytext_transcribe`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ input, language }),
+  });
+  return r.json();
 }
 
 export interface QuotaInfo {

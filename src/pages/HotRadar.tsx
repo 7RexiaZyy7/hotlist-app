@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useAppStore } from '../store';
 import { PROXY_BASE } from '../services/cozeApi';
 import {
@@ -16,6 +16,8 @@ import {
 import { clsx } from 'clsx';
 import { LoadingState, EmptyState } from '../components/LoadingState';
 import { PlatformIcon } from '../components/PlatformIcon';
+import { AnalysisRenderer } from '../components/AnalysisRenderer';
+import { callCozeChat, buildTopicAnalysisQuery } from '../services/cozeApi';
 
 const platforms = [
   { id: 'douyin', label: '抖音' },
@@ -24,6 +26,29 @@ const platforms = [
   { id: 'bilibili', label: 'B站' },
   { id: 'maimai', label: '脉脉' },
 ];
+
+const NICHES: { pattern: string; label: string; color: string }[] = [
+  { pattern: 'AI|GPT|大模型|人工智能|算法|科技|数码|互联网|编程|代码|芯片|机器人|智能', label: 'AI科技', color: '#06b6d4' },
+  { pattern: '职场|创业|裁员|工资|副业|面试|简历|升职|管理|运营|打工|就业', label: '职场成长', color: '#f59e0b' },
+  { pattern: '情感|恋爱|婚姻|两性|家庭|相亲|分手|出轨|社交|关系', label: '情感关系', color: '#ec4899' },
+  { pattern: '教育|高考|考研|留学|学习|读书|英语|考试|大学|育儿|亲子', label: '教育学习', color: '#10b981' },
+  { pattern: '健康|养生|健身|减肥|饮食|中医|运动|瑜伽|跑步|睡眠|焦虑', label: '健康生活', color: '#22c55e' },
+  { pattern: '美食|探店|烹饪|菜谱|烘焙|咖啡|茶|零食', label: '美食探店', color: '#f97316' },
+  { pattern: '旅行|旅游|摄影|户外|露营|自驾|酒店|风景', label: '旅行户外', color: '#8b5cf6' },
+  { pattern: '娱乐|明星|综艺|电影|音乐|游戏|八卦|网红|主播|短视频', label: '娱乐八卦', color: '#ef4444' },
+  { pattern: '经济|投资|理财|股票|基金|买房|楼市|消费|省钱|搞钱', label: '财经投资', color: '#14b8a6' },
+  { pattern: '时尚|穿搭|美妆|护肤|发型|奢侈品|变美', label: '时尚美妆', color: '#d946ef' },
+  { pattern: '法律|政治|政策|民生|社会|新闻|热点|时事', label: '社会时事', color: '#6b7280' },
+  { pattern: '宠物|猫|狗|动物|萌宠', label: '萌宠生活', color: '#f472b6' },
+  { pattern: '游戏|电竞|LOL|王者|原神|主机|Steam|switch', label: '游戏电竞', color: '#a855f7' },
+];
+
+function detectNiche(topic: string): { label: string; color: string } | null {
+  for (const n of NICHES) {
+    if (new RegExp(n.pattern, 'i').test(topic)) return { label: n.label, color: n.color };
+  }
+  return null;
+}
 
 const ANGLE_KEYWORDS: { pattern: string; angles: string[] }[] = [
   { pattern: '科技|AI|智能|数码|互联网|GPT|大模型', angles: ['知识科普', '未来趋势', '深度分析'] },
@@ -92,12 +117,18 @@ export function HotRadar() {
     toggleSaveTopic,
     showHotRadarGuide,
     setShowHotRadarGuide,
+    isConnected,
   } = useAppStore();
   const [selectedPlatform, setSelectedPlatform] = useState('douyin');
   const [error, setError] = useState<string | null>(null);
   const isLoadingRef = useRef(false);
   const [showPoolModal, setShowPoolModal] = useState(false);
   const [showCount, setShowCount] = useState(20);
+  const [selectedNiche, setSelectedNiche] = useState<string | null>(null);
+  const [inlineAnalysis, setInlineAnalysis] = useState<{topic: string; analysis: string; isLoading: boolean} | null>(null);
+  const filteredList = selectedNiche
+    ? hotList.filter(item => detectNiche(item.title)?.label === selectedNiche)
+    : hotList;
 
   const fetchHotList = useCallback(
     async (platform: string) => {
@@ -162,6 +193,7 @@ export function HotRadar() {
   const handlePlatformChange = (platformId: string) => {
     setShowCount(20);
     setSelectedPlatform(platformId);
+    setInlineAnalysis(null);
     fetchHotList(platformId);
   };
 
@@ -178,6 +210,32 @@ export function HotRadar() {
     const angles = recommendAngles(item.title);
     setSelectedAngles(angles);
     setActivePage('forge');
+  };
+
+  const handleInlineAnalysis = async (e: React.MouseEvent, item: HotItem) => {
+    e.stopPropagation();
+    if (!isConnected) {
+      showToast('API 代理未连接', 'error');
+      return;
+    }
+    if (inlineAnalysis?.topic === item.title && !inlineAnalysis.isLoading) {
+      setInlineAnalysis(null);
+      return;
+    }
+    setInlineAnalysis({ topic: item.title, analysis: '', isLoading: true });
+    try {
+      const { checkAndIncrementQuota } = useAppStore.getState();
+      const allowed = await checkAndIncrementQuota();
+      if (!allowed) { setInlineAnalysis(null); return; }
+      const query = buildTopicAnalysisQuery(item.title);
+      const result = await callCozeChat(query);
+      setInlineAnalysis({ topic: item.title, analysis: result, isLoading: false });
+      useAppStore.getState().addAnalysisHistory(item.title, result);
+      showToast(`「${item.title}」分析完成`);
+    } catch {
+      showToast('分析失败，请稍后重试', 'error');
+      setInlineAnalysis(null);
+    }
   };
 
   return (
@@ -232,6 +290,37 @@ export function HotRadar() {
           </button>
         </div>
       </div>
+
+      {/* 赛道筛选 */}
+      {!isLoadingHotList && hotList.length > 0 && (
+        <div className="flex items-center gap-1.5 mb-4 overflow-x-auto scrollbar-hide pb-0.5">
+          <button
+            onClick={() => setSelectedNiche(null)}
+            className={clsx(
+              'px-2.5 py-1 rounded-md text-caption font-medium transition-all shrink-0',
+              !selectedNiche
+                ? 'bg-accent-subtle text-accent border border-accent'
+                : 'bg-bg-surface border border-border text-text-tertiary hover:text-text-secondary'
+            )}
+          >
+            全部
+          </button>
+          {hotList.map(item => detectNiche(item.title)?.label).filter((n, i, a): n is string => !!n && a.indexOf(n) === i).slice(0, 8).map(niche => (
+            <button
+              key={niche}
+              onClick={() => setSelectedNiche(selectedNiche === niche ? null : niche)}
+              className={clsx(
+                'px-2.5 py-1 rounded-md text-caption font-medium transition-all shrink-0',
+                selectedNiche === niche
+                  ? 'bg-accent-subtle text-accent border border-accent'
+                  : 'bg-bg-surface border border-border text-text-tertiary hover:text-text-secondary'
+              )}
+            >
+              {niche}
+            </button>
+          ))}
+        </div>
+      )}
 
       {/* 3 步工作流引导卡（可折叠，可从 TopBar Settings 重新显示） */}
       {showHotRadarGuide && (
@@ -292,123 +381,186 @@ export function HotRadar() {
             <div className="flex items-center gap-2">
               <TrendingUp className="w-4 h-4 text-[#6366f1]" />
               <span className="text-sm text-[#a1a1aa]">
-                实时热点 · <span className="text-[#ededef] font-medium">{hotList.length}</span> 条
+                实时热点 · <span className="text-[#ededef] font-medium">{selectedNiche ? filteredList.length : hotList.length}</span> 条
+                {selectedNiche && (
+                  <span className="text-text-tertiary ml-1">(赛道: {selectedNiche})</span>
+                )}
               </span>
             </div>
           </div>
 
           {/* Hot list */}
           <div className="space-y-2">
-            {hotList.slice(0, showCount).map((item, index) => {
+            {filteredList.slice(0, showCount).map((item, index) => {
               const isSaved = savedTopics.some((t) => t.title === item.title);
               const isHero = index < 3;
               const isCompact = index >= 10;
+              const isAnalyzing = inlineAnalysis?.topic === item.title;
               return (
-                <div
-                  key={index}
-                  onClick={() => handleAnalyze(item)}
-                  className={clsx('hot-card group', isCompact && 'compact')}
-                >
-                  {/* Rank */}
-                  {isCompact ? (
-                    <span className="text-xs text-[#6b6b73] min-w-[18px] text-right shrink-0 tabular-nums">
-                      {index + 1}
-                    </span>
-                  ) : (
-                    <div className={clsx('rank-badge', isHero && 'top')}>
-                      {index + 1}
-                    </div>
-                  )}
-
-                  {/* Content */}
-                  <div className="flex-1 min-w-0">
-                    {/* Title row */}
-                    <div className={clsx(
-                      'flex items-start justify-between gap-2',
-                      isCompact && 'items-center'
-                    )}>
-                      <span className={clsx(
-                        'truncate text-left flex-1 min-w-0',
-                        isCompact
-                          ? 'text-sm text-[#ededef]'
-                          : 'text-sm font-medium text-[#ededef] group-hover:text-[#6366f1] transition-colors'
-                      )}>
-                        {item.title}
-                      </span>
-
-                      <div className="flex items-center gap-1.5 shrink-0 ml-2">
-                        {item.url && (
-                          <a
-                            href={item.url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            onClick={(e) => e.stopPropagation()}
-                            className={clsx(
-                              'flex items-center gap-1 px-2 py-1 rounded-md text-xs transition-colors',
-                              isCompact
-                                ? 'text-[#6b6b73] hover:text-[#a1a1aa] hover:bg-[#252528]'
-                                : 'text-[#6b6b73] hover:text-[#a1a1aa] hover:bg-[#252528]'
-                            )}
-                            title="查看原文"
-                          >
-                            <ExternalLink className="w-3 h-3" />
-                            <span>查看</span>
-                          </a>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Metadata row (compact: only heat inline) */}
+                <div key={index}>
+                  <div
+                    onClick={() => handleAnalyze(item)}
+                    className={clsx('hot-card group', isCompact && 'compact')}
+                  >
+                    {/* Rank */}
                     {isCompact ? (
-                      <span className="text-xs text-[#6b6b73] ml-1">
-                        {item.heatScore > 0 ? formatHeat(item.heatScore) : '-'}
+                      <span className="text-xs text-[#6b6b73] min-w-[18px] text-right shrink-0 tabular-nums">
+                        {index + 1}
                       </span>
                     ) : (
-                      <div className="flex items-center gap-3 mt-1.5">
-                        <div className="flex items-center gap-1 text-xs text-[#6b6b73]">
-                          <Flame className="w-3 h-3 text-[#6366f1]" />
-                          <span className={item.heatScore > 0 ? 'text-[#a1a1aa]' : ''}>
-                            {item.heatScore > 0 ? formatHeat(item.heatScore) : '-'}
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-1 text-xs text-[#6b6b73]">
-                          <PlatformIcon platform={item.platform} />
-                          <span className="text-[#a1a1aa]">
-                            {platforms.find((p) => p.id === item.platform)?.label || item.platform}
-                          </span>
-                        </div>
-                        <span className="text-xs text-[#6b6b73]">刚刚</span>
+                      <div className={clsx('rank-badge', isHero && 'top')}>
+                        {index + 1}
                       </div>
                     )}
 
-                    {/* Angles (all non-compact) */}
-                    {!isCompact && (
-                      <div className="flex gap-1.5 mt-2 flex-wrap">
-                        {recommendAngles(item.title)
-                          .slice(0, 3)
-                          .map((angle, i) => (
-                            <span
-                              key={i}
-                              className="text-[11px] px-2 py-0.5 rounded-sm bg-[#1c1c1f] border border-[#2a2a2e] text-[#6b6b73]"
+                    {/* Content */}
+                    <div className="flex-1 min-w-0">
+                      {/* Title row */}
+                      <div className={clsx(
+                        'flex items-start justify-between gap-2',
+                        isCompact && 'items-center'
+                      )}>
+                        <span className={clsx(
+                          'truncate text-left flex-1 min-w-0',
+                          isCompact
+                            ? 'text-sm text-[#ededef]'
+                            : 'text-sm font-medium text-[#ededef] group-hover:text-[#6366f1] transition-colors'
+                        )}>
+                          {item.title}
+                        </span>
+
+                        <div className="flex items-center gap-1.5 shrink-0 ml-2">
+                          <button
+                            onClick={(e) => handleInlineAnalysis(e, item)}
+                            className={clsx(
+                              'flex items-center gap-1 px-2 py-1 rounded-md text-xs transition-colors',
+                              isAnalyzing && !inlineAnalysis?.isLoading
+                                ? 'text-[#6366f1] bg-[#6366f1]/10'
+                                : isCompact
+                                  ? 'text-[#6b6b73] hover:text-[#a1a1aa] hover:bg-[#252528]'
+                                  : 'text-[#6b6b73] hover:text-[#a1a1aa] hover:bg-[#252528]'
+                            )}
+                            title="AI 分析话题"
+                          >
+                            <Sparkles className={clsx(
+                              'w-3 h-3',
+                              inlineAnalysis?.isLoading && isAnalyzing && 'animate-pulse'
+                            )} />
+                            <span>{isCompact ? '' : '分析'}</span>
+                          </button>
+                          {item.url && (
+                            <a
+                              href={item.url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              onClick={(e) => e.stopPropagation()}
+                              className={clsx(
+                                'flex items-center gap-1 px-2 py-1 rounded-md text-xs transition-colors',
+                                isCompact
+                                  ? 'text-[#6b6b73] hover:text-[#a1a1aa] hover:bg-[#252528]'
+                                  : 'text-[#6b6b73] hover:text-[#a1a1aa] hover:bg-[#252528]'
+                              )}
+                              title="查看原文"
                             >
-                              {angle}
-                            </span>
-                          ))}
+                              <ExternalLink className="w-3 h-3" />
+                              <span>查看</span>
+                            </a>
+                          )}
+                        </div>
                       </div>
-                    )}
+
+                      {/* Metadata row (compact: only heat inline) */}
+                      {isCompact ? (
+                        <span className="text-xs text-[#6b6b73] ml-1">
+                          {item.heatScore > 0 ? formatHeat(item.heatScore) : '-'}
+                        </span>
+                      ) : (
+                        <div className="flex items-center gap-3 mt-1.5">
+                          <div className="flex items-center gap-1 text-xs text-[#6b6b73]">
+                            <Flame className="w-3 h-3 text-[#6366f1]" />
+                            <span className={item.heatScore > 0 ? 'text-[#a1a1aa]' : ''}>
+                              {item.heatScore > 0 ? formatHeat(item.heatScore) : '-'}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-1 text-xs text-[#6b6b73]">
+                            <PlatformIcon platform={item.platform} />
+                            <span className="text-[#a1a1aa]">
+                              {platforms.find((p) => p.id === item.platform)?.label || item.platform}
+                            </span>
+                          </div>
+                          {!isCompact && detectNiche(item.title) && (
+                            <span
+                              className="text-[10px] px-1.5 py-0.5 rounded-sm font-medium"
+                              style={{ backgroundColor: detectNiche(item.title)!.color + '20', color: detectNiche(item.title)!.color }}
+                            >
+                              {detectNiche(item.title)!.label}
+                            </span>
+                          )}
+                          <span className="text-xs text-[#6b6b73]">刚刚</span>
+                        </div>
+                      )}
+
+                      {/* Angles (all non-compact) */}
+                      {!isCompact && (
+                        <div className="flex gap-1.5 mt-2 flex-wrap">
+                          {recommendAngles(item.title)
+                            .slice(0, 3)
+                            .map((angle, i) => (
+                              <span
+                                key={i}
+                                className="text-[11px] px-2 py-0.5 rounded-sm bg-[#1c1c1f] border border-[#2a2a2e] text-[#6b6b73]"
+                              >
+                                {angle}
+                              </span>
+                            ))}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Save button */}
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleToggleSave(item);
+                      }}
+                      className={clsx('save-btn', isSaved && 'saved', isCompact && '!w-6 !h-6')}
+                      title={isSaved ? '取消收藏' : '收藏话题'}
+                    >
+                      {isSaved ? <BookmarkCheck className={isCompact ? 'w-3 h-3' : 'w-4 h-4'} /> : <Bookmark className={isCompact ? 'w-3 h-3' : 'w-4 h-4'} />}
+                    </button>
                   </div>
 
-                  {/* Save button */}
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleToggleSave(item);
-                    }}
-                    className={clsx('save-btn', isSaved && 'saved', isCompact && '!w-6 !h-6')}
-                    title={isSaved ? '取消收藏' : '收藏话题'}
-                  >
-                    {isSaved ? <BookmarkCheck className={isCompact ? 'w-3 h-3' : 'w-4 h-4'} /> : <Bookmark className={isCompact ? 'w-3 h-3' : 'w-4 h-4'} />}
-                  </button>
+                  {/* Inline analysis panel */}
+                  {isAnalyzing && (
+                    <div className="mt-2">
+                      {inlineAnalysis!.isLoading ? (
+                        <div className="card p-4 flex items-center gap-3">
+                          <RefreshCw className="w-4 h-4 animate-spin text-[#6366f1]" />
+                          <span className="text-sm text-[#a1a1aa]">AI 分析中...</span>
+                        </div>
+                      ) : (
+                        <div>
+                          <div className="flex justify-end mb-1">
+                            <button
+                              onClick={() => setInlineAnalysis(null)}
+                              className="flex items-center gap-1 px-2 py-1 rounded-md text-xs text-[#6b6b73] hover:text-[#ededef] hover:bg-[#252528] transition-colors"
+                            >
+                              <X className="w-3 h-3" />
+                              收起分析
+                            </button>
+                          </div>
+                          <AnalysisRenderer
+                            topic={item.title}
+                            analysis={inlineAnalysis!.analysis}
+                            onWriteCopy={() => {
+                              useAppStore.getState().setLastAnalysis(inlineAnalysis!.analysis);
+                              handleAnalyze(item);
+                            }}
+                          />
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               );
             })}

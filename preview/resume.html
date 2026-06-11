@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>祝燏洋 · 简历</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html { background: #e8e8e8; }
+body {
+  font-family: 'Inter', 'Helvetica Neue', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  font-size: 13px;
+  line-height: 1.45;
+  color: #1a1a1a;
+  display: flex;
+  justify-content: center;
+  padding: 40px 0;
+}
+.page {
+  width: 210mm;
+  min-height: 297mm;
+  background: #fff;
+  padding: 10mm 12mm;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.1);
+  overflow: hidden;
+}
+.header { margin-bottom: 4mm; }
+.name { font-size: 32px; font-weight: 700; letter-spacing: 1px; color: #1a1a1a; }
+.contact { font-size: 12px; color: #666; margin-top: 2px; }
+.contact span { margin: 0 5px; color: #ccc; }
+
+.body { display: flex; gap: 6mm; }
+.main { flex: 7; }
+.side { flex: 3; }
+
+.section { margin-bottom: 3mm; }
+.section-header {
+  font-size: 11px; font-weight: 600; letter-spacing: 1.5px;
+  text-transform: uppercase; color: #1a5276;
+  margin-bottom: 1.5mm; padding-top: 0.5mm;
+  border-top: 1.5px solid #1a5276;
+}
+.summary { font-size: 12px; color: #444; line-height: 1.5; }
+
+.exp { margin-bottom: 3mm; }
+.exp-header { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 0.5mm; }
+.exp-left { font-weight: 600; font-size: 13px; color: #1a1a1a; }
+.exp-right { font-size: 11px; color: #888; white-space: nowrap; }
+.exp-sub { font-size: 11px; color: #1a5276; margin-bottom: 0.5mm; }
+.exp ul { padding-left: 15px; list-style: none; }
+.exp li {
+  font-size: 11.5px; color: #444; margin-bottom: 0.5mm;
+  position: relative; line-height: 1.4;
+}
+.exp li::before { content: "–"; position: absolute; left: -15px; color: #1a5276; }
+.exp li:last-child { margin-bottom: 0; }
+
+.side-section { margin-bottom: 3mm; }
+.side-header {
+  font-size: 11px; font-weight: 600; letter-spacing: 1.5px;
+  text-transform: uppercase; color: #1a5276;
+  margin-bottom: 1mm; padding-top: 0.5mm;
+  border-top: 1.5px solid #1a5276;
+}
+.edu-item { margin-bottom: 1.5mm; }
+.edu-school { font-weight: 600; font-size: 12px; color: #1a1a1a; }
+.edu-major { font-size: 11px; color: #555; }
+.edu-time { font-size: 10.5px; color: #999; margin-top: 0.3mm; }
+.edu-note { font-size: 11px; color: #555; margin-top: 0.3mm; }
+
+.skill-item { margin-bottom: 1mm; }
+.skill-cat { font-weight: 600; font-size: 11px; color: #1a1a1a; }
+.skill-list { font-size: 11px; color: #555; }
+.side-line { font-size: 11px; color: #444; margin-bottom: 0.8mm; }
+
+@media print {
+  html { background: #fff; }
+  body { padding: 0; }
+  .page { box-shadow: none; padding: 10mm 12mm; }
+}
+</style>
+</head>
+<body>
+<div class="page">
+
+  <div class="header">
+    <div class="name">祝燏洋</div>
+    <div class="contact">15026534493 <span>|</span> 792285044@qq.com <span>|</span> 上海</div>
+  </div>
+
+  <div class="body">
+    <div class="main">
+
+      <div class="section">
+        <div class="section-header">个人概述</div>
+        <div class="summary">
+          AI Agent 工程师，可独立完成从方案设计到前后端交付的完整链路。具备全栈 TypeScript 工程能力与 Coze 智能体平台深度开发经验，能将大模型能力落地为面向真实场景的产品。
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-header">实习经历</div>
+
+        <div class="exp">
+          <div class="exp-header">
+            <span class="exp-left">复旦大学张江科技研究院</span>
+            <span class="exp-right">2026.03 — 2026.06</span>
+          </div>
+          <div class="exp-sub">AI Agent 工程师</div>
+          <ul>
+            <li>从零搭建 Coze 智能体产品线，主导 4 款 Agent 从 Prompt 设计到发布上线的完整流程（简历分析、岗位推荐、简历优化、热点提取），持续迭代优化</li>
+            <li>独立完成 AI 创作助手平台的前后端开发：React + TypeScript 前端（7 个功能模块），Node.js + Redis 后端 API 代理服务（16 个接口），支持热榜聚合、AI 对话、用户配额管理</li>
+            <li>对接 Coze API 实现智能体能力集成，设计多套 Prompt 模板覆盖文案生成、话题分析、爆款拆解等场景，并通过用户变量注入实现个性化输出</li>
+            <li>设计 3 级用户配额体系（匿名/免费/Pro），支持每日限额自动重置</li>
+          </ul>
+        </div>
+
+        <div class="exp">
+          <div class="exp-header">
+            <span class="exp-left">上海博特盈信息科技有限公司</span>
+            <span class="exp-right">2024.01 — 2024.03</span>
+          </div>
+          <div class="exp-sub">测试实习生</div>
+          <ul>
+            <li>负责功能测试与测试用例管理，使用 Selenium4 编写自动化测试脚本</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-header">项目经历</div>
+
+        <div class="exp">
+          <div class="exp-header">
+            <span class="exp-left">热点工坊 · AI 创作助手全栈平台</span>
+            <span class="exp-right">2026.03 — 2026.06</span>
+          </div>
+          <ul>
+            <li>面向自媒体创作者的 AI 工具平台，集成 Coze 智能体、多平台热榜聚合、跨平台内容搜索，覆盖从热点发现到文案生成再到多平台发布的完整创作链路</li>
+            <li>独立完成 7 个功能模块的前端开发（React + TypeScript），以及 16 个后端接口的 API 代理服务（Node.js + Redis），支撑热榜聚合、AI 对话、用户配额管理等核心功能</li>
+            <li>自实现多源热榜爬取引擎，聚合抖音/小红书/知乎/B站/脉脉 5 平台热门内容，带缓存机制减少重复请求</li>
+            <li>为阿里云客户提供 Token 调用相关技术支持，协助排查模型调用异常</li>
+          </ul>
+        </div>
+
+        <div class="exp">
+          <div class="exp-header">
+            <span class="exp-left">麦田会客厅 · 企业供需撮合小程序</span>
+            <span class="exp-right">2026.03</span>
+          </div>
+          <ul>
+            <li>全栈微信小程序，集成腾讯云 ADP 知识库实现 RAG 智能问答，接入混元大模型与 OCR 名片识别，为企业用户提供 AI 驱动的供需匹配服务</li>
+            <li>完成 94 条企业数据的清洗与向量化，优化 AI 响应速度 48%（47s → 24s），部署 12 个微信云函数</li>
+          </ul>
+        </div>
+
+        <div class="exp">
+          <div class="exp-header">
+            <span class="exp-left">自动化 Agent 服务端</span>
+            <span class="exp-right">2026.04</span>
+          </div>
+          <ul>
+            <li>基于 Python 开发自动化 Agent 服务端，探索浏览器自动化与 AI Agent 结合的业务流程自动化方案</li>
+          </ul>
+        </div>
+
+      </div>
+
+    </div>
+
+    <div class="side">
+
+      <div class="side-section">
+        <div class="side-header">教育</div>
+        <div class="edu-item">
+          <div class="edu-school">上海海事大学</div>
+          <div class="edu-major">计算机科学与技术 · 硕士</div>
+          <div class="edu-time">2023 — 2025</div>
+          <div class="edu-note">EI 论文：改进式自编码器与 LSTM-CA 结合的入侵检测模型</div>
+          <div class="edu-note">GPA 3.74/4.0 · 两次二等奖学金</div>
+          <div class="edu-time" style="margin-top:1.5mm;">2025.07 — 2026.02</div>
+          <div class="edu-note">前端工程化（Vue/React/TS）及 AI Agent 平台（Coze/Dify）方向实践</div>
+        </div>
+        <div class="edu-item">
+          <div class="edu-school">上海立信会计金融学院</div>
+          <div class="edu-major">计算机科学与技术 · 本科</div>
+          <div class="edu-time">2019 — 2023</div>
+        </div>
+      </div>
+
+      <div class="side-section">
+        <div class="side-header">技术能力</div>
+        <div class="skill-item">
+          <div class="skill-cat">AI / Agent</div>
+          <div class="skill-list">Coze 智能体全流程（Prompt/工作流/知识库/API）、Dify 插件、混元大模型</div>
+        </div>
+        <div class="skill-item">
+          <div class="skill-cat">前端</div>
+          <div class="skill-list">React + TypeScript + TailwindCSS、Vue、微信小程序</div>
+        </div>
+        <div class="skill-item">
+          <div class="skill-cat">后端 / 云服务</div>
+          <div class="skill-list">Node.js、Python、Vercel Serverless、微信云开发、腾讯云</div>
+        </div>
+        <div class="skill-item">
+          <div class="skill-cat">工程化</div>
+          <div class="skill-list">Docker Compose、Upstash Redis、Git、Vite</div>
+        </div>
+      </div>
+
+      <div class="side-section">
+        <div class="side-header">证书 &amp; 奖项</div>
+        <div class="side-line">上海市计算机程序员三级</div>
+        <div class="side-line">上海市计算机应用能力大赛 · 优胜奖</div>
+        <div class="side-line" style="margin-top:1mm;">EI 会议论文（ICAACE 2025）</div>
+      </div>
+
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

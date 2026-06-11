@@ -114,7 +114,6 @@ export function ContentSearch() {
         }
       }
     } catch (e: any) {
-      console.log('搜索失败:', e.message);
       setResults([]);
     }
     setIsLoading(false);
@@ -149,7 +148,6 @@ export function ContentSearch() {
         }
       }
     } catch (e: any) {
-      console.log('加载更多失败:', e.message);
     }
     setIsLoadingMore(false);
   };

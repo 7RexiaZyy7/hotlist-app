@@ -28,26 +28,26 @@ const platforms = [
 ];
 
 const NICHES: { pattern: string; label: string; color: string }[] = [
-  { pattern: 'AI|GPT|大模型|人工智能|算法|科技|数码|互联网|编程|代码|芯片|机器人|智能', label: 'AI科技', color: '#06b6d4' },
-  { pattern: '职场|创业|裁员|工资|副业|面试|简历|升职|管理|运营|打工|就业', label: '职场成长', color: '#f59e0b' },
-  { pattern: '情感|恋爱|婚姻|两性|家庭|相亲|分手|出轨|社交|关系', label: '情感关系', color: '#ec4899' },
-  { pattern: '教育|高考|考研|留学|学习|读书|英语|考试|大学|育儿|亲子', label: '教育学习', color: '#10b981' },
-  { pattern: '健康|养生|健身|减肥|饮食|中医|运动|瑜伽|跑步|睡眠|焦虑', label: '健康生活', color: '#22c55e' },
-  { pattern: '美食|探店|烹饪|菜谱|烘焙|咖啡|茶|零食', label: '美食探店', color: '#f97316' },
-  { pattern: '旅行|旅游|摄影|户外|露营|自驾|酒店|风景', label: '旅行户外', color: '#8b5cf6' },
-  { pattern: '娱乐|明星|综艺|电影|音乐|游戏|八卦|网红|主播|短视频', label: '娱乐八卦', color: '#ef4444' },
-  { pattern: '经济|投资|理财|股票|基金|买房|楼市|消费|省钱|搞钱', label: '财经投资', color: '#14b8a6' },
-  { pattern: '时尚|穿搭|美妆|护肤|发型|奢侈品|变美', label: '时尚美妆', color: '#d946ef' },
-  { pattern: '法律|政治|政策|民生|社会|新闻|热点|时事', label: '社会时事', color: '#6b7280' },
-  { pattern: '宠物|猫|狗|动物|萌宠', label: '萌宠生活', color: '#f472b6' },
-  { pattern: '游戏|电竞|LOL|王者|原神|主机|Steam|switch', label: '游戏电竞', color: '#a855f7' },
+  { pattern: 'AI|GPT|大模型|人工智能|算法|科技|数码|互联网|编程|代码|芯片|机器人|智能|自动驾驶|VR|AR|元宇宙|区块链', label: 'AI科技', color: '#06b6d4' },
+  { pattern: '职场|创业|裁员|工资|副业|面试|简历|升职|管理|运营|打工|就业|涨薪|跳槽|裸辞|加班|内卷|摆烂|KPI|OKR', label: '职场成长', color: '#f59e0b' },
+  { pattern: '情感|恋爱|婚姻|两性|家庭|相亲|分手|出轨|社交|关系|催婚|丁克|离婚|彩礼|婆媳', label: '情感关系', color: '#ec4899' },
+  { pattern: '教育|高考|考研|留学|学习|读书|英语|考试|大学|育儿|亲子|中考|高考|上岸|学历|985|211|课|老师', label: '教育学习', color: '#10b981' },
+  { pattern: '健康|养生|健身|减肥|饮食|中医|运动|瑜伽|跑步|睡眠|焦虑|体检|医美|整容|抗衰|早睡|失眠|抑郁|心理', label: '健康生活', color: '#22c55e' },
+  { pattern: '美食|探店|烹饪|菜谱|烘焙|咖啡|茶|零食|好吃|早餐|晚餐|火锅|奶茶|蛋糕|外卖|吃货', label: '美食探店', color: '#f97316' },
+  { pattern: '旅行|旅游|摄影|户外|露营|自驾|酒店|风景|攻略|打卡|拍照|景点|周末|度假|出国|签证', label: '旅行户外', color: '#8b5cf6' },
+  { pattern: '娱乐|明星|综艺|电影|音乐|游戏|八卦|网红|主播|短视频|电视剧|选秀|演唱会|偶像|粉丝|热搜|吃瓜', label: '娱乐八卦', color: '#ef4444' },
+  { pattern: '经济|投资|理财|股票|基金|买房|楼市|消费|省钱|搞钱|攒钱|存钱|房贷|利率|GDP|通胀|物价|比特币', label: '财经投资', color: '#14b8a6' },
+  { pattern: '时尚|穿搭|美妆|护肤|发型|奢侈品|变美|OOTD|口红|眼影|精华|面霜|防晒|显瘦', label: '时尚美妆', color: '#d946ef' },
+  { pattern: '法律|政治|政策|民生|社会|新闻|热点|时事|特朗普|美国|中国|日本|战争|冲突|外交|改革|罚款|维权', label: '社会时事', color: '#6b7280' },
+  { pattern: '宠物|猫|狗|动物|萌宠|猫咪|狗狗|宠物', label: '萌宠生活', color: '#f472b6' },
+  { pattern: '游戏|电竞|LOL|王者|原神|主机|Steam|switch|PS5|Xbox|手游|PC|DLC|皮肤|副本|职业赛', label: '游戏电竞', color: '#a855f7' },
 ];
 
-function detectNiche(topic: string): { label: string; color: string } | null {
+function detectNiche(topic: string): { label: string; color: string } {
   for (const n of NICHES) {
     if (new RegExp(n.pattern, 'i').test(topic)) return { label: n.label, color: n.color };
   }
-  return null;
+  return { label: '综合', color: '#78716c' };
 }
 
 const ANGLE_KEYWORDS: { pattern: string; angles: string[] }[] = [
@@ -128,7 +128,7 @@ export function HotRadar() {
   const [inlineAnalysis, setInlineAnalysis] = useState<{topic: string; analysis: string; isLoading: boolean} | null>(null);
   const analysisCacheRef = useRef<Map<string, string>>(new Map());
   const filteredList = selectedNiche
-    ? hotList.filter(item => detectNiche(item.title)?.label === selectedNiche)
+    ? hotList.filter(item => detectNiche(item.title).label === selectedNiche)
     : hotList;
 
   const fetchHotList = useCallback(
@@ -315,7 +315,7 @@ export function HotRadar() {
           >
             全部
           </button>
-          {hotList.map(item => detectNiche(item.title)?.label).filter((n, i, a): n is string => !!n && a.indexOf(n) === i).slice(0, 8).map(niche => (
+          {hotList.map(item => detectNiche(item.title).label).filter((n, i, a) => a.indexOf(n) === i).slice(0, 8).map(niche => (
             <button
               key={niche}
               onClick={() => setSelectedNiche(selectedNiche === niche ? null : niche)}
@@ -498,14 +498,14 @@ export function HotRadar() {
                               {platforms.find((p) => p.id === item.platform)?.label || item.platform}
                             </span>
                           </div>
-                          {!isCompact && detectNiche(item.title) && (
+                          {(() => { const n = detectNiche(item.title); return (
                             <span
-                              className="text-[11px] px-2 py-0.5 rounded-sm font-medium border"
-                              style={{ backgroundColor: detectNiche(item.title)!.color + '18', color: detectNiche(item.title)!.color, borderColor: detectNiche(item.title)!.color + '40' }}
+                              className={clsx('text-[11px] px-2 py-0.5 rounded-sm font-medium', n.label === '综合' ? 'text-text-tertiary border border-border' : 'border')}
+                              style={n.label !== '综合' ? { backgroundColor: n.color + '18', color: n.color, borderColor: n.color + '40' } : undefined}
                             >
-                              {detectNiche(item.title)!.label}
+                              {n.label}
                             </span>
-                          )}
+                          ); })()}
                           <span className="text-xs text-[#6b6b73]">刚刚</span>
                         </div>
                       )}

@@ -303,6 +303,24 @@ PAT Token > OAuth Token（仅 PAT 有 Bot 执行权限）
 - ✅ 修复 proxy.js 的 TypeScript 类型注解导致的 500 错误
 - ✅ 完善页面标题同步
 
+### 2026-06-02
+- ✅ KV 超时兜底（11 处 3s timeout wrapper）
+- ✅ chat 链路修复（消息提取 + handleConvert）
+- ✅ UX 5 项优化 + A 组 3 bug（引导卡/副标题/EmptyState/Quota/CreatorProfile）
+- ✅ ContentSearch 设计语言对齐
+- ✅ 档案字段名统一 + handleConvert 传档案
+- ✅ 话题勘探结构化渲染 + 文案标题突出
+- ✅ ContentForge 解析失败修复 + Quota race 修复
+
+### 2026-06-03
+- ✅ 一键发布页面（暖珊瑚配色，已隐藏不删）
+- ✅ AnalysisParser heuristic 兜底（bot 非标准格式 fallback）
+- ✅ 9 个测试问题修复（SPA 路由同步、搜索交互、数据过滤等）
+- ✅ bot header 匹配修复（`^##`→`^#{2,3}`）+ 隐藏发布入口 + 竞品参考 section
+- ✅ topic analysis prompt 格式写死（prompt 尾部加 `### ` 样板）
+- ✅ CreatorProfile 效果对比设计方案原型
+- ✅ 上下文保存协议（skills/context-save + project/ 进度追踪）
+
 ---
 
 ## 🔍 调试工具

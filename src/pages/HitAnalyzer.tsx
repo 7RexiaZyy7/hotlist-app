@@ -1,12 +1,13 @@
 import { useState } from 'react';
 import { useAppStore } from '../store';
-import { Scissors, Sparkles, FileText, Target, Zap, AlertTriangle, Copy, Check } from 'lucide-react';
+import { Scissors, Sparkles, FileText, Target, Zap, AlertTriangle, Copy, Check, Video, Loader2 } from 'lucide-react';
 import { clsx } from 'clsx';
 import { LoadingState, EmptyState } from '../components/LoadingState';
 import { 
   callCozeChat, 
   buildAnalysisQuery,
-  buildRewriteQuery 
+  buildRewriteQuery,
+  transcribeDouyin,
 } from '../services/cozeApi';
 
 const rewriteStyles = [
@@ -95,6 +96,8 @@ export function HitAnalyzer() {
   } = useAppStore();
   
   const [inputCopy, setInputCopy] = useState('');
+  const [douyinUrl, setDouyinUrl] = useState('');
+  const [isTranscribing, setIsTranscribing] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysis, setAnalysis] = useState<any>(null);
   const [rewriteStyle, setRewriteStyle] = useState('');
@@ -102,6 +105,34 @@ export function HitAnalyzer() {
   const [rewriteResult, setRewriteResult] = useState('');
   const [copied, setCopied] = useState(false);
   const [loadingStep, setLoadingStep] = useState(0);
+
+  const handleTranscribeDouyin = async () => {
+    const trimmed = douyinUrl.trim();
+    if (!trimmed) {
+      showToast('请粘贴抖音分享链接', 'info');
+      return;
+    }
+    setIsTranscribing(true);
+    try {
+      const result = await transcribeDouyin(trimmed);
+      if (result.error) {
+        showToast(`提取失败: ${result.error}`, 'error');
+        return;
+      }
+      if (result.text) {
+        setInputCopy(result.text);
+        showToast('文案提取成功');
+      } else if (result.taskId) {
+        showToast('转写任务已提交，请稍后重试', 'info');
+      } else {
+        showToast('提取失败，未获取到文案内容', 'error');
+      }
+    } catch {
+      showToast('提取失败，请稍后重试', 'error');
+    } finally {
+      setIsTranscribing(false);
+    }
+  };
 
   const handleAnalyze = async () => {
     if (!inputCopy.trim()) {
@@ -132,7 +163,6 @@ export function HitAnalyzer() {
 
       const askingInfo = content.length < 300 && /请.*提供|没有.*提供|缺少|需要你|告诉我|发给我/.test(content);
       if (askingInfo) {
-        console.log('Bot returned info request instead of analysis:', content);
         showToast('Bot 未识别到文案内容，请确认文案已粘贴完整后重试', 'warning');
         setAnalysis({ raw: '⚠️ Bot 未能正确识别文案内容。\n\nBot 返回内容：\n' + content.slice(0, 300) + '\n\n可能原因：粘贴的文案被 Bot 当成了指令而不是待分析内容。\n请粘贴更完整的文案后重试。' });
         return;
@@ -306,6 +336,33 @@ export function HitAnalyzer() {
         <div className="flex items-center gap-2 mb-3">
           <Scissors className="w-5 h-5 text-accent" />
           <h2 className="text-display text-text-primary">爆款文案拆解</h2>
+        </div>
+        <div className="card p-3 mb-3">
+          <div className="flex items-center gap-2 mb-2">
+            <Video className="w-4 h-4 text-accent" />
+            <span className="text-body-sm font-medium text-text-primary">从抖音链接提取文案</span>
+          </div>
+          <div className="flex gap-2">
+            <input
+              type="text"
+              value={douyinUrl}
+              onChange={(e) => setDouyinUrl(e.target.value)}
+              className="input-field flex-1 min-w-0"
+              placeholder="粘贴抖音分享链接，如 https://v.douyin.com/xxxxx/"
+            />
+            <button
+              onClick={handleTranscribeDouyin}
+              disabled={isTranscribing}
+              className="btn-primary shrink-0"
+            >
+              {isTranscribing ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <Video className="w-4 h-4" />
+              )}
+              {isTranscribing ? '提取中...' : '提取文案'}
+            </button>
+          </div>
         </div>
         <textarea
           value={inputCopy}

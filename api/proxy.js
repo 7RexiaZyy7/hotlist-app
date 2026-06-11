@@ -282,10 +282,26 @@ export default async function handler(req, res) {
         return await handleTophubScrape(type, scrapeTarget, res);
       }
 
-      // 其他平台使用 uapis.cn
-      const r = await fetch(`https://uapis.cn/api/v1/misc/hotboard?type=${encodeURIComponent(type)}`);
-      const data = await r.json();
-      return res.status(r.status).json(data);
+      // 其他平台使用 uapis.cn（带重试，Node.js TLS 偶发 ECONNRESET）
+      const maxRetries = 2;
+      for (let attempt = 0; attempt <= maxRetries; attempt++) {
+        try {
+          const r = await fetch(`https://uapis.cn/api/v1/misc/hotboard?type=${encodeURIComponent(type)}`, {
+            headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' },
+            signal: AbortSignal.timeout(10000),
+          });
+          const data = await r.json();
+          return res.status(r.status).json(data);
+        } catch (e) {
+          if (attempt < maxRetries) {
+            console.error(`hotboard retry ${attempt + 1}/${maxRetries}:`, e.message);
+            await new Promise(r => setTimeout(r, 1000));
+            continue;
+          }
+          console.error('hotboard fetch error:', e.message);
+          return res.status(502).json({ error: '热榜源不可达', detail: e.message });
+        }
+      }
     }
 
     // ─── 以下端点需要 token ───
@@ -476,7 +492,28 @@ export default async function handler(req, res) {
       return res.json({ ok: true, user_id: userId, tier });
     }
 
-    // ─── 知乎搜索（开放平台 API）───
+    // ─── 抖音文案提取 (DY Text API) ───
+if (action === 'dytext_transcribe' && req.method === 'POST') {
+  const dyApiKey = process.env.DY_CAPTION_API_KEY || '';
+  if (!dyApiKey) {
+    return res.status(400).json({ error: 'DY_CAPTION_API_KEY 未配置', detail: '请在 Vercel 环境变量中设置 DY_CAPTION_API_KEY。获取方式：前往 https://dytext.cn/register 注册后，在控制台获取 API Key。' });
+  }
+  const { input, language } = body;
+  if (!input) return res.status(400).json({ error: 'Missing input (Douyin URL)' });
+
+  const dyRes = await fetch('https://api.dytext.cn/api/v1/transcribe', {
+    method: 'POST',
+    headers: {
+      'X-API-Key': dyApiKey,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ input, language: language || 'zh-CN' }),
+  });
+  const dyData = await dyRes.json();
+  return res.status(dyRes.status).json(dyData);
+}
+
+// ─── 知乎搜索（开放平台 API）───
     if (action === 'zhihu_search' && req.method === 'GET') {
       const keyword = req.query.keyword;
       const count = Math.min(parseInt(req.query.count || '10'), 20);

@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CreatorProfile 效果对比方案</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #f4f2ee;
+    --bg-card: #ffffff;
+    --border: #e2ddd6;
+    --text: #2c2826;
+    --text-secondary: #8a7e76;
+    --text-tertiary: #b5aba3;
+    --accent: #c86a4a;
+    --accent-soft: #f5e6e0;
+    --success: #5a8f7a;
+    --compare-from: #f0edeb;
+    --compare-to: #faf6f0;
+  }
+  body {
+    font-family: "Inter", -apple-system, BlinkMacSystemFont, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.6;
+    padding: 32px 24px;
+  }
+  .page { max-width: 720px; margin: 0 auto; }
+
+  /* header */
+  .header {
+    background: var(--bg-card);
+    border-radius: 16px;
+    padding: 28px;
+    border: 1px solid var(--border);
+    margin-bottom: 20px;
+  }
+  .header-top { display: flex; align-items: flex-start; gap: 20px; }
+  .avatar {
+    width: 56px; height: 56px;
+    background: var(--accent);
+    border-radius: 14px;
+    display: flex; align-items: center; justify-content: center;
+    color: white; font-size: 24px; font-weight: 600;
+    flex-shrink: 0;
+  }
+  .header-info { flex: 1; }
+  .header-info h1 { font-size: 20px; font-weight: 600; color: var(--text); }
+  .header-info .sub { font-size: 14px; color: var(--text-secondary); margin-top: 2px; }
+  .completeness { text-align: right; flex-shrink: 0; }
+  .completeness .label { font-size: 12px; color: var(--text-tertiary); margin-bottom: 6px; }
+  .completeness .bar { width: 100px; height: 6px; background: var(--compare-from); border-radius: 3px; overflow: hidden; }
+  .completeness .fill { height: 100%; background: var(--accent); border-radius: 3px; transition: width 0.3s; }
+  .completeness .pct { font-size: 14px; font-weight: 600; color: var(--accent); margin-top: 4px; display: block; text-align: right; }
+
+  /* effect preview card - the core of design C */
+  .effect-card {
+    background: var(--bg-card);
+    border-radius: 16px;
+    border: 1px solid var(--border);
+    overflow: hidden;
+    margin-bottom: 20px;
+  }
+  .effect-card .title-bar {
+    padding: 16px 24px;
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .effect-card .title-bar h2 { font-size: 15px; font-weight: 600; }
+  .effect-card .title-bar .badge {
+    font-size: 12px; color: var(--accent);
+    background: var(--accent-soft); padding: 3px 10px;
+    border-radius: 20px; font-weight: 500;
+  }
+  .effect-body { padding: 20px 24px; }
+  .compare-switch {
+    display: flex; gap: 0; margin-bottom: 16px;
+    background: var(--compare-from); border-radius: 8px; padding: 3px;
+    width: fit-content;
+  }
+  .compare-switch button {
+    border: none; background: transparent; padding: 6px 16px;
+    border-radius: 6px; font-size: 13px; font-weight: 500;
+    cursor: pointer; color: var(--text-secondary); transition: all 0.15s;
+  }
+  .compare-switch button.active {
+    background: white; color: var(--text); box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+  }
+  .compare-view {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 16px;
+  }
+  .compare-view .col {
+    border-radius: 10px; padding: 16px;
+  }
+  .compare-view .col-from { background: var(--compare-from); }
+  .compare-view .col-to { background: var(--compare-to); border: 1px dashed var(--accent); }
+  .compare-view .col-label {
+    font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em;
+    font-weight: 600; margin-bottom: 8px;
+  }
+  .compare-view .col-from .col-label { color: var(--text-tertiary); }
+  .compare-view .col-to .col-label { color: var(--accent); }
+  .compare-view .sample { font-size: 13px; line-height: 1.7; color: var(--text-secondary); }
+  .compare-view .sample strong { color: var(--text); font-weight: 600; }
+  .compare-view .sample .tag {
+    display: inline-block; font-size: 11px; padding: 1px 8px;
+    border-radius: 4px; margin: 2px 2px 2px 0;
+  }
+  .compare-view .col-from .tag { background: #ddd8d2; color: #7a7068; }
+  .compare-view .col-to .tag { background: var(--accent-soft); color: var(--accent); }
+
+  /* stats row */
+  .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 20px; }
+  .stat-card {
+    background: var(--bg-card); border-radius: 12px; padding: 16px;
+    border: 1px solid var(--border);
+  }
+  .stat-card .num { font-size: 24px; font-weight: 700; color: var(--accent); }
+  .stat-card .lbl { font-size: 12px; color: var(--text-tertiary); margin-top: 2px; }
+
+  /* fields section */
+  .fields-card {
+    background: var(--bg-card);
+    border-radius: 16px;
+    border: 1px solid var(--border);
+    padding: 24px;
+    margin-bottom: 20px;
+  }
+  .field-group { margin-bottom: 24px; }
+  .field-group:last-child { margin-bottom: 0; }
+  .field-header {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 10px;
+  }
+  .field-header .field-label {
+    display: flex; align-items: center; gap: 8px;
+    font-size: 14px; font-weight: 500;
+  }
+  .field-header .field-label .icon { width: 18px; height: 18px; color: var(--accent); }
+  .field-header .field-desc { font-size: 12px; color: var(--text-tertiary); }
+  .effect-toggle {
+    font-size: 12px; color: var(--accent); background: none;
+    border: 1px solid var(--accent); border-radius: 6px; padding: 3px 10px;
+    cursor: pointer; transition: all 0.15s;
+  }
+  .effect-toggle:hover { background: var(--accent-soft); }
+  .effect-toggle.active { background: var(--accent); color: white; }
+
+  .field-input {
+    width: 100%; padding: 10px 14px; border: 1px solid var(--border);
+    border-radius: 8px; font-size: 14px; background: var(--bg);
+    color: var(--text); outline: none; transition: border-color 0.15s;
+  }
+  .field-input:focus { border-color: var(--accent); }
+  textarea.field-input { resize: vertical; min-height: 60px; }
+
+  /* inline effect preview (hidden by default) */
+  .inline-effect {
+    display: none; margin-top: 12px; padding: 12px 16px;
+    border-radius: 8px; font-size: 13px; line-height: 1.6;
+    border: 1px dashed;
+  }
+  .inline-effect.show { display: block; }
+  .inline-effect.from {
+    background: var(--compare-from); border-color: var(--border);
+    color: var(--text-secondary);
+  }
+  .inline-effect.to {
+    background: var(--compare-to); border-color: var(--accent);
+    color: var(--text-secondary);
+  }
+  .inline-effect .ie-label {
+    font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em;
+    font-weight: 600; margin-bottom: 6px;
+  }
+  .inline-effect.from .ie-label { color: var(--text-tertiary); }
+  .inline-effect.to .ie-label { color: var(--accent); }
+  .inline-effect strong { color: var(--text); }
+
+  .format-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+  .format-btn {
+    padding: 10px; border: 1px solid var(--border); border-radius: 8px;
+    background: var(--bg); cursor: pointer; text-align: center;
+    transition: all 0.15s; font-size: 13px;
+  }
+  .format-btn:hover { border-color: var(--text-tertiary); }
+  .format-btn.selected { border-color: var(--accent); background: var(--accent-soft); color: var(--accent); font-weight: 500; }
+  .format-btn .desc { font-size: 11px; color: var(--text-tertiary); margin-top: 2px; }
+  .format-btn.selected .desc { color: var(--accent); }
+
+  /* actions */
+  .actions { display: flex; gap: 12px; justify-content: flex-end; padding-top: 16px; border-top: 1px solid var(--border); }
+  .btn { padding: 8px 20px; border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer; border: 1px solid var(--border); background: white; color: var(--text); transition: all 0.15s; }
+  .btn-primary { background: var(--accent); color: white; border-color: var(--accent); }
+  .btn-primary:hover { opacity: 0.9; }
+  .btn-ghost { border-color: transparent; background: transparent; color: var(--text-secondary); }
+  .btn-ghost:hover { color: var(--text); }
+
+  .footnote { text-align: center; font-size: 12px; color: var(--text-tertiary); padding: 12px 0 32px; }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <!-- Header -->
+  <div class="header">
+    <div class="header-top">
+      <div class="avatar">C</div>
+      <div class="header-info">
+        <h1>创作者档案</h1>
+        <div class="sub">寒山 · 科技数码</div>
+      </div>
+      <div class="completeness">
+        <div class="label">档案完整度</div>
+        <div class="bar"><div class="fill" style="width:60%"></div></div>
+        <span class="pct">60%</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Effect Preview Card (核心亮点) -->
+  <div class="effect-card">
+    <div class="title-bar">
+      <h2>档案对 AI 输出的影响</h2>
+      <span class="badge">填的越多，AI 越懂你</span>
+    </div>
+    <div class="effect-body">
+      <div class="compare-switch">
+        <button class="active" onclick="switchEffect(this,'before')">未填写时</button>
+        <button onclick="switchEffect(this,'after')">填写档案后</button>
+      </div>
+      <div class="compare-view" id="compareView">
+        <div class="col col-from" id="colBefore">
+          <div class="col-label">未填写赛道 + 文风</div>
+          <div class="sample">
+            <strong>推荐话题：</strong>5个提升效率的方法<br>
+            <span class="tag">自我提升</span> <span class="tag">通用</span><br><br>
+            <strong>文案开头：</strong>"大家好，今天分享几个实用技巧，希望对你有帮助。"
+          </div>
+        </div>
+        <div class="col col-to" id="colAfter" style="display:none">
+          <div class="col-label">已填写：科技数码 × 专业理性</div>
+          <div class="sample">
+            <strong>推荐话题：</strong>AI 编码工具深度测评：Cursor vs Copilot 2026<br>
+            <span class="tag">科技趋势</span> <span class="tag">工具测评</span> <span class="tag">效率</span><br><br>
+            <strong>文案开头：</strong>"过去 3 个月我深度使用了 4 款主流 AI 编辑器，这篇从编译速度、上下文窗口、价格三个维度做横向对比。"
+          </div>
+        </div>
+      </div>
+      <div style="margin-top:12px; font-size:12px; color:var(--text-tertiary)">
+        档案影响：话题精准度 · 文案风格 · 标签推荐 · 受众匹配
+      </div>
+    </div>
+  </div>
+
+  <!-- Stats -->
+  <div class="stats">
+    <div class="stat-card"><div class="num">3/5</div><div class="lbl">已填字段</div></div>
+    <div class="stat-card"><div class="num">科技</div><div class="lbl">账号赛道</div></div>
+    <div class="stat-card"><div class="num">公众号</div><div class="lbl">内容形式</div></div>
+  </div>
+
+  <!-- Fields -->
+  <div class="fields-card">
+    <!-- 赛道 -->
+    <div class="field-group">
+      <div class="field-header">
+        <div class="field-label">
+          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
+          账号赛道
+          <span class="field-desc">硬约束，AI 创作的基础锚点</span>
+        </div>
+        <button class="effect-toggle" onclick="toggleEffect(this, 'niche')">看效果</button>
+      </div>
+      <input class="field-input" value="科技数码" placeholder="例如：科技数码、生活方式、职场成长...">
+      <div class="inline-effect from" id="nicheFrom">
+        <div class="ie-label">未填写时</div>
+        AI 只能推荐通用热门话题（"5个提升效率的方法"），无法聚焦你所在的领域
+      </div>
+      <div class="inline-effect to" id="nicheTo">
+        <div class="ie-label">填写"科技数码"后</div>
+        AI 会推荐<strong>科技趋势、工具测评、深度分析</strong>类话题，受众自动匹配开发者/科技爱好者
+      </div>
+    </div>
+
+    <!-- 目标受众 -->
+    <div class="field-group">
+      <div class="field-header">
+        <div class="field-label">
+          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+          目标受众
+          <span class="field-desc">越具体，AI 越懂你的读者</span>
+        </div>
+        <button class="effect-toggle" onclick="toggleEffect(this, 'audience')">看效果</button>
+      </div>
+      <input class="field-input" value="25-35 岁开发者、技术决策者" placeholder="例如：20-30 岁职场新人、创业者、宝妈...">
+      <div class="inline-effect from" id="audienceFrom">
+        <div class="ie-label">未填写时</div>
+        文案语气偏通用，难以精准触达特定人群的痛点
+      </div>
+      <div class="inline-effect to" id="audienceTo">
+        <div class="ie-label">填写后</div>
+        文案会使用<strong>技术人熟悉的术语和场景</strong>，如"编译速度"、"上下文窗口"、"API 调用成本"
+      </div>
+    </div>
+
+    <!-- 作者昵称 -->
+    <div class="field-group">
+      <div class="field-header">
+        <div class="field-label">
+          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+          作者昵称
+          <span class="field-desc">你在读者面前的形象</span>
+        </div>
+        <button class="effect-toggle" onclick="toggleEffect(this, 'nickname')">看效果</button>
+      </div>
+      <input class="field-input" value="寒山" placeholder="你希望怎么称呼自己...">
+      <div class="inline-effect from" id="nicknameFrom">
+        <div class="ie-label">未填写时</div>
+        AI 不会使用特定称呼，文案缺少个人色彩
+      </div>
+      <div class="inline-effect to" id="nicknameTo">
+        <div class="ie-label">填写"寒山"后</div>
+        AI 会在文案中使用<strong>第一人称叙述</strong>（"过去 3 个月我深度使用了…"），增强个人品牌
+      </div>
+    </div>
+
+    <!-- 文风偏好 -->
+    <div class="field-group">
+      <div class="field-header">
+        <div class="field-label">
+          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+          文风偏好
+          <span class="field-desc">软约束，让 AI 模仿你的语气</span>
+        </div>
+        <button class="effect-toggle" onclick="toggleEffect(this, 'style')">看效果</button>
+      </div>
+      <textarea class="field-input" rows="2" placeholder="例如：轻松幽默、专业理性、温暖治愈、犀利毒舌...">专业理性、数据驱动、略带批判视角</textarea>
+      <div class="inline-effect from" id="styleFrom">
+        <div class="ie-label">未填写时</div>
+        "以下是几个提升效率的方法，供你参考。"（中性但平淡）
+      </div>
+      <div class="inline-effect to" id="styleTo">
+        <div class="ie-label">填写"专业理性"后</div>
+        "过去 3 个月我深度使用了 4 款主流 AI 编辑器，这篇从编译速度、上下文窗口、价格三个维度做横向对比。"（专业、有结构、有说服力）
+      </div>
+    </div>
+
+    <!-- 内容形式 -->
+    <div class="field-group">
+      <div class="field-header">
+        <div class="field-label">
+          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+          内容形式
+          <span class="field-desc">选平台后 AI 按对应格式生成</span>
+        </div>
+        <button class="effect-toggle" onclick="toggleEffect(this, 'format')">看效果</button>
+      </div>
+      <div class="format-grid">
+        <div class="format-btn selected">小红书笔记<div class="desc">emoji+分段+标签</div></div>
+        <div class="format-btn">抖音短视频<div class="desc">画面+口播+BGM</div></div>
+        <div class="format-btn">公众号文章<div class="desc">深度长文</div></div>
+        <div class="format-btn">微博文案<div class="desc">短平快+话题</div></div>
+        <div class="format-btn">B站视频<div class="desc">脚本+分镜</div></div>
+        <div class="format-btn">知乎回答<div class="desc">专业深度</div></div>
+        <div class="format-btn">视频号<div class="desc">口播+字幕</div></div>
+        <div class="format-btn">其他<div class="desc">自定义格式</div></div>
+      </div>
+      <div class="inline-effect from" id="formatFrom">
+        <div class="ie-label">未选择内容形式</div>
+        AI 按默认段落生成，结构可能与目标平台不符
+      </div>
+      <div class="inline-effect to" id="formatTo">
+        <div class="ie-label">选择"小红书笔记"后</div>
+        AI 生成带<strong>emoji 分段 + 标签 + 口语化开头</strong>的小红书风格文案，贴合平台调性
+      </div>
+    </div>
+  </div>
+
+  <!-- Actions -->
+  <div class="fields-card">
+    <div class="actions">
+      <button class="btn-ghost btn">清除信息</button>
+      <button class="btn-ghost btn">同步到云端</button>
+      <button class="btn-primary btn">保存档案</button>
+    </div>
+  </div>
+
+  <div class="footnote">保存后同步到 Coze 云端，后续对话中 Agent 会自动读取你的创作偏好</div>
+
+</div>
+
+<script>
+function switchEffect(btn, mode) {
+  document.querySelectorAll('.compare-switch button').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  const before = document.getElementById('colBefore');
+  const after = document.getElementById('colAfter');
+  if (mode === 'before') { before.style.display = 'block'; after.style.display = 'none'; }
+  else { before.style.display = 'none'; after.style.display = 'block'; }
+}
+
+function toggleEffect(btn, field) {
+  const from = document.getElementById(field + 'From');
+  const to = document.getElementById(field + 'To');
+  const isActive = btn.classList.toggle('active');
+  if (isActive) {
+    from.style.display = 'block';
+    to.style.display = 'block';
+  } else {
+    from.style.display = 'none';
+    to.style.display = 'none';
+  }
+}
+</script>
+
+</body>
+</html>

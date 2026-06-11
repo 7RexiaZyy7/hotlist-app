@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>祝燏洋 - 个人简历</title>
+<style>
+  @page { size: A4; margin: 1.8cm 2cm; }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: "Microsoft YaHei", "微软雅黑", "PingFang SC", "Helvetica Neue", sans-serif;
+    font-size: 13px;
+    line-height: 1.7;
+    color: #222;
+    background: #e8e8e8;
+  }
+
+  .page {
+    width: 210mm;
+    min-height: 297mm;
+    background: #fff;
+    margin: 20px auto;
+    padding: 15mm 18mm;
+    box-shadow: 0 2px 16px rgba(0,0,0,0.08);
+  }
+
+  /* ===== 头部 ===== */
+  .header {
+    text-align: center;
+    padding: 18px 0 16px;
+    border-bottom: 2px solid #333;
+    margin-bottom: 20px;
+  }
+
+  .header .name {
+    font-size: 26px;
+    font-weight: 700;
+    letter-spacing: 4px;
+    margin-bottom: 8px;
+    color: #111;
+  }
+
+  .header .info-line {
+    font-size: 12px;
+    color: #555;
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 4px 20px;
+  }
+
+  .header .info-line span { white-space: nowrap; }
+  .header .info-line .sep { color: #ccc; }
+
+  /* ===== 板块 ===== */
+  .section { margin-bottom: 20px; }
+
+  .section-title {
+    font-size: 15px;
+    font-weight: 700;
+    color: #111;
+    border-left: 4px solid #333;
+    padding-left: 10px;
+    margin-bottom: 10px;
+    letter-spacing: 2px;
+  }
+
+  .section-inner { padding-left: 2px; }
+
+  /* ===== 个人概述 ===== */
+  .summary-text {
+    color: #444;
+    text-align: justify;
+    line-height: 1.8;
+    margin-bottom: 8px;
+  }
+
+  /* ===== 经历条目 ===== */
+  .entry { margin-bottom: 14px; }
+
+  .entry-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    flex-wrap: wrap;
+    margin-bottom: 4px;
+  }
+
+  .entry-header .entry-name {
+    font-size: 14px;
+    font-weight: 700;
+    color: #222;
+  }
+
+  .entry-header .entry-sub {
+    font-size: 12px;
+    color: #666;
+    font-weight: 400;
+  }
+
+  .entry-header .entry-date {
+    font-size: 12px;
+    color: #888;
+    white-space: nowrap;
+  }
+
+  .entry-body {
+    color: #444;
+    font-size: 12.5px;
+    line-height: 1.7;
+    text-align: justify;
+  }
+
+  .entry-body ul {
+    padding-left: 16px;
+    list-style: none;
+  }
+
+  .entry-body li {
+    margin-bottom: 3px;
+    position: relative;
+  }
+
+  .entry-body li::before {
+    content: "–";
+    position: absolute;
+    left: -14px;
+    color: #666;
+  }
+
+  .entry-body .sub-label {
+    font-weight: 700;
+    color: #333;
+  }
+
+  /* ===== 教育 ===== */
+  .edu-item { margin-bottom: 12px; }
+
+  .edu-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    flex-wrap: wrap;
+    margin-bottom: 4px;
+  }
+
+  .edu-header .school {
+    font-size: 14px;
+    font-weight: 700;
+    color: #222;
+  }
+
+  .edu-header .degree {
+    font-size: 12.5px;
+    color: #555;
+  }
+
+  .edu-header .date {
+    font-size: 12px;
+    color: #888;
+    white-space: nowrap;
+  }
+
+  .edu-detail {
+    color: #555;
+    font-size: 12.5px;
+    padding-left: 4px;
+    list-style: none;
+  }
+
+  .edu-detail li {
+    margin-bottom: 2px;
+    text-align: justify;
+    position: relative;
+    padding-left: 12px;
+  }
+
+  .edu-detail li::before {
+    content: "–";
+    position: absolute;
+    left: 0;
+    color: #666;
+  }
+
+  .key-point {
+    margin-top: 4px;
+    padding: 4px 8px;
+    background: #f5f5f5;
+    border-left: 2px solid #888;
+    font-size: 12px;
+    color: #333;
+  }
+
+  /* ===== 技能 & 证书 ===== */
+  .skills-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 0;
+  }
+
+  .skill-row {
+    width: 100%;
+    display: flex;
+    gap: 10px;
+    margin-bottom: 3px;
+  }
+
+  .skill-cat {
+    width: 80px;
+    font-weight: 700;
+    color: #333;
+    font-size: 12.5px;
+    flex-shrink: 0;
+  }
+
+  .skill-items {
+    flex: 1;
+    color: #555;
+    font-size: 12.5px;
+  }
+
+  .certs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px 20px;
+    color: #555;
+    font-size: 12.5px;
+  }
+
+  .certs span {
+    white-space: nowrap;
+  }
+
+  hr.divider {
+    border: none;
+    border-top: 1px solid #e0e0e0;
+    margin: 4px 0 16px;
+  }
+
+  @media print {
+    body { background: #fff; }
+    .page { box-shadow: none; margin: 0 auto; padding: 15mm 18mm; }
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <!-- ===== 头部 ===== -->
+  <div class="header">
+    <div class="name">祝 燏 洋</div>
+    <div class="info-line">
+      <span>男</span>
+      <span class="sep">|</span>
+      <span>15026534493</span>
+      <span class="sep">|</span>
+      <span>792285044@qq.com</span>
+      <span class="sep">|</span>
+      <span>上海</span>
+    </div>
+  </div>
+
+  <!-- ===== 个人概述 ===== -->
+  <div class="section">
+    <div class="section-title">个人概述</div>
+    <div class="section-inner">
+      <p class="summary-text">
+        AI Agent 工程师，可独立完成从方案设计到前后端交付的完整链路。具备全栈 TypeScript 工程能力与 Coze 智能体平台深度开发经验，能将大模型能力落地为面向真实场景的产品。硕士期间主攻深度学习与入侵检测，独立完成改进式堆叠自编码器与 LSTM-CA 结合的入侵检测模型研究并发表 EI 会议论文，具备扎实的算法与工程双重背景。
+      </p>
+    </div>
+  </div>
+
+  <!-- ===== 实习经历 ===== -->
+  <div class="section">
+    <div class="section-title">实习经历</div>
+    <div class="section-inner">
+
+      <div class="entry">
+        <div class="entry-header">
+          <span class="entry-name">复旦大学张江科技研究院</span>
+          <span class="entry-date">2026.03 — 2026.06</span>
+        </div>
+        <div class="entry-body">
+          <span class="sub-label">AI Agent 工程师</span>
+          <ul>
+            <li>从零搭建 Coze 智能体产品线，主导 4 款 Agent 从 Prompt 设计到发布上线的完整流程（简历分析、岗位推荐、简历优化、热点提取），持续迭代优化</li>
+            <li>独立完成 AI 创作助手平台的前后端开发：React + TypeScript 前端（7 个功能模块），Node.js + Redis 后端 API 代理服务（16 个接口），支持热榜聚合、AI 对话、用户配额管理</li>
+            <li>对接 Coze API 实现智能体能力集成，设计多套 Prompt 模板覆盖文案生成、话题分析、爆款拆解等场景，并通过用户变量注入实现个性化输出</li>
+            <li>设计 3 级用户配额体系（匿名/免费/Pro），支持每日限额自动重置</li>
+            <li>为阿里云客户提供 Token 调用相关技术支持，协助排查模型调用异常</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="entry">
+        <div class="entry-header">
+          <span class="entry-name">上海博特盈信息科技有限公司</span>
+          <span class="entry-date">2024.01 — 2024.03</span>
+        </div>
+        <div class="entry-body">
+          <span class="sub-label">测试实习生</span>
+          <ul>
+            <li>负责功能性测试并撰写错误报告，后期负责测试用例管理和自动化测试</li>
+            <li>熟练运用 Selenium4、Postman、SQL 进行自动化测试与接口验证</li>
+          </ul>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ===== 项目经历 ===== -->
+  <div class="section">
+    <div class="section-title">项目经历</div>
+    <div class="section-inner">
+
+      <div class="entry">
+        <div class="entry-header">
+          <span class="entry-name">热点工坊 · AI 创作助手全栈平台</span>
+          <span class="entry-date">2026.03 — 2026.06</span>
+        </div>
+        <div class="entry-body">
+          <ul>
+            <li>面向自媒体创作者的 AI 工具平台，集成 Coze 智能体、多平台热榜聚合、跨平台内容搜索，覆盖从热点发现到文案生成再到多平台发布的完整创作链路</li>
+            <li>独立完成 7 个功能模块的前端开发（React + TypeScript + TailwindCSS），以及 16 个后端接口的 API 代理服务（Node.js + Upstash Redis），支撑热榜聚合、AI 对话、用户配额管理</li>
+            <li>自实现多源热榜爬取引擎，聚合抖音/小红书/知乎/B站/脉脉 5 平台热门内容，带缓存机制减少重复请求</li>
+            <li>对接 Coze OAuth 2.0 登录体系，实现三级用户配额（匿名/免费/Pro）每日自动重置</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="entry">
+        <div class="entry-header">
+          <span class="entry-name">麦田会客厅 · 企业供需撮合微信小程序</span>
+          <span class="entry-date">2026.03</span>
+        </div>
+        <div class="entry-body">
+          <ul>
+            <li>全栈微信小程序，集成腾讯云 ADP 知识库实现 RAG 智能问答，接入混元大模型与 OCR 名片识别，为企业用户提供 AI 驱动的供需匹配服务</li>
+            <li>完成 94 条企业数据的清洗与向量化，优化 AI 响应速度 48%（47s → 24s），部署 12 个微信云函数</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="entry">
+        <div class="entry-header">
+          <span class="entry-name">网络入侵检测模型研究（硕士课题）</span>
+          <span class="entry-date">2024 — 2025</span>
+        </div>
+        <div class="entry-body">
+          <ul>
+            <li>独立研究并发表 EI 会议论文《Improved Stacked Autoencoder Combined with LSTM-CA for Intrusion Detection Model》（ICAACE 2025）</li>
+            <li>提出改进式堆叠自编码器 + LSTM-CA 时空融合提取模块，解决网络入侵检测中数据冗余与类别不平衡问题</li>
+            <li>采用 LIGHTGBM + 皮尔逊 + HBO 混合特征选择方法，ADASYN 采样与 EQLv2 梯度平衡保证少数类召回率</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="entry">
+        <div class="entry-header">
+          <span class="entry-name">自动化 Agent 服务端</span>
+          <span class="entry-date">2026.04</span>
+        </div>
+        <div class="entry-body">
+          <ul>
+            <li>基于 Python 开发自动化 Agent 服务端，探索浏览器自动化与 AI Agent 结合的业务流程自动化方案</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="entry">
+        <div class="entry-header">
+          <span class="entry-name">微信小程序菜品识别</span>
+          <span class="entry-date">2020.12 — 2021.03</span>
+        </div>
+        <div class="entry-body">
+          <ul>
+            <li>通过 PyTorch 实现卷积神经网络模型训练（Kaggle 猫狗识别数据集），并将模型部署到小程序端</li>
+            <li>独立负责前端开发（WXML/WXSS），实现图片上传、结果展示，使用 TensorFlow.js 完成本地推理</li>
+            <li>通过 Ajax 与后端 API 交互，完成图片上传与识别全流程；获上海市计算机应用能力大赛优胜奖</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="entry">
+        <div class="entry-header">
+          <span class="entry-name">网络分析工具（课业项目）</span>
+          <span class="entry-date">2024</span>
+        </div>
+        <div class="entry-body">
+          <ul>
+            <li>作为小组组长，基于 Qt5 实现 Wireshark 核心功能复现，负责流量解析、树状信息展示及控件设计</li>
+          </ul>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ===== 教育经历 ===== -->
+  <div class="section">
+    <div class="section-title">教育经历</div>
+    <div class="section-inner">
+
+      <div class="edu-item">
+        <div class="edu-header">
+          <span class="school">上海海事大学</span>
+          <span class="degree">硕士 · 计算机科学与技术</span>
+          <span class="date">2023 — 2025</span>
+        </div>
+        <ul class="edu-detail">
+          <li>总绩点 3.74/4.0，专业排名前 20%，两次获二等奖学金</li>
+          <li>主修：计算机网络与通信技术、算法与复杂性、高级操作系统、线性代数与随机过程</li>
+          <li>辅修：云计算与云存储技术、计算机安全与密码学、面向对象技术</li>
+          <li>课余深入前端工程化（Vue/React/TS）及 AI Agent 平台（Coze/Dify）方向实践</li>
+        </ul>
+        <div class="key-point">EI 会议论文（ICAACE 2025）：改进式自编码器与 LSTM-CA 结合的入侵检测模型</div>
+      </div>
+
+      <div class="edu-item">
+        <div class="edu-header">
+          <span class="school">上海立信会计金融学院</span>
+          <span class="degree">本科 · 计算机科学与技术</span>
+          <span class="date">2019 — 2023</span>
+        </div>
+        <ul class="edu-detail">
+          <li>主修 408 课程体系、C/Python/机器学习，总绩点约 3.3，专业前 35%</li>
+          <li>辅修金融特色课程（会计学、ERP 系统、保险学），掌握用友 U8 与金蝶等软件</li>
+          <li>毕业设计：校园快递与跑腿微信小程序，包含完整数据库与云函数功能</li>
+        </ul>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ===== 技能与证书 ===== -->
+  <div class="section">
+    <div class="section-title">技能与证书</div>
+    <div class="section-inner">
+      <div class="skills-grid">
+        <div class="skill-row">
+          <span class="skill-cat">AI / Agent</span>
+          <span class="skill-items">Coze 智能体全流程（Prompt/工作流/知识库/API/OAuth）、Dify 插件、混元大模型</span>
+        </div>
+        <div class="skill-row">
+          <span class="skill-cat">前端</span>
+          <span class="skill-items">React + TypeScript + TailwindCSS、Vue、微信小程序、Qt5</span>
+        </div>
+        <div class="skill-row">
+          <span class="skill-cat">后端 / 云服务</span>
+          <span class="skill-items">Node.js、Python、Vercel Serverless、微信云开发、腾讯云、Upstash Redis</span>
+        </div>
+        <div class="skill-row">
+          <span class="skill-cat">工程化</span>
+          <span class="skill-items">Docker Compose、Git、Vite、TensorFlow.js、PyTorch</span>
+        </div>
+      </div>
+      <div style="margin-top: 8px;">
+        <div class="certs">
+          <span>上海市计算机程序员三级</span>
+          <span>上海市计算机应用能力大赛优胜奖</span>
+          <span>EI 会议论文（ICAACE 2025）</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

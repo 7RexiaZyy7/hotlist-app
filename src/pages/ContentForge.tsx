@@ -46,6 +46,7 @@ export function ContentForge() {
   const [showHistory, setShowHistory] = useState(false);
   const [showAnalysisHistory, setShowAnalysisHistory] = useState(false);
   const [loadingStep, setLoadingStep] = useState(0);
+  const [showAllSaved, setShowAllSaved] = useState(false);
   const [analysisHistory] = useState(() => loadAnalysisHistory());
   const resultsRef = useRef<HTMLDivElement>(null);
 
@@ -492,6 +493,20 @@ ${copiesText}
             )}
           </div>
 
+          {generationHint && (
+            <div className="flex items-center gap-2 mb-2 px-2.5 py-1.5 rounded-md bg-accent-subtle border border-accent">
+              <Lightbulb className="w-3.5 h-3.5 text-accent shrink-0" />
+              <span className="text-body-sm text-accent flex-1 truncate">灵感方向：{generationHint}</span>
+              <button
+                onClick={clearGenerationHint}
+                className="shrink-0 p-0.5 rounded text-accent hover:bg-accent/20 transition-colors"
+                title="清除灵感方向"
+              >
+                <X className="w-3 h-3" />
+              </button>
+            </div>
+          )}
+
           {inspirationError && (
             <div className="text-caption text-red mb-2">{inspirationError}</div>
           )}
@@ -544,31 +559,57 @@ ${copiesText}
                 <span className="text-caption text-text-tertiary">{savedCopies.length}/50</span>
               </div>
               <div className="grid gap-1.5">
-                {savedCopies.slice(0, 5).map((item, i) => (
-                  <div
-                    key={i}
-                    className="flex items-start gap-2 p-2.5 rounded-md border border-border bg-bg-surface"
-                  >
-                    <div className="flex-1 min-w-0">
-                      <p className="text-body-sm text-text-secondary leading-relaxed line-clamp-2">{item.content}</p>
-                      <div className="flex items-center gap-2 mt-1">
-                        <span className="text-caption text-accent">{item.angle}</span>
-                        <span className="text-caption text-text-tertiary">{item.topic}</span>
+                {(() => {
+                  const display = showAllSaved ? savedCopies : savedCopies.slice(0, 5);
+                  if (!showAllSaved) return display.map((item, i) => (
+                    <div key={i} className="flex items-start gap-2 p-2.5 rounded-md border border-border bg-bg-surface">
+                      <div className="flex-1 min-w-0">
+                        <p className="text-body-sm text-text-secondary leading-relaxed line-clamp-2">{item.content}</p>
+                        <div className="flex items-center gap-2 mt-1">
+                          <span className="text-caption text-accent">{item.angle}</span>
+                          <span className="text-caption text-text-tertiary">{item.topic}</span>
+                        </div>
+                      </div>
+                      <button onClick={() => unsaveCopy(item.content)} className="shrink-0 p-1 rounded text-text-tertiary hover:text-red transition-colors" title="取消收藏">
+                        <X className="w-3 h-3" />
+                      </button>
+                    </div>
+                  ));
+                  const grouped: Record<string, typeof savedCopies> = {};
+                  savedCopies.forEach(item => {
+                    (grouped[item.topic] ||= []).push(item);
+                  });
+                  return Object.entries(grouped).map(([topic, items]) => (
+                    <div key={topic}>
+                      <div className="flex items-center gap-1.5 mb-1 mt-2 first:mt-0">
+                        <span className="text-caption font-medium text-text-tertiary">{topic}</span>
+                        <span className="text-caption text-text-tertiary/50">({items.length})</span>
+                      </div>
+                      <div className="grid gap-1.5">
+                        {items.map((item, i) => (
+                          <div key={i} className="flex items-start gap-2 p-2.5 rounded-md border border-border bg-bg-surface">
+                            <div className="flex-1 min-w-0">
+                              <p className="text-body-sm text-text-secondary leading-relaxed line-clamp-2">{item.content}</p>
+                              <div className="flex items-center gap-2 mt-1">
+                                <span className="text-caption text-accent">{item.angle}</span>
+                              </div>
+                            </div>
+                            <button onClick={() => unsaveCopy(item.content)} className="shrink-0 p-1 rounded text-text-tertiary hover:text-red transition-colors" title="取消收藏">
+                              <X className="w-3 h-3" />
+                            </button>
+                          </div>
+                        ))}
                       </div>
                     </div>
-                    <button
-                      onClick={() => unsaveCopy(item.content)}
-                      className="shrink-0 p-1 rounded text-text-tertiary hover:text-red transition-colors"
-                      title="取消收藏"
-                    >
-                      <X className="w-3 h-3" />
-                    </button>
-                  </div>
-                ))}
+                  ));
+                })()}
               </div>
               {savedCopies.length > 5 && (
-                <button className="mt-2 text-caption text-accent hover:text-accent-hover transition-colors flex items-center gap-1">
-                  查看全部 <ChevronDown className="w-3 h-3" />
+                <button
+                  onClick={() => setShowAllSaved(!showAllSaved)}
+                  className="mt-2 text-caption text-accent hover:text-accent-hover transition-colors flex items-center gap-1"
+                >
+                  {showAllSaved ? '收起' : `查看全部 (${savedCopies.length})`} <ChevronDown className={clsx('w-3 h-3 transition-transform', showAllSaved && 'rotate-180')} />
                 </button>
               )}
             </div>

@@ -79,7 +79,7 @@ export default function QuotaModal({ quota, onClose, onLogin }: Props) {
               className="h-full rounded-full transition-all duration-500"
               style={{
                 width: `${quota.limit === 9999 ? 5 : Math.min(100, (quota.used / quota.limit) * 100)}%`,
-                backgroundColor: quota.remaining <= 2 ? '#ef4444' : quota.remaining <= 5 ? '#f59e0b' : '#a855f7',
+                backgroundColor: quota.remaining <= 2 ? '#ef4444' : quota.remaining <= 5 ? '#f59e0b' : '#e07832',
               }}
             />
           </div>

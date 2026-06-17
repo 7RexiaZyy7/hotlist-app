@@ -40,7 +40,7 @@ const NICHES: { pattern: string; label: string; color: string }[] = [
   { pattern: '时尚|穿搭|美妆|护肤|发型|奢侈品|变美|OOTD|口红|眼影|精华|面霜|防晒|显瘦', label: '时尚美妆', color: '#d946ef' },
   { pattern: '法律|政治|政策|民生|社会|新闻|热点|时事|特朗普|美国|中国|日本|战争|冲突|外交|改革|罚款|维权', label: '社会时事', color: '#6b7280' },
   { pattern: '宠物|猫|狗|动物|萌宠|猫咪|狗狗|宠物', label: '萌宠生活', color: '#f472b6' },
-  { pattern: '游戏|电竞|LOL|王者|原神|主机|Steam|switch|PS5|Xbox|手游|PC|DLC|皮肤|副本|职业赛', label: '游戏电竞', color: '#a855f7' },
+  { pattern: '游戏|电竞|LOL|王者|原神|主机|Steam|switch|PS5|Xbox|手游|PC|DLC|皮肤|副本|职业赛', label: '游戏电竞', color: '#e5a93c' },
 ];
 
 function detectNiche(topic: string): { label: string; color: string } {
@@ -253,10 +253,10 @@ export function HotRadar() {
       {/* Header */}
       <div className="mb-5">
         <div className="flex items-center gap-2 mb-1">
-          <div className="w-2 h-2 rounded-full bg-[#6366f1]" />
-          <h2 className="text-[1.375rem] font-semibold text-[#ededef] tracking-tight">热点雷达</h2>
+          <div className="w-2 h-2 rounded-full bg-[#e07832]" />
+          <h2 className="text-[1.375rem] font-semibold text-[#f0ede8] tracking-tight">热点雷达</h2>
         </div>
-        <p className="text-sm text-[#a1a1aa] ml-4">发现热点，创作爆款</p>
+        <p className="text-sm text-[#9b968f] ml-4">发现热点，创作爆款</p>
       </div>
 
       {/* Top bar: platform pills + actions */}
@@ -286,7 +286,7 @@ export function HotRadar() {
             >
               <BookmarkCheck className="w-3.5 h-3.5" />
               收藏池
-              <span className="ml-0.5 text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-[#6366f1] text-white">
+              <span className="ml-0.5 text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-[#e07832] text-white">
                 {savedTopics.length}
               </span>
             </button>
@@ -334,10 +334,10 @@ export function HotRadar() {
 
       {/* 3 步工作流引导卡（可折叠，可从 TopBar Settings 重新显示） */}
       {showHotRadarGuide && (
-        <div className="card p-4 mb-5 border-l-2 border-l-[#6366f1]">
+        <div className="card p-4 mb-5 border-l-2 border-l-[#e07832]">
           <div className="flex items-start justify-between gap-3 mb-3">
             <div className="flex items-center gap-2">
-              <Sparkles className="w-4 h-4 text-[#6366f1] shrink-0" />
+              <Sparkles className="w-4 h-4 text-[#e07832] shrink-0" />
               <span className="text-body-sm font-medium text-text-primary">3 步找到爆款选题</span>
             </div>
             <button
@@ -372,14 +372,14 @@ export function HotRadar() {
         </div>
       ) : error ? (
         <EmptyState
-          icon={<RefreshCw className="w-8 h-8 text-[#6366f1]" />}
+          icon={<RefreshCw className="w-8 h-8 text-[#e07832]" />}
           title="获取热榜失败"
           description={error}
           action={{ label: '重新加载', onClick: handleRefresh }}
         />
       ) : hotList.length === 0 ? (
         <EmptyState
-          icon={<Flame className="w-8 h-8 text-[#6366f1]" />}
+          icon={<Flame className="w-8 h-8 text-[#e07832]" />}
           title="暂无热榜数据"
           description="当前平台暂无热榜数据，试试切换平台"
           action={{ label: '刷新热榜', onClick: handleRefresh }}
@@ -389,9 +389,9 @@ export function HotRadar() {
           {/* List header */}
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">
-              <TrendingUp className="w-4 h-4 text-[#6366f1]" />
-              <span className="text-sm text-[#a1a1aa]">
-                实时热点 · <span className="text-[#ededef] font-medium">{selectedNiche ? filteredList.length : hotList.length}</span> 条
+              <TrendingUp className="w-4 h-4 text-[#e07832]" />
+              <span className="text-sm text-[#9b968f]">
+                实时热点 · <span className="text-[#f0ede8] font-medium">{selectedNiche ? filteredList.length : hotList.length}</span> 条
                 {selectedNiche && (
                   <span className="text-text-tertiary ml-1">(赛道: {selectedNiche})</span>
                 )}
@@ -414,7 +414,7 @@ export function HotRadar() {
                   >
                     {/* Rank */}
                     {isCompact ? (
-                      <span className="text-xs text-[#6b6b73] min-w-[18px] text-right shrink-0 tabular-nums">
+                      <span className="text-xs text-[#6b6863] min-w-[18px] text-right shrink-0 tabular-nums">
                         {index + 1}
                       </span>
                     ) : (
@@ -433,8 +433,8 @@ export function HotRadar() {
                         <span className={clsx(
                           'truncate text-left flex-1 min-w-0',
                           isCompact
-                            ? 'text-sm text-[#ededef]'
-                            : 'text-sm font-medium text-[#ededef] group-hover:text-[#6366f1] transition-colors'
+                            ? 'text-sm text-[#f0ede8]'
+                            : 'text-sm font-medium text-[#f0ede8] group-hover:text-[#e07832] transition-colors'
                         )}>
                           {item.title}
                         </span>
@@ -445,10 +445,10 @@ export function HotRadar() {
                             className={clsx(
                               'flex items-center gap-1 px-2 py-1 rounded-md text-xs transition-colors',
                               isAnalyzing && !inlineAnalysis?.isLoading
-                                ? 'text-[#6366f1] bg-[#6366f1]/10'
+                                ? 'text-[#e07832] bg-[#e07832]/10'
                                 : isCompact
-                                  ? 'text-[#6b6b73] hover:text-[#a1a1aa] hover:bg-[#252528]'
-                                  : 'text-[#6b6b73] hover:text-[#a1a1aa] hover:bg-[#252528]'
+                                  ? 'text-[#6b6863] hover:text-[#9b968f] hover:bg-[#232220]'
+                                  : 'text-[#6b6863] hover:text-[#9b968f] hover:bg-[#232220]'
                             )}
                             title="AI 分析话题"
                           >
@@ -467,8 +467,8 @@ export function HotRadar() {
                               className={clsx(
                                 'flex items-center gap-1 px-2 py-1 rounded-md text-xs transition-colors',
                                 isCompact
-                                  ? 'text-[#6b6b73] hover:text-[#a1a1aa] hover:bg-[#252528]'
-                                  : 'text-[#6b6b73] hover:text-[#a1a1aa] hover:bg-[#252528]'
+                                  ? 'text-[#6b6863] hover:text-[#9b968f] hover:bg-[#232220]'
+                                  : 'text-[#6b6863] hover:text-[#9b968f] hover:bg-[#232220]'
                               )}
                               title="查看原文"
                             >
@@ -481,20 +481,20 @@ export function HotRadar() {
 
                       {/* Metadata row (compact: only heat inline) */}
                       {isCompact ? (
-                        <span className="text-xs text-[#6b6b73] ml-1">
+                        <span className="text-xs text-[#6b6863] ml-1">
                           {item.heatScore > 0 ? formatHeat(item.heatScore) : '-'}
                         </span>
                       ) : (
                         <div className="flex items-center gap-3 mt-1.5">
-                          <div className="flex items-center gap-1 text-xs text-[#6b6b73]">
-                            <Flame className="w-3 h-3 text-[#6366f1]" />
-                            <span className={item.heatScore > 0 ? 'text-[#a1a1aa]' : ''}>
+                          <div className="flex items-center gap-1 text-xs text-[#6b6863]">
+                            <Flame className="w-3 h-3 text-[#e07832]" />
+                            <span className={item.heatScore > 0 ? 'text-[#9b968f]' : ''}>
                               {item.heatScore > 0 ? formatHeat(item.heatScore) : '-'}
                             </span>
                           </div>
-                          <div className="flex items-center gap-1 text-xs text-[#6b6b73]">
+                          <div className="flex items-center gap-1 text-xs text-[#6b6863]">
                             <PlatformIcon platform={item.platform} />
-                            <span className="text-[#a1a1aa]">
+                            <span className="text-[#9b968f]">
                               {platforms.find((p) => p.id === item.platform)?.label || item.platform}
                             </span>
                           </div>
@@ -506,7 +506,7 @@ export function HotRadar() {
                               {n.label}
                             </span>
                           ); })()}
-                          <span className="text-xs text-[#6b6b73]">刚刚</span>
+                          <span className="text-xs text-[#6b6863]">刚刚</span>
                         </div>
                       )}
 
@@ -518,7 +518,7 @@ export function HotRadar() {
                             .map((angle, i) => (
                               <span
                                 key={i}
-                                className="text-[11px] px-2 py-0.5 rounded-sm bg-[#1c1c1f] border border-[#2a2a2e] text-[#6b6b73]"
+                                className="text-[11px] px-2 py-0.5 rounded-sm bg-[#1c1b19] border border-[#2c2b29] text-[#6b6863]"
                               >
                                 {angle}
                               </span>
@@ -545,15 +545,15 @@ export function HotRadar() {
                     <div className="mt-2">
                       {inlineAnalysis!.isLoading ? (
                         <div className="card p-4 flex items-center gap-3">
-                          <RefreshCw className="w-4 h-4 animate-spin text-[#6366f1]" />
-                          <span className="text-sm text-[#a1a1aa]">AI 分析中...</span>
+                          <RefreshCw className="w-4 h-4 animate-spin text-[#e07832]" />
+                          <span className="text-sm text-[#9b968f]">AI 分析中...</span>
                         </div>
                       ) : (
                         <div>
                           <div className="flex justify-end mb-1">
                             <button
                               onClick={() => setInlineAnalysis(null)}
-                              className="flex items-center gap-1 px-2 py-1 rounded-md text-xs text-[#6b6b73] hover:text-[#ededef] hover:bg-[#252528] transition-colors"
+                              className="flex items-center gap-1 px-2 py-1 rounded-md text-xs text-[#6b6863] hover:text-[#f0ede8] hover:bg-[#232220] transition-colors"
                             >
                               <X className="w-3 h-3" />
                               收起分析
@@ -581,7 +581,7 @@ export function HotRadar() {
             <div className="flex justify-center mt-5">
               <button
                 onClick={() => setShowCount((c) => c + 20)}
-                className="flex items-center gap-2 px-6 py-2.5 rounded-lg border border-[#2a2a2e] text-sm text-[#a1a1aa] hover:bg-[#1c1c1f] hover:text-[#ededef] hover:border-[#3a3a3e] transition-all duration-120"
+                className="flex items-center gap-2 px-6 py-2.5 rounded-lg border border-[#2c2b29] text-sm text-[#9b968f] hover:bg-[#1c1b19] hover:text-[#f0ede8] hover:border-[#3a3937] transition-all duration-120"
               >
                 <ChevronDown className="w-4 h-4" />
                 加载更多 ({hotList.length - showCount}条)
@@ -598,13 +598,13 @@ export function HotRadar() {
             {/* Modal header */}
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-2">
-                <Bookmark className="w-4 h-4 text-[#6366f1]" />
-                <h3 className="text-sm font-semibold text-[#ededef]">收藏池</h3>
-                <span className="text-xs text-[#6b6b73] ml-1">({savedTopics.length})</span>
+                <Bookmark className="w-4 h-4 text-[#e07832]" />
+                <h3 className="text-sm font-semibold text-[#f0ede8]">收藏池</h3>
+                <span className="text-xs text-[#6b6863] ml-1">({savedTopics.length})</span>
               </div>
               <button
                 onClick={() => setShowPoolModal(false)}
-                className="w-7 h-7 rounded-lg flex items-center justify-center text-[#6b6b73] hover:text-[#ededef] hover:bg-[#1c1c1f] transition-all"
+                className="w-7 h-7 rounded-lg flex items-center justify-center text-[#6b6863] hover:text-[#f0ede8] hover:bg-[#1c1b19] transition-all"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -615,15 +615,15 @@ export function HotRadar() {
               {savedTopics.map((item, i) => (
                 <div
                   key={i}
-                  className="flex items-center gap-2 px-3 py-2.5 rounded-lg bg-[#1c1c1f] border border-[#2a2a2e]"
+                  className="flex items-center gap-2 px-3 py-2.5 rounded-lg bg-[#1c1b19] border border-[#2c2b29]"
                 >
-                  <span className="text-sm text-[#ededef] flex-1 truncate">{item.title}</span>
-                  <span className="text-xs text-[#6b6b73] shrink-0">
+                  <span className="text-sm text-[#f0ede8] flex-1 truncate">{item.title}</span>
+                  <span className="text-xs text-[#6b6863] shrink-0">
                     {platforms.find((p) => p.id === item.platform)?.label || item.platform}
                   </span>
                   <button
                     onClick={() => toggleSaveTopic(item)}
-                    className="w-6 h-6 rounded-md flex items-center justify-center text-[#6b6b73] hover:text-[#ef4444] hover:bg-[#252528] transition-all shrink-0"
+                    className="w-6 h-6 rounded-md flex items-center justify-center text-[#6b6863] hover:text-[#ef4444] hover:bg-[#232220] transition-all shrink-0"
                     title="移除"
                   >
                     <X className="w-3.5 h-3.5" />
@@ -640,7 +640,7 @@ export function HotRadar() {
                 showToast(`已选择 ${savedTopics.length} 个话题，即将开始分析`, 'info');
                 setActivePage('explore');
               }}
-              className="btn-indigo w-full"
+              className="btn-accent w-full"
             >
               <Send className="w-4 h-4" />
               提交分析 ({savedTopics.length})

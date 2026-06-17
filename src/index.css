@@ -11,47 +11,47 @@
 
   body {
     font-family: 'Inter', 'Noto Sans SC', 'PingFang SC', 'Microsoft YaHei', ui-sans-serif, system-ui, -apple-system, sans-serif;
-    background: #0f0f10;
-    color: #f0f0f0;
+    background: #111110;
+    color: #f0ede8;
     min-height: 100vh;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
 
   ::selection {
-    background: rgba(168, 85, 247, 0.3);
+    background: rgba(224, 120, 50, 0.25);
     color: #fff;
   }
 
   :focus-visible {
-    outline: 2px solid #a855f7;
+    outline: 2px solid #e07832;
     outline-offset: 2px;
   }
 }
 
 @layer components {
   .card {
-    background: #19191a;
-    border: 1px solid #2e2e30;
+    background: #1a1918;
+    border: 1px solid #2c2b29;
     border-radius: 12px;
     transition: background 120ms ease;
   }
 
   .card:hover {
-    background: #232325;
+    background: #232220;
   }
 
   .glass-card {
-    background: rgba(25, 25, 26, 0.7);
+    background: rgba(26, 25, 24, 0.7);
     backdrop-filter: blur(12px);
-    border: 1px solid #2e2e30;
+    border: 1px solid #2c2b29;
     border-radius: 12px;
     transition: all 200ms ease;
   }
 
   .glass-card:hover {
-    background: rgba(35, 35, 37, 0.8);
-    border-color: rgba(168, 85, 247, 0.3);
+    background: rgba(35, 34, 32, 0.8);
+    border-color: rgba(224, 120, 50, 0.25);
   }
 
   .glow-button {
@@ -59,7 +59,7 @@
     align-items: center;
     justify-content: center;
     gap: 8px;
-    background: linear-gradient(135deg, #a855f7 0%, #7c3aed 100%);
+    background: #e07832;
     color: #fff;
     border-radius: 12px;
     padding: 10px 20px;
@@ -79,7 +79,7 @@
     left: -100%;
     width: 100%;
     height: 100%;
-    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.15), transparent);
     transition: left 500ms;
   }
 
@@ -88,7 +88,8 @@
   }
 
   .glow-button:hover {
-    box-shadow: 0 0 30px rgba(168, 85, 247, 0.5);
+    background: #e88a48;
+    box-shadow: 0 0 30px rgba(224, 120, 50, 0.4);
     transform: scale(1.02);
   }
 
@@ -104,7 +105,7 @@
   }
 
   .gradient-text {
-    background: linear-gradient(135deg, #a855f7 0%, #06b6d4 100%);
+    background: linear-gradient(135deg, #e07832 0%, #e5a93c 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
@@ -122,7 +123,7 @@
     left: 0;
     width: 4px;
     height: 100%;
-    background: linear-gradient(180deg, #a855f7 0%, #f97316 100%);
+    background: linear-gradient(180deg, #e07832 0%, #e5a93c 100%);
     border-radius: 2px 0 0 2px;
   }
 
@@ -137,21 +138,21 @@
   }
 
   .tier-badge.pro {
-    background: rgba(168, 85, 247, 0.15);
-    color: #a855f7;
-    border: 1px solid rgba(168, 85, 247, 0.3);
+    background: rgba(224, 120, 50, 0.12);
+    color: #e07832;
+    border: 1px solid rgba(224, 120, 50, 0.25);
   }
 
   .tier-badge.free {
-    background: rgba(249, 115, 22, 0.1);
-    color: #f97316;
-    border: 1px solid rgba(249, 115, 22, 0.3);
+    background: rgba(92, 177, 118, 0.1);
+    color: #5cb176;
+    border: 1px solid rgba(92, 177, 118, 0.25);
   }
 
   .tier-badge.anon {
-    background: rgba(148, 163, 184, 0.1);
-    color: #9b9b9b;
-    border: 1px solid rgba(148, 163, 184, 0.3);
+    background: rgba(155, 150, 143, 0.1);
+    color: #9b968f;
+    border: 1px solid rgba(155, 150, 143, 0.25);
   }
 
   .interactive-row {
@@ -164,7 +165,7 @@
   }
 
   .interactive-row:hover {
-    background: #232325;
+    background: #232220;
   }
 
   .btn-primary {
@@ -172,7 +173,7 @@
     align-items: center;
     justify-content: center;
     gap: 8px;
-    background: #a855f7;
+    background: #e07832;
     color: #fff;
     border-radius: 8px;
     padding: 10px 20px;
@@ -184,7 +185,7 @@
   }
 
   .btn-primary:hover {
-    background: #c084fc;
+    background: #e88a48;
   }
 
   .btn-primary:disabled {
@@ -198,8 +199,8 @@
     justify-content: center;
     gap: 8px;
     background: transparent;
-    color: #f0f0f0;
-    border: 1px solid #2e2e30;
+    color: #f0ede8;
+    border: 1px solid #2c2b29;
     border-radius: 8px;
     padding: 9px 20px;
     font-size: 0.9375rem;
@@ -209,27 +210,27 @@
   }
 
   .btn-ghost:hover {
-    background: #232325;
+    background: #232220;
   }
 
   .input-field {
-    background: #19191a;
-    border: 1px solid #2e2e30;
+    background: #1a1918;
+    border: 1px solid #2c2b29;
     border-radius: 16px;
     padding: 12px 16px;
     font-size: 0.9375rem;
-    color: #f0f0f0;
+    color: #f0ede8;
     outline: none;
     transition: border-color 120ms ease;
     width: 100%;
   }
 
   .input-field::placeholder {
-    color: #5c5c5e;
+    color: #5c5850;
   }
 
   .input-field:focus {
-    border-color: #a855f7;
+    border-color: #e07832;
   }
 
   .tab {
@@ -239,7 +240,7 @@
     padding: 8px 16px;
     font-size: 0.9375rem;
     font-weight: 500;
-    color: #9b9b9b;
+    color: #9b968f;
     background: transparent;
     border: none;
     border-bottom: 2px solid transparent;
@@ -248,28 +249,28 @@
   }
 
   .tab:hover {
-    color: #f0f0f0;
+    color: #f0ede8;
   }
 
   .tab.active {
-    color: #f0f0f0;
-    border-bottom-color: #a855f7;
+    color: #f0ede8;
+    border-bottom-color: #e07832;
   }
 
   .badge {
     display: inline-flex;
     align-items: center;
     gap: 4px;
-    background: #19191a;
-    border: 1px solid #2e2e30;
+    background: #1a1918;
+    border: 1px solid #2c2b29;
     border-radius: 4px;
     padding: 3px 8px;
     font-size: 0.6875rem;
-    color: #9b9b9b;
+    color: #9b968f;
   }
 
   .skeleton {
-    background: linear-gradient(90deg, #232325 25%, #19191a 50%, #232325 75%);
+    background: linear-gradient(90deg, #232220 25%, #1a1918 50%, #232220 75%);
     background-size: 400% 100%;
     animation: skeleton-shimmer 1.4s ease infinite;
     border-radius: 4px;
@@ -295,7 +296,7 @@
 }
 
 @layer components {
-  /* ----- Pill tabs (replaces .tab) ----- */
+  /* ----- Pill tabs ----- */
   .pill-tab {
     display: inline-flex;
     align-items: center;
@@ -304,22 +305,22 @@
     border-radius: 9999px;
     font-size: 0.8125rem;
     font-weight: 500;
-    color: #a1a1aa;
+    color: #9b968f;
     background: transparent;
-    border: 1px solid #2a2a2e;
+    border: 1px solid #2c2b29;
     cursor: pointer;
     transition: all 120ms ease;
     white-space: nowrap;
   }
   .pill-tab:hover {
-    color: #ededef;
-    border-color: #3a3a3e;
-    background: #1c1c1f;
+    color: #f0ede8;
+    border-color: #3a3937;
+    background: #1c1b19;
   }
   .pill-tab.active {
     color: #fff;
-    background: #6366f1;
-    border-color: #6366f1;
+    background: #e07832;
+    border-color: #e07832;
   }
   .pill-tab:disabled {
     opacity: 0.5;
@@ -332,15 +333,15 @@
     align-items: flex-start;
     gap: 12px;
     padding: 12px 16px;
-    background: #141416;
-    border: 1px solid #2a2a2e;
+    background: #1a1918;
+    border: 1px solid #2c2b29;
     border-radius: 10px;
     transition: all 120ms ease;
     cursor: pointer;
   }
   .hot-card:hover {
-    background: #1c1c1f;
-    border-color: #3a3a3e;
+    background: #232220;
+    border-color: #3a3937;
   }
   .hot-card.compact {
     gap: 10px;
@@ -348,8 +349,8 @@
     align-items: center;
   }
   .hot-card.compact:hover {
-    background: #1c1c1f;
-    border-color: #3a3a3e;
+    background: #232220;
+    border-color: #3a3937;
   }
 
   /* ----- Rank badge ----- */
@@ -362,14 +363,14 @@
     border-radius: 6px;
     font-size: 0.8125rem;
     font-weight: 600;
-    color: #a1a1aa;
-    background: #1c1c1f;
+    color: #9b968f;
+    background: #1c1b19;
     flex-shrink: 0;
     margin-top: 2px;
   }
   .rank-badge.top {
     color: #fff;
-    background: #6366f1;
+    background: #e07832;
   }
 
   /* ----- Save button ----- */
@@ -382,21 +383,21 @@
     border-radius: 8px;
     background: transparent;
     border: none;
-    color: #6b6b73;
+    color: #6b6863;
     cursor: pointer;
     transition: all 120ms ease;
     flex-shrink: 0;
   }
   .save-btn:hover {
-    background: rgba(99, 102, 241, 0.1);
-    color: #6366f1;
+    background: rgba(224, 120, 50, 0.1);
+    color: #e07832;
   }
   .save-btn.saved {
-    background: #6366f1;
+    background: #e07832;
     color: #fff;
   }
   .save-btn.saved:hover {
-    background: #818cf8;
+    background: #e88a48;
   }
 
   /* ----- Modal ----- */
@@ -411,8 +412,8 @@
     animation: fadeIn 0.15s ease-out;
   }
   .modal-card {
-    background: #141416;
-    border: 1px solid #2a2a2e;
+    background: #1a1918;
+    border: 1px solid #2c2b29;
     border-radius: 14px;
     padding: 20px;
     width: calc(100% - 32px);
@@ -421,13 +422,13 @@
     animation: slideUp 0.2s ease-out;
   }
 
-  /* ----- Indigo button (for HotRadar) ----- */
-  .btn-indigo {
+  /* ----- Accent button ----- */
+  .btn-accent {
     display: inline-flex;
     align-items: center;
     justify-content: center;
     gap: 8px;
-    background: #6366f1;
+    background: #e07832;
     color: #fff;
     border-radius: 8px;
     padding: 10px 20px;
@@ -437,10 +438,10 @@
     cursor: pointer;
     transition: background 120ms ease;
   }
-  .btn-indigo:hover {
-    background: #818cf8;
+  .btn-accent:hover {
+    background: #e88a48;
   }
-  .btn-indigo:disabled {
+  .btn-accent:disabled {
     opacity: 0.4;
     cursor: not-allowed;
   }
@@ -452,13 +453,13 @@
     justify-content: space-between;
     gap: 12px;
     padding: 10px 14px;
-    background: rgba(99, 102, 241, 0.08);
-    border: 1px solid rgba(99, 102, 241, 0.2);
+    background: rgba(224, 120, 50, 0.06);
+    border: 1px solid rgba(224, 120, 50, 0.15);
     border-radius: 10px;
   }
   .guide-banner span {
     font-size: 0.8125rem;
-    color: #a1a1aa;
+    color: #9b968f;
     line-height: 1.5;
   }
 }

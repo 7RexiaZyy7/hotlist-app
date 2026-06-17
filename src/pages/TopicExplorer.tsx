@@ -45,6 +45,17 @@ export function TopicExplorer() {
       setSelectedTopic(''); // consume so it doesn't re-trigger
     }
   }, []); // run once on mount
+
+  // Auto-trigger analysis from HotRadar "Submit Analysis"
+  const autoAnalyze = useAppStore((s) => s.autoAnalyze);
+  const setAutoAnalyze = useAppStore((s) => s.setAutoAnalyze);
+  useEffect(() => {
+    if (autoAnalyze && savedTopics.length > 0) {
+      setAutoAnalyze(false);
+      handleAnalyzeSaved();
+    }
+  }, [autoAnalyze]);
+
   const [isSearching, setIsSearching] = useState(false);
   const [results, setResults] = useState<any[]>([]);
   const [searched, setSearched] = useState(false);

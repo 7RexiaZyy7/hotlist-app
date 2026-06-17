@@ -29,6 +29,7 @@ interface SearchItem {
 export function ContentSearch() {
   const initialQuery = useAppStore((s) => s.mobileSearchQuery);
   const clearMobileQuery = useAppStore((s) => s.setMobileSearchQuery);
+  const showToast = useAppStore((s) => s.showToast);
   const [platform, setPlatform] = useState<Platform>('zhihu');
   const [keyword, setKeyword] = useState(initialQuery || '');
   const [results, setResults] = useState<SearchItem[]>([]);
@@ -115,6 +116,7 @@ export function ContentSearch() {
       }
     } catch (e: any) {
       setResults([]);
+      showToast('搜索失败，请稍后重试', 'error');
     }
     setIsLoading(false);
   };

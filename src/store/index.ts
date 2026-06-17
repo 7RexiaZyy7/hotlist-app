@@ -106,6 +106,8 @@ interface AppState {
   toggleSaveTopic: (item: HotItem) => void;
   isTopicSaved: (title: string) => boolean;
   clearSavedTopics: () => void;
+  autoAnalyze: boolean;
+  setAutoAnalyze: (v: boolean) => void;
 
   selectedTopic: string;
   selectedAngles: string[];
@@ -215,6 +217,8 @@ export const useAppStore = create<AppState>()((set) => ({
     persistSavedTopics([]);
     set({ savedTopics: [] });
   },
+  autoAnalyze: false,
+  setAutoAnalyze: (v) => set({ autoAnalyze: v }),
 
   selectedTopic: '',
   selectedAngles: [],

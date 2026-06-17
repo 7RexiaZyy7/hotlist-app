@@ -5,7 +5,6 @@ import { HotRadar } from './pages/HotRadar';
 import { TopicExplorer } from './pages/TopicExplorer';
 import { ContentForge } from './pages/ContentForge';
 import { ContentSearch } from './pages/ContentSearch';
-import { ContentPublish } from './pages/ContentPublish';
 import { AuthCallback } from './pages/AuthCallback';
 import { HitAnalyzer } from './pages/HitAnalyzer';
 import { CreatorProfile } from './pages/CreatorProfile';
@@ -20,6 +19,7 @@ const mobileNavItems = [
   { id: 'search', label: '搜索', icon: Globe },
   { id: 'explore', label: '话题', icon: SearchIcon },
   { id: 'forge', label: '文案', icon: Sparkles },
+  { id: 'analyze', label: '解构', icon: Sparkles },
 ];
 
 function Toast() {
@@ -47,7 +47,7 @@ const PATH_PAGE_MAP: Record<string, string> = {
   '/workshop': 'forge',
   '/search': 'search',
   '/explore': 'explore',
-  '/publish': 'publish',
+
   '/analyze': 'analyze',
   '/profile': 'profile',
 };
@@ -71,7 +71,7 @@ function App() {
       search: '内容搜索 - 热点工坊',
       explore: '话题勘探 - 热点工坊',
       forge: '文案工坊 - 热点工坊',
-      publish: '一键发布 - 热点工坊',
+
       analyze: '文案拆解 - 热点工坊',
       profile: '创作者档案 - 热点工坊',
     };
@@ -89,34 +89,29 @@ function App() {
 
   useEffect(() => {
     let mounted = true;
-    const timeout = setTimeout(() => {
-      if (mounted) clearAuth();
-    }, 5000);
 
     (async () => {
       const savedUid = localStorage.getItem('coze_oauth_uid');
       if (savedUid) {
         setAuth(savedUid, '');
-        clearTimeout(timeout);
+        return;
       }
       try {
         const status = await getOAuthStatus();
         if (!mounted) return;
-        clearTimeout(timeout);
         if (status.loggedIn && status.uid) {
           setAuth(status.uid, status.access_token || '');
           setUserId(status.uid);
-        } else if (!savedUid) {
+        } else {
           clearAuth();
         }
       } catch {
         if (!mounted) return;
-        clearTimeout(timeout);
-        if (!savedUid) clearAuth();
+        clearAuth();
       }
     })();
 
-    return () => { mounted = false; clearTimeout(timeout); };
+    return () => { mounted = false; };
   }, [setAuth, clearAuth, setLoadingAuth]);
 
   if (window.location.pathname === '/auth/callback') {
@@ -137,7 +132,6 @@ function App() {
       case 'search': return <ContentSearch />;
       case 'explore': return <TopicExplorer />;
       case 'forge': return <ContentForge />;
-      case 'publish': return <ContentPublish />;
       case 'analyze': return <HitAnalyzer />;
       case 'profile': return <CreatorProfile />;
       default: return <HotRadar />;

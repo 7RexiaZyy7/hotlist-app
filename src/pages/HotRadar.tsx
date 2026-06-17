@@ -636,6 +636,7 @@ export function HotRadar() {
             <button
               onClick={() => {
                 if (savedTopics.length === 0) return;
+                useAppStore.getState().setAutoAnalyze(true);
                 showToast(`已选择 ${savedTopics.length} 个话题，即将开始分析`, 'info');
                 setActivePage('explore');
               }}
